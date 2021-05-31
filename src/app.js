@@ -1,4 +1,4 @@
-import { wdApiRequest } from "./api";
+import { sparqlRequest, wdApiRequest } from "./api";
 import { createTimeSnak, setBaseRevId } from './wikidata';
 import {
 	canExportValue,
@@ -302,22 +302,18 @@ function prepareDialog( $field, propertyId ) {
 				externalId = externalId.toString().replace( /^ID\s/, '' ).replace( /\s/g, '' );
 			}
 			const sparql = 'SELECT * WHERE { ?item wdt:' + propertyId + ' "' + externalId + '" }';
-
-			$.ajax( {
-				url: 'https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent( sparql ),
-				success: function ( data ) {
-					let $label = $( '<code>' ).text( externalId );
-					if ( data.results.bindings.length ) {
-						const url = data.results.bindings[ 0 ].item.value;
-						$label = $( '<span>' ).append( $( '<code>' ).text( externalId ) )
-							.append( $( '<strong>' ).css( { 'color': 'red' } ).text( getI18n( 'already-used-in' ) ) )
-							.append( $( '<a>' ).attr( 'href', url ).attr( 'target', '_blank' ).text( url.replace( /[^Q]*Q/, 'Q' ) ) );
-					}
-					dialog( $field, propertyId, [ {
-						wd: { value: externalId.toString() },
-						label: $label
-					} ], getReference( $content ) );
+			sparqlRequest( sparql ).done( function ( data ) {
+				let $label = $( '<code>' ).text( externalId );
+				if ( data.results.bindings.length ) {
+					const url = data.results.bindings[ 0 ].item.value;
+					$label = $( '<span>' ).append( $( '<code>' ).text( externalId ) )
+						.append( $( '<strong>' ).css( { 'color': 'red' } ).text( getI18n( 'already-used-in' ) ) )
+						.append( $( '<a>' ).attr( 'href', url ).attr( 'target', '_blank' ).text( url.replace( /[^Q]*Q/, 'Q' ) ) );
 				}
+				dialog( $field, propertyId, [ {
+					wd: { value: externalId.toString() },
+					label: $label
+				} ], getReference( $content ) );
 			} );
 			return;
 
@@ -338,7 +334,7 @@ function prepareDialog( $field, propertyId ) {
 			break;
 
 		case 'wikibase-item':
-			values = parseItems( $content, $wrapper, function ( values ) {
+			parseItems( $content, $wrapper, function ( values ) {
 				dialog( $field, propertyId, values, getReference( $content ) );
 			} );
 			return;
@@ -396,61 +392,62 @@ function initContinue() {
 		props: [ 'info', 'claims' ],
 		ids: mw.config.get( 'wgWikibaseItemId' )
 	} ).done( function ( data ) {
-		if ( data.success ) {
-			let claims;
-			for ( const i in data.entities ) {
-				if ( i == -1 ) {
-					return;
-				}
-
-				claims = data.entities[ i ].claims;
-				setBaseRevId( data.entities[ i ].lastrevid );
-				break;
-			}
-			if ( !claims ) {
+		if ( !data.success ) {
+			return;
+		}
+		let claims;
+		for ( const i in data.entities ) {
+			if ( i == -1 ) {
 				return;
 			}
 
-			const $fields = $( '.infobox .no-wikidata' );
-			$fields.each( function () {
-				const $field = $( this );
-				const propertyId = $field.attr( 'data-wikidata-property-id' );
-
-				$field
-					.removeClass( 'no-wikidata' )
-					.off( 'dblclick' );
-				propertyIds.push( propertyId );
-				canExportValue( $field, claims[ propertyId ], function ( hasClaims ) {
-					$field.addClass( 'no-wikidata' );
-					if ( hasClaims === true ) {
-						$field.addClass( 'partial-wikidata' );
-					}
-					$field.on( 'dblclick', clickEvent );
-				} );
-
-				const $fieldQualifiers = $field.closest( 'tr' ).find( '[data-wikidata-qualifier-id]' );
-				$fieldQualifiers.each( function () {
-					propertyIds.push( $( this ).data( 'wikidata-qualifier-id' ) );
-				} );
-			} );
-			mw.util.addCSS( '\
-					.infobox .no-wikidata {\
-						display: block !important;\
-						background: #fdc;\
-						padding: 5px 0;\
-					}\
-					.infobox .no-wikidata.partial-wikidata {\
-						background: #eeb;\
-					}\
-					.infobox .no-wikidata .no-wikidata {\
-						margin: -5px 0;\
-					}\
-				' );
-
-			// TODO: Do not load properties until the window is opened for the first time
-			loadProperties( propertyIds );
+			claims = data.entities[ i ].claims;
+			setBaseRevId( data.entities[ i ].lastrevid );
+			break;
 		}
-	} );
+		if ( !claims ) {
+			return;
+		}
+
+		const $fields = $( '.infobox .no-wikidata' );
+		$fields.each( function () {
+			const $field = $( this );
+			const propertyId = $field.attr( 'data-wikidata-property-id' );
+
+			$field
+				.removeClass( 'no-wikidata' )
+				.off( 'dblclick' );
+			propertyIds.push( propertyId );
+			canExportValue( $field, claims[ propertyId ], function ( hasClaims ) {
+				$field.addClass( 'no-wikidata' );
+				if ( hasClaims === true ) {
+					$field.addClass( 'partial-wikidata' );
+				}
+				$field.on( 'dblclick', clickEvent );
+			} );
+
+			const $fieldQualifiers = $field.closest( 'tr' ).find( '[data-wikidata-qualifier-id]' );
+			$fieldQualifiers.each( function () {
+				propertyIds.push( $( this ).data( 'wikidata-qualifier-id' ) );
+			} );
+		} );
+		mw.util.addCSS( '\
+				.infobox .no-wikidata {\
+					display: block !important;\
+					background: #fdc;\
+					padding: 5px 0;\
+				}\
+				.infobox .no-wikidata.partial-wikidata {\
+					background: #eeb;\
+				}\
+				.infobox .no-wikidata .no-wikidata {\
+					margin: -5px 0;\
+				}\
+			' );
+
+		// TODO: Do not load properties until the window is opened for the first time
+		loadProperties( propertyIds );
+	} )
 }
 
 /**
@@ -469,24 +466,21 @@ export function init() {
 	loadConfig();
 
 	const sparql = 'SELECT ?wiki WHERE { ?wiki wdt:P31/wdt:P279* wd:Q33120876 . ?wiki wdt:P856 ?site . FILTER REGEX(STR(?site), "https://' + location.host + '/") }';
-	$.ajax( {
-		url: 'https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent( sparql ),
-		success: function ( data ) {
-			if ( 0 === data.results.bindings.length ) {
-				return;
-			}
-			// Add current wiki project as "imported from Wikimedia project"
-			const projectId = data.results.bindings[ 0 ].wiki.value.replace( 'http://www.wikidata.org/entity/', '' );
-			setConfig( 'references.P143', [ {
-				property: 'P143',
-				snaktype: 'value',
-				datavalue: {
-					type: 'wikibase-entityid',
-					value: { id: projectId }
-				}
-			} ] );
-
-			initContinue();
+	sparqlRequest( sparql ).done( function ( data ) {
+		if ( 0 === data.results.bindings.length ) {
+			return;
 		}
+		// Add current wiki project as "imported from Wikimedia project"
+		const projectId = data.results.bindings[ 0 ].wiki.value.replace( 'http://www.wikidata.org/entity/', '' );
+		setConfig( 'references.P143', [ {
+			property: 'P143',
+			snaktype: 'value',
+			datavalue: {
+				type: 'wikibase-entityid',
+				value: { id: projectId }
+			}
+		} ] );
+
+		initContinue();
 	} )
 }

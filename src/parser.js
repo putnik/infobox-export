@@ -6,15 +6,12 @@ import { createTimeSnak, getWikidataIds, typesMapping } from "./wikidata";
 import { unique } from "./utils";
 import { apiRequest } from "./api";
 
-const $ = require('jquery');
-const mw = require('mw');
-
 export let alreadyExistingItems = {};
 
 /**
  * Parsing the number and (optionally) the accuracy
  */
-function parseQuantity( text, forceInteger ) {
+export function parseQuantity( text, forceInteger ) {
 	const out = {
 		value: {},
 	};
@@ -70,12 +67,10 @@ function parseQuantity( text, forceInteger ) {
 		out.value.upperBound = interval[ 1 ].replace( /[^0-9.+-]/g, '' );
 		parts = out.value.lowerBound.match( /(\d+)\.(\d+)/ );
 		fractional = parts ? parts[ 2 ].length : 0;
-		out.value.amount = ( ( parseFloat( out.value.upperBound ) +
-			parseFloat( out.value.lowerBound ) ) / 2 )
-			.toFixed( fractional + 1 );
-		out.value.bound = ( ( parseFloat( out.value.upperBound ) -
-			parseFloat( out.value.lowerBound ) ) / 2 )
-			.toFixed( fractional + 1 );
+		const upperBound = parseFloat( out.value.upperBound );
+		const lowerBound = parseFloat( out.value.lowerBound );
+		out.value.amount = ( ( upperBound + lowerBound ) / 2 ).toFixed( fractional + 1 );
+		out.value.bound = ( ( upperBound - lowerBound ) / 2 ).toFixed( fractional + 1 );
 		return out;
 	} else {
 		amount = parseFloat( decimals[ 0 ].replace( /[^0-9.+-]/g, '' ) );
@@ -323,6 +318,7 @@ export function prepareCommonsMedia( $content ) {
 }
 
 export function prepareMonolingualText( $content ) {
+	const mw = require('mw');
 	let values = [];
 	let $items = $content.find( 'span[lang]' );
 	$items.each( function () {
@@ -468,6 +464,7 @@ export function prepareQuantity( $content, propertyId ) {
 }
 
 export function prepareTime( $content ) {
+	const $ = require('jquery');
 	const values = [];
 	const value = createTimeSnak( $content.text().toLowerCase().trim().replace( getConfig( 're-year-postfix' ), '' ),
 		$content[ 0 ].outerHTML.includes( getConfig( 'mark-julian' ) ) );
@@ -550,7 +547,8 @@ export function prepareUrl( $content ) {
 	return values;
 }
 
-function processWbGetItems( valuesObj, callback ) {
+function processWbGetItems( valuesObj, callback, $wrapper ) {
+	const $ = require('jquery');
 	const values = $.map( valuesObj, function ( value ) {
 		return [ value ];
 	} );
@@ -565,6 +563,7 @@ function processWbGetItems( valuesObj, callback ) {
 }
 
 export function parseItems( $content, $wrapper, callback ) {
+	const $ = require('jquery');
 	let titles = [];
 
 	for ( let k = 0; k < getConfig( 'fixed-values' ).length; k++ ) {
@@ -588,7 +587,7 @@ export function parseItems( $content, $wrapper, callback ) {
 			delete value.wd.value.label;
 			delete value.wd.value.description;
 			valuesObj[ fixedValue.item ] = value;
-			processWbGetItems( valuesObj, callback );
+			processWbGetItems( valuesObj, callback, $wrapper );
 			return;
 		}
 	}
@@ -699,10 +698,10 @@ export function parseItems( $content, $wrapper, callback ) {
 				}
 			}
 
-			getWikidataIds( titles, processWbGetItems );
+			getWikidataIds( titles, processWbGetItems, $wrapper );
 		} );
 	} else {
-		getWikidataIds( titles, processWbGetItems );
+		getWikidataIds( titles, processWbGetItems, $wrapper );
 	}
 }
 

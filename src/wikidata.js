@@ -7,6 +7,7 @@ import { errorDialog } from "./ui";
 import { allLanguages, userLanguage } from "./languages";
 import { getMonths, getMonthsGen } from "./months";
 
+const $ = require('jquery');
 const mw = require('mw');
 
 export const typesMapping = {
@@ -178,7 +179,7 @@ export function createTimeSnak( timestamp, forceJulian ) {
 	return result;
 }
 
-export function getWikidataIds( titles, callback ) {
+export function getWikidataIds( titles, callback, $wrapper ) {
 	let languages = titles.map( function ( item ) {
 		return item.language;
 	} );
@@ -198,90 +199,91 @@ export function getWikidataIds( titles, callback ) {
 			return item.label;
 		} )
 	} ).done( function ( data ) {
-		if ( data.success ) {
-			const valuesObj = {};
-			let value;
+		if ( !data.success ) {
+			return;
+		}
+		const valuesObj = {};
+		let value;
 
-			for ( const entityId in data.entities ) {
-				if ( !data.entities.hasOwnProperty( entityId ) || !entityId.match( /^Q/ ) ) {
+		for ( const entityId in data.entities ) {
+			if ( !data.entities.hasOwnProperty( entityId ) || !entityId.match( /^Q/ ) ) {
+				continue;
+			}
+
+			const entity = data.entities[ entityId ];
+			const label = entity.labels[ userLanguage ] || entity.labels.en || entity.labels[ Object.keys( entity.labels )[ 0 ] ] || '';
+			const description = entity.descriptions[ userLanguage ] || entity.descriptions.en || entity.descriptions[ Object.keys( entity.descriptions )[ 0 ] ] || '';
+
+			if ( ( ( ( ( ( ( ( entity || {} ).claims || {} ).P31 || [] )[ 0 ] || {} ).mainsnak || {} ).datavalue || {} ).value || {} ).id === 'Q4167410' ) {
+				continue; // skip disambigs
+			}
+
+			let subclassFound = false;
+			let subclassEntity = null;
+			const subclassPropertyIds = [ 'P17', 'P31', 'P131', 'P279', 'P361' ];
+			for ( const candidateId in data.entities ) {
+				if ( !data.entities.hasOwnProperty( candidateId ) || !candidateId.match( /^Q/ ) || entityId === candidateId ) {
 					continue;
 				}
 
-				const entity = data.entities[ entityId ];
-				const label = entity.labels[ userLanguage ] || entity.labels.en || entity.labels[ Object.keys( entity.labels )[ 0 ] ] || '';
-				const description = entity.descriptions[ userLanguage ] || entity.descriptions.en || entity.descriptions[ Object.keys( entity.descriptions )[ 0 ] ] || '';
-
-				if ( ( ( ( ( ( ( ( entity || {} ).claims || {} ).P31 || [] )[ 0 ] || {} ).mainsnak || {} ).datavalue || {} ).value || {} ).id === 'Q4167410' ) {
-					continue; // skip disambigs
-				}
-
-				let subclassFound = false;
-				let subclassEntity = null;
-				const subclassPropertyIds = [ 'P17', 'P31', 'P131', 'P279', 'P361' ];
-				for ( const candidateId in data.entities ) {
-					if ( !data.entities.hasOwnProperty( candidateId ) || !candidateId.match( /^Q/ ) || entityId === candidateId ) {
-						continue;
-					}
-
-					subclassFound = subclassPropertyIds.find( function ( propertyId ) {
-						const values = ( ( ( data.entities[ candidateId ] || {} ).claims || {} )[ propertyId ] || [] );
-						return values.find( function ( statement ) {
-							const result = ( ( ( statement.mainsnak || {} ).datavalue || {} ).value || {} ).id === entityId;
-							if ( result ) {
-								subclassEntity = data.entities[ candidateId ];
-							}
-							return result;
-						} );
+				subclassFound = subclassPropertyIds.find( function ( propertyId ) {
+					const values = ( ( ( data.entities[ candidateId ] || {} ).claims || {} )[ propertyId ] || [] );
+					return values.find( function ( statement ) {
+						const result = ( ( ( statement.mainsnak || {} ).datavalue || {} ).value || {} ).id === entityId;
+						if ( result ) {
+							subclassEntity = data.entities[ candidateId ];
+						}
+						return result;
 					} );
-
-					if ( subclassFound ) {
-						break;
-					}
-				}
+				} );
 
 				if ( subclassFound ) {
-					if ( subclassEntity ) {
-						const subclassLabel = subclassEntity.labels[ userLanguage ] ||
-							subclassEntity.labels.en ||
-							subclassEntity.labels[ Object.keys( subclassEntity.labels )[ 0 ] ];
-						const text = getI18n( 'more-precise-value' )
-							.replace( '$1', label.value )
-							.replace( '$2', subclassLabel.value );
-						mw.notify( text, {
-							type: 'warn',
-							tag: 'wikidataInfoboxExport-warn-precise'
-						} );
-					}
-					continue; // skip values for which there are more accurate values
+					break;
 				}
-
-				value = {
-					wd: {
-						type: 'wikibase-entityid',
-						value: {
-							id: entityId,
-							label: label ? label.value : label,
-							description: description ? description.value : description
-						}
-					}
-				};
-				if ( label ) {
-					const results = titles.filter( function ( item ) {
-						return item.label.toLowerCase() === label.value.toLowerCase();
-					} );
-					if ( results.length === 1 ) {
-						value.wd.qualifiers = results[ 0 ].qualifiers;
-					}
-				}
-				value.label = formatDataValue( value.wd );
-				delete value.wd.value.label;
-				delete value.wd.value.description;
-				valuesObj[ entityId ] = value;
 			}
 
-			callback( valuesObj );
+			if ( subclassFound ) {
+				if ( subclassEntity ) {
+					const subclassLabel = subclassEntity.labels[ userLanguage ] ||
+						subclassEntity.labels.en ||
+						subclassEntity.labels[ Object.keys( subclassEntity.labels )[ 0 ] ];
+					const text = getI18n( 'more-precise-value' )
+						.replace( '$1', label.value )
+						.replace( '$2', subclassLabel.value );
+					mw.notify( text, {
+						type: 'warn',
+						tag: 'wikidataInfoboxExport-warn-precise'
+					} );
+				}
+				continue; // skip values for which there are more accurate values
+			}
+
+			value = {
+				wd: {
+					type: 'wikibase-entityid',
+					value: {
+						id: entityId,
+						label: label ? label.value : label,
+						description: description ? description.value : description
+					}
+				}
+			};
+			if ( label ) {
+				const results = titles.filter( function ( item ) {
+					return item.label.toLowerCase() === label.value.toLowerCase();
+				} );
+				if ( results.length === 1 ) {
+					value.wd.qualifiers = results[ 0 ].qualifiers;
+				}
+			}
+			value.label = formatDataValue( value.wd );
+			delete value.wd.value.label;
+			delete value.wd.value.description;
+			valuesObj[ entityId ] = value;
 		}
-	} );
+
+		callback( valuesObj, $wrapper );
+	} )
 }
 
 /**
