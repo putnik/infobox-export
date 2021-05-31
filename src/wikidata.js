@@ -1,10 +1,10 @@
 import { getRandomHex, unique } from './utils';
 import { getConfig } from "./config";
-import { apiRequest, getWdApi } from "./api";
+import { getWdApi, wdApiRequest } from "./api";
 import { getI18n } from "./i18n";
 import { formatDataValue } from "./formatter";
 import { errorDialog } from "./ui";
-import { allLanguages, contentLanguage, userLanguage } from "./languages";
+import { allLanguages, userLanguage } from "./languages";
 import { getMonths, getMonthsGen } from "./months";
 
 const mw = require('mw');
@@ -51,7 +51,7 @@ export function claimGuid ( entityId ) {
 }
 
 function guessDateAndPrecision( timestamp ) {
-	let dateParts = timestamp.match( getConfig( 'reCentury' ) );
+	let dateParts = timestamp.match( getConfig( 're-century' ) );
 	let isoDate;
 	if ( dateParts ) {
 		isoDate = new Date( 0 );
@@ -62,7 +62,7 @@ function guessDateAndPrecision( timestamp ) {
 		};
 	}
 
-	dateParts = timestamp.match( getConfig( 'reMonthYear' ) );
+	dateParts = timestamp.match( getConfig( 're-month-year' ) );
 	if ( dateParts ) {
 		isoDate = new Date( Date.UTC( dateParts[ 2 ], getMonths().indexOf( dateParts[ 1 ] ) ) );
 		return {
@@ -71,7 +71,7 @@ function guessDateAndPrecision( timestamp ) {
 		};
 	}
 
-	dateParts = timestamp.match( getConfig( 'reTextDate' ) );
+	dateParts = timestamp.match( getConfig( 're-text-date' ) );
 	if ( dateParts ) {
 		isoDate = new Date( Date.UTC( dateParts[ 3 ], getMonthsGen().indexOf( dateParts[ 2 ] ), dateParts[ 1 ] ) );
 		return {
@@ -80,7 +80,7 @@ function guessDateAndPrecision( timestamp ) {
 		};
 	}
 
-	dateParts = timestamp.match( getConfig( 'reDotDate' ) );
+	dateParts = timestamp.match( getConfig( 're-dot-date' ) );
 	if ( dateParts ) {
 		isoDate = new Date( Date.UTC( dateParts[ 3 ] < 100 ? 1900 + parseInt( dateParts[ 3 ] ) : dateParts[ 3 ], dateParts[ 2 ] - 1, dateParts[ 1 ] ) );
 		return {
@@ -89,7 +89,7 @@ function guessDateAndPrecision( timestamp ) {
 		};
 	}
 
-	dateParts = timestamp.match( getConfig( 'reIsoDate' ) );
+	dateParts = timestamp.match( getConfig( 're-iso-date' ) );
 	if ( dateParts ) {
 		isoDate = new Date( Date.UTC( dateParts[ 1 ] < 100 ? 1900 + parseInt( dateParts[ 1 ] ) : dateParts[ 1 ], dateParts[ 2 ] - 1, dateParts[ 3 ] ) );
 		return {
@@ -98,7 +98,7 @@ function guessDateAndPrecision( timestamp ) {
 		};
 	}
 
-	dateParts = timestamp.match( getConfig( 'reDecade' ) );
+	dateParts = timestamp.match( getConfig( 're-decade' ) );
 	if ( dateParts ) {
 		isoDate = new Date( Date.UTC( dateParts[ 1 ], 0 ) );
 		return {
@@ -107,7 +107,7 @@ function guessDateAndPrecision( timestamp ) {
 		};
 	}
 
-	dateParts = timestamp.match( getConfig( 'reYear' ) );
+	dateParts = timestamp.match( getConfig( 're-year' ) );
 	if ( dateParts ) {
 		isoDate = new Date( Date.UTC( dateParts[ 1 ], 0 ) );
 		return {
@@ -116,11 +116,11 @@ function guessDateAndPrecision( timestamp ) {
 		};
 	}
 
-	if ( timestamp.match( getConfig( 'rePresent' ) ) ) {
+	if ( timestamp.match( getConfig( 're-present' ) ) ) {
 		return 'novalue';
 	}
 
-	if ( timestamp.match( getConfig( 'reUnknown' ) ) ) {
+	if ( timestamp.match( getConfig( 're-unknown' ) ) ) {
 		return 'somevalue';
 	}
 }
@@ -134,18 +134,18 @@ export function createTimeSnak( timestamp, forceJulian ) {
 	}
 	const result = { timezone: 0, before: 0, after: 0 };
 
-	if ( timestamp.match( /\s\([^\)]*\)\s/ ) ) {
+	if ( timestamp.match( /\s\([^)]*\)\s/ ) ) {
 		forceJulian = true;
 	}
-	timestamp = timestamp.replace( /\([^\)]*\)/, '' ).trim();
+	timestamp = timestamp.replace( /\([^)]*\)/, '' ).trim();
 
 	let isBce = false;
-	const bceMatch = timestamp.match( getConfig( 'reBce' ) );
+	const bceMatch = timestamp.match( getConfig( 're-bce' ) );
 	if ( bceMatch ) {
 		isBce = true;
 		timestamp = timestamp.replace( bceMatch[ 0 ], '' ).trim();
 	} else {
-		const ceMatch = timestamp.match( getConfig( 'reCe' ) );
+		const ceMatch = timestamp.match( getConfig( 're-ce' ) );
 		if ( ceMatch ) {
 			timestamp = timestamp.replace( ceMatch[ 0 ], '' ).trim();
 		}
@@ -189,7 +189,7 @@ export function getWikidataIds( titles, callback ) {
 		return item.project;
 	} );
 
-	apiRequest( {
+	wdApiRequest( {
 		action: 'wbgetentities',
 		sites: sites,
 		languages: languages,

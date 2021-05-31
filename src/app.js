@@ -50,8 +50,8 @@ function getReference( $field ) {
 				};
 
 				// P813
-				if ( getConfig( 'markChecked' ) !== '' ) {
-					const $accessed = $externalLinks.parent().find( 'small:contains("' + getConfig( 'markChecked' ) + '")' );
+				if ( getConfig( 'mark-checked' ) !== '' ) {
+					const $accessed = $externalLinks.parent().find( 'small:contains("' + getConfig( 'mark-checked' ) + '")' );
 					if ( $accessed.length ) {
 						const accessDate = createTimeSnak( $accessed.first().text() );
 						if ( accessDate ) {
@@ -69,8 +69,8 @@ function getReference( $field ) {
 				}
 
 				// P1065 + P2960
-				if ( getConfig( 'markArchived' ) !== '' ) {
-					const $archiveLinks = $externalLinks.filter( 'a:contains("' + getConfig( 'markArchived' ) + '")' );
+				if ( getConfig( 'mark-archived' ) !== '' ) {
+					const $archiveLinks = $externalLinks.filter( 'a:contains("' + getConfig( 'mark-archived' ) + '")' );
 					if ( $archiveLinks.length ) {
 						const $archiveLink = $archiveLinks.first();
 						source.snaks.P1065 = [ {
@@ -83,7 +83,7 @@ function getReference( $field ) {
 							}
 						} ];
 
-						const archiveDate = createTimeSnak( $archiveLink.parent().text().replace( getConfig( 'markArchived' ), '' ).trim() );
+						const archiveDate = createTimeSnak( $archiveLink.parent().text().replace( getConfig( 'mark-archived' ), '' ).trim() );
 						if ( archiveDate ) {
 							source.snaks.P2960 = [ {
 								property: 'P2960',
@@ -252,7 +252,7 @@ function realLoadProperties ( propertyIds ) {
 /**
  * Wrapper for property preloading that excludes already loaded properties
  */
-function loadProperties ( propertyIds ) {
+function loadProperties( propertyIds ) {
 	if ( !propertyIds || !propertyIds.length ) {
 		return;
 	}

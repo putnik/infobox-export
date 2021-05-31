@@ -21,7 +21,7 @@ function parseQuantity( text, forceInteger ) {
 	text = text.replace( /,/g, '.' ).replace( /[−–—]/g, '-' ).trim();
 
 	// Sourcing circumstances (P1480) = circa (Q5727902)
-	const circaMatch = text.match( getConfig( 'reCirca' ) );
+	const circaMatch = text.match( getConfig( 're-circa' ) );
 	if ( circaMatch ) {
 		out.qualifiers = {
 			P1480: [ {
@@ -37,13 +37,13 @@ function parseQuantity( text, forceInteger ) {
 	}
 
 	let magnitude = 0;
-	if ( text.match( getConfig( 're10_3' ) ) ) {
+	if ( text.match( getConfig( 're-10_3' ) ) ) {
 		magnitude += 3;
-	} else if ( text.match( getConfig( 're10_6' ) ) ) {
+	} else if ( text.match( getConfig( 're-10_6' ) ) ) {
 		magnitude += 6;
-	} else if ( text.match( getConfig( 're10_9' ) ) ) {
+	} else if ( text.match( getConfig( 're-10_9' ) ) ) {
 		magnitude += 9;
-	} else if ( text.match( getConfig( 're10_12' ) ) ) {
+	} else if ( text.match( getConfig( 're-10_12' ) ) ) {
 		magnitude += 12;
 	} else {
 		const match = text.match( /[*|·]10(-?\d+)/ );
@@ -381,7 +381,7 @@ export function prepareQuantity( $content, propertyId ) {
 		.trim();
 
 	// Hack for time in formats "hh:mm:ss" and "00m 00s""
-	const match = text.replace( getConfig( 'reMinSec' ), '$1:$2' )
+	const match = text.replace( getConfig( 're-min-sec' ), '$1:$2' )
 		.match( /^(?:(\d+):)?(\d+):(\d+)$/ );
 	if ( match ) {
 		let amount = 0;
@@ -469,15 +469,15 @@ export function prepareQuantity( $content, propertyId ) {
 
 export function prepareTime( $content ) {
 	const values = [];
-	const value = createTimeSnak( $content.text().toLowerCase().trim().replace( getConfig( 'reYearPostfix' ), '' ),
-		$content[ 0 ].outerHTML.includes( getConfig( 'markJulian' ) ) );
+	const value = createTimeSnak( $content.text().toLowerCase().trim().replace( getConfig( 're-year-postfix' ), '' ),
+		$content[ 0 ].outerHTML.includes( getConfig( 'mark-julian' ) ) );
 	if ( value ) {
 		if ( value.toString().match( /^(novalue|somevalue)$/ ) ) {
 			const $label = $( '<span>' );
-			if ( wueI18n.valuePrefix !== '' ) {
-				$label.append( $( '<span>' ).css( 'color', '#666' ).text( wueI18n.valuePrefix ) );
+			if ( getI18n( 'value-prefix' ) !== '' ) {
+				$label.append( $( '<span>' ).css( 'color', '#666' ).text( getI18n( 'value-prefix' ) ) );
 			}
-			$label.append( $( '<strong>' ).text( value.toString() === 'novalue' ? wueI18n.noValue : wueI18n.unknownValue ) );
+			$label.append( $( '<strong>' ).text( value.toString() === 'novalue' ? getI18n( 'no-value' ) : getI18n( 'unknown-value' ) ) );
 
 			values.push( {
 				wd: { value: value },
@@ -567,8 +567,8 @@ function processWbGetItems( valuesObj, callback ) {
 export function parseItems( $content, $wrapper, callback ) {
 	let titles = [];
 
-	for ( let k = 0; k < getConfig( 'fixedValues' ).length; k++ ) {
-		const fixedValue = getConfig( 'fixedValues' )[ k ];
+	for ( let k = 0; k < getConfig( 'fixed-values' ).length; k++ ) {
+		const fixedValue = getConfig( 'fixed-values' )[ k ];
 		const regexp = new RegExp( fixedValue.search );
 		if ( $content.attr( 'data-wikidata-property-id' ) === fixedValue.property &&
 			$content.text().match( regexp )
@@ -611,9 +611,9 @@ export function parseItems( $content, $wrapper, callback ) {
 					project: getConfig( 'project' ),
 					qualifiers: {}
 				};
-				let match = $links[ j ].innerHTML.match( getConfig( 'reSinceYear' ) );
+				let match = $links[ j ].innerHTML.match( getConfig( 're-since-year' ) );
 				if ( !match ) {
-					match = $links[ j ].innerHTML.match( getConfig( 'reUntilYear' ) );
+					match = $links[ j ].innerHTML.match( getConfig( 're-until-year' ) );
 				}
 				const extractedYear = match ? createTimeSnak( match[ 1 ] ) : createTimeSnak( ( $links[ j ].nextSibling || {} ).textContent );
 				if ( extractedYear ) {

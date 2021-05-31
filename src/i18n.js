@@ -1,4 +1,3 @@
-import { camelToSnakeCase } from "./utils";
 import { userLanguage } from "./languages";
 
 const i18n = {
@@ -15,7 +14,6 @@ const i18n = {
  * Returns translated value
  */
 export function getI18n( key ) {
-	key = camelToSnakeCase( key );
 	let result = key;
 	if ( userLanguage in i18n && key in i18n[userLanguage] ) {
 		result = i18n[userLanguage][key];

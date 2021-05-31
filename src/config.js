@@ -1,23 +1,22 @@
 import _ from "lodash";
 
 import { getMonths, getMonthsGen } from "./months";
-import { camelToSnakeCase } from "./utils";
 import { userLanguage } from "./languages";
 
 const mw = require('mw');
 
 // Main config
 let config = Object.assign( {
-	version: '3.0.0-alpha1',
-	project: mw.config.get( 'wgDBname' ),
-	storageKey: 'infoboxExportConfig',
-	references: {},
-	units: {},
-	fixedValues: [],
-	centuries: [ 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII',
+	'version': '3.0.0-alpha1',
+	'project': mw.config.get( 'wgDBname' ),
+	'storage-key': 'infoboxExportConfig',
+	'references': {},
+	'units': {},
+	'fixed-values': [],
+	'centuries': [ 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII',
 		'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV',
 		'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII' ],
-	properties: {},
+	'properties': {},
 }, window.wieConfig || {} );
 
 const i18nConfig = {
@@ -31,10 +30,7 @@ const i18nConfig = {
 	'tr': require('./config/tr.json'),
 }
 
-export const propertyIds = [ 'P2076', 'P2077' ]; // Temperature and pressure for qualifiers
-
 function getI18nConfig( key ) {
-	key = camelToSnakeCase( key );
 	let result;
 	if ( userLanguage in i18nConfig && key in i18nConfig[userLanguage] ) {
 		result = i18nConfig[userLanguage][key];
@@ -95,12 +91,12 @@ export function saveConfig() {
 export function loadConfig() {
 	let loadedConfig;
 	try {
-		loadedConfig = JSON.parse( localStorage.getItem( getConfig( 'storageKey' ) ) );
+		loadedConfig = JSON.parse( localStorage.getItem( getConfig( 'storage-key' ) ) );
 	} catch ( e ) {
 	}
 
 	for ( const key in loadedConfig ) {
-		if ( key.match( /^re[A-Z1]/ ) && typeof loadedConfig[ key ] === 'string' ) {
+		if ( key.match( /^re-/ ) && typeof loadedConfig[ key ] === 'string' ) {
 			loadedConfig[ key ] = new RegExp( loadedConfig[ key ] );
 		}
 	}
