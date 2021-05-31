@@ -41,9 +41,14 @@ export function parseRawQuantity( config, text, forceInteger ) {
 		fractional = parts ? parts[ 2 ].length : 0;
 		const upperBound = parseFloat( value.upperBound );
 		const lowerBound = parseFloat( value.lowerBound );
-		value.amount = ( ( upperBound + lowerBound ) / 2 ).toFixed( fractional + 1 );
-		value.bound = ( ( upperBound - lowerBound ) / 2 ).toFixed( fractional + 1 );
-		return out;
+		const amount = ( upperBound + lowerBound ) / 2;
+		const bound = ( upperBound - lowerBound ) / 2;
+		if (upperBound % 2 !== lowerBound % 2) {
+			fractional += 1;
+		}
+		value.amount = amount.toFixed( fractional  );
+		value.bound = bound.toFixed( fractional );
+		return value;
 	} else {
 		amount = parseFloat( decimals[ 0 ].replace( /[^0-9.+-]/g, '' ) );
 	}
