@@ -5,6 +5,7 @@ import { formatDataValue } from "./formatter";
 import { createTimeSnak, getWikidataIds, typesMapping } from "./wikidata";
 import { unique } from "./utils";
 import { apiRequest } from "./api";
+import { parseRawQuantity } from "./text-parser";
 
 export let alreadyExistingItems = {};
 
@@ -12,10 +13,22 @@ export let alreadyExistingItems = {};
  * Parsing the number and (optionally) the accuracy
  */
 export function parseQuantity( text, forceInteger ) {
-	const out = {
-		value: {},
-	};
 	text = text.replace( /,/g, '.' ).replace( /[−–—]/g, '-' ).trim();
+
+	const config = {
+		"re-10_3": getConfig( 're-10_3' ),
+		"re-10_6": getConfig( 're-10_6' ),
+		"re-10_9": getConfig( 're-10_9' ),
+		"re-10_12": getConfig( 're-10_12' ),
+	}
+
+	const value = parseRawQuantity(config, text, forceInteger);
+	if ( value === undefined ) {
+		return;
+	}
+	const out = {
+		value: value,
+	};
 
 	// Sourcing circumstances (P1480) = circa (Q5727902)
 	const circaMatch = text.match( getConfig( 're-circa' ) );
@@ -33,104 +46,6 @@ export function parseQuantity( text, forceInteger ) {
 		text = text.replace( circaMatch[ 0 ], '' );
 	}
 
-	let magnitude = 0;
-	if ( text.match( getConfig( 're-10_3' ) ) ) {
-		magnitude += 3;
-	} else if ( text.match( getConfig( 're-10_6' ) ) ) {
-		magnitude += 6;
-	} else if ( text.match( getConfig( 're-10_9' ) ) ) {
-		magnitude += 9;
-	} else if ( text.match( getConfig( 're-10_12' ) ) ) {
-		magnitude += 12;
-	} else {
-		const match = text.match( /[*|·]10(-?\d+)/ );
-		if ( match ) {
-			text = text.replace( /[*|·]10(-?\d+)/, '' );
-			magnitude += parseInt( match[ 1 ] );
-		}
-	}
-	const decimals = text.split( '±' );
-	if ( magnitude === 0 && forceInteger ) {
-		decimals[ 0 ] = decimals[ 0 ].replace( /\./g, '' ).trim();
-	}
-
-	let amount;
-	let bound;
-	const interval = decimals[ 0 ].split( '-' );
-	if ( magnitude === 0 &&
-		decimals.length === 1 &&
-		interval.length === 2 &&
-		interval[ 0 ].length !== 0 &&
-		interval[ 1 ].length !== 0
-	) {
-		out.value.lowerBound = interval[ 0 ].replace( /[^0-9.+-]/g, '' );
-		out.value.upperBound = interval[ 1 ].replace( /[^0-9.+-]/g, '' );
-		parts = out.value.lowerBound.match( /(\d+)\.(\d+)/ );
-		fractional = parts ? parts[ 2 ].length : 0;
-		const upperBound = parseFloat( out.value.upperBound );
-		const lowerBound = parseFloat( out.value.lowerBound );
-		out.value.amount = ( ( upperBound + lowerBound ) / 2 ).toFixed( fractional + 1 );
-		out.value.bound = ( ( upperBound - lowerBound ) / 2 ).toFixed( fractional + 1 );
-		return out;
-	} else {
-		amount = parseFloat( decimals[ 0 ].replace( /[^0-9.+-]/g, '' ) );
-	}
-
-	if ( isNaN( amount ) ) {
-		return;
-	}
-
-	let parts = amount.toString().match( /(\d+)\.(\d+)/ );
-	let integral = parts ? parts[ 1 ].length : amount.toString().length;
-	let fractional = parts ? parts[ 2 ].length : 0;
-	if ( magnitude >= 0 ) {
-		if ( magnitude <= fractional ) {
-			out.value.amount = ( ( '1e' + magnitude ) * amount ).toFixed( fractional - magnitude );
-		} else {
-			out.value.amount = ( ( '1e' + fractional ) * amount ).toFixed( 0 ).replace( /$/, new Array( magnitude - fractional + 1 ).join( '0' ) );
-		}
-	} else {
-		if ( magnitude >= -integral ) {
-			out.value.amount = ( ( '1e' + magnitude ) * amount ).toFixed( fractional - magnitude );
-		} else {
-			out.value.amount = ( ( '1e-' + integral ) * amount ).toFixed( integral + fractional ).replace( /0\./, '0.' + new Array( -magnitude - integral + 1 ).join( '0' ) );
-		}
-	}
-
-	if ( decimals.length > 1 ) {
-		bound = parseFloat( decimals[ 1 ].replace( /[^0-9.+-]/g, '' ) );
-	}
-
-	if ( !isNaN( bound ) ) {
-		if ( decimals.length > 1 && decimals[ 1 ].indexOf( '%' ) > 0 ) {
-			bound = amount * bound / 100;
-		} else {
-			parts = bound.toString().match( /(\d+)\.(\d+)/ );
-			integral = parts ? parts[ 1 ].length : amount.toString().length;
-			fractional = parts ? parts[ 2 ].length : 0;
-		}
-		if ( magnitude >= 0 ) {
-			if ( magnitude <= fractional ) {
-				out.value.lowerBound = ( ( '1e' + magnitude ) * ( amount - bound ) ).toFixed( fractional - magnitude );
-				out.value.upperBound = ( ( '1e' + magnitude ) * ( amount + bound ) ).toFixed( fractional - magnitude );
-				out.value.bound = ( ( '1e' + magnitude ) * bound ).toFixed( fractional - magnitude ); // need to show it to user
-			} else {
-				out.value.lowerBound = ( ( '1e' + fractional ) * ( amount - bound ) ).toFixed( 0 ).replace( /$/, new Array( magnitude - fractional + 1 ).join( '0' ) );
-				out.value.upperBound = ( ( '1e' + fractional ) * ( amount + bound ) ).toFixed( 0 ).replace( /$/, new Array( magnitude - fractional + 1 ).join( '0' ) );
-				out.value.bound = ( ( '1e' + fractional ) * bound ).toFixed( 0 ).replace( /$/, new Array( magnitude - fractional + 1 ).join( '0' ) );
-			}
-		} else {
-			if ( magnitude >= -integral ) {
-				out.value.lowerBound = ( ( '1e' + magnitude ) * ( amount - bound ) ).toFixed( fractional - magnitude );
-				out.value.upperBound = ( ( '1e' + magnitude ) * ( amount + bound ) ).toFixed( fractional - magnitude );
-				out.value.bound = ( ( '1e' + magnitude ) * bound ).toFixed( fractional - magnitude );
-			} else {
-				out.value.lowerBound = ( ( '1e-' + integral ) * ( amount - bound ) ).toFixed( integral + fractional ).replace( /0\./, '0.' + new Array( -magnitude - integral + 1 ).join( '0' ) );
-				out.value.upperBound = ( ( '1e-' + integral ) * ( amount + bound ) ).toFixed( integral + fractional ).replace( /0\./, '0.' + new Array( -magnitude - integral + 1 ).join( '0' ) );
-				out.value.bound = ( ( '1e-' + integral ) * bound ).toFixed( integral + fractional ).replace( /0\./, '0.' + new Array( -magnitude - integral + 1 ).join( '0' ) );
-			}
-		}
-	}
 	return out;
 }
 
