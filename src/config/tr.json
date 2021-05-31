@@ -1,0 +1,10 @@
+{
+	"re-circa": "(?:~|≈|y\\.|yaklaşık)",
+	"re-century": "^([IVXivx]{1,5})\\s*(yüzyıl|y\\.)?$",
+	"re-10_3": "bin",
+	"re-10_6": "milyon",
+	"re-10_9": "milyar",
+	"re-10_12": "trilyon",
+	"mark-checked": "Kontrol edildi",
+	"mark-archived": "Arşivlendş"
+}
