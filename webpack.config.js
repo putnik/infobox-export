@@ -19,9 +19,10 @@ module.exports = {
 	devServer: {
 		contentBase: APP_SOURCE,
 		port: 8080,
+		sockPort: 8080,
 		liveReload: false,
 
-		// Fixes "GET https://localhost:80/sockjs-node/info?t=... net::ERR_SSL_PROTOCOL_ERROR".
+		// Fixes "GET https://localhost:8080/sockjs-node/info?t=... net::ERR_SSL_PROTOCOL_ERROR".
 		public: '127.0.0.1',
 
 		// Fixes "Invalid Host/Origin header".

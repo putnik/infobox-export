@@ -3,7 +3,7 @@
 [![Tests status](https://github.com/putnik/infobox-export/workflows/tests/badge.svg)](https://github.com/putnik/infobox-export/actions/workflows/tests.yml)
 
 Gadget for export information from infoboxes to Wikidata.
-The export window is shown by double clicking.
+The export window is shown by double-clicking.
 
-See [full documentation](https://www.wikidata.org/wiki/Help:Infobox_export_gadget) in Wikidata.
+See [full documentation](https://www.wikidata.org/wiki/Special:MyLanguage/Help:Infobox_export_gadget) in Wikidata.
 

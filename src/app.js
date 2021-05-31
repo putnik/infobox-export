@@ -290,7 +290,7 @@ function prepareDialog( $field, propertyId ) {
 
 	switch ( datatype ) {
 		case 'commonsMedia':
-			values = prepareCommonsMedia( $content );
+			values = prepareCommonsMedia( $content, $wrapper );
 			break;
 
 		case 'external-id':

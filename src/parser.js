@@ -203,7 +203,7 @@ function recognizeUnits( text, units, label ) {
 	return result;
 }
 
-export function prepareCommonsMedia( $content ) {
+export function prepareCommonsMedia( $content, $wrapper ) {
 	const values = [];
 	const $imgs = $content.find( 'img' );
 	$imgs.each( function () {

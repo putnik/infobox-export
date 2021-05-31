@@ -2,13 +2,12 @@ import { getI18n } from "./i18n";
 import { getConfig } from "./config";
 import { userLanguage } from "./languages";
 
-const $ = require('jquery');
-const math = require('math');
-
 /**
  * Formatting wikidata values for display to the user
  */
 export function formatDataValue( datavalue ) {
+	const $ = require('jquery');
+	const math = require('math');
 	const $label = $( '<span>' );
 	switch ( datavalue.type ) {
 		case 'time':
