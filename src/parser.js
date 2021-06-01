@@ -50,13 +50,14 @@ export function parseQuantity( text, forceInteger ) {
 }
 
 function addQualifierValue( value, qualifierId, qualifierValue, qualifierLabel, $label ) {
+	const $ = require('jquery');
 	if ( value.qualifiers === undefined ) {
 		value.qualifiers = {};
 	}
 	if ( value.qualifiers[ qualifierId ] === undefined ) {
 		value.qualifiers[ qualifierId ] = [];
 	}
-	const datatype = getConfig( 'properties' )[ qualifierId ].datatype;
+	const datatype = getConfig( 'properties.' + qualifierId + '.datatype' );
 	value.qualifiers[ qualifierId ].push( {
 		snaktype: 'value',
 		property: qualifierId,
@@ -97,6 +98,7 @@ function processItemTitles( itemTitles, callback, value, $label ) {
 }
 
 export function addQualifiers( $field, value, $label, callback ) {
+	const $ = require('jquery');
 	const $qualifiers = $field.find( '[data-wikidata-qualifier-id]' );
 	if ( $qualifiers.length ) {
 		$label = $( '<div>' ).append( $label );
@@ -107,7 +109,8 @@ export function addQualifiers( $field, value, $label, callback ) {
 		const $qualifier = $( $qualifiers[ q ] );
 		const qualifierId = $qualifier.data( 'wikidata-qualifier-id' );
 		let qualifierValue = $qualifier.text().replace( '\n', ' ' ).trim();
-		switch ( getConfig( 'properties' )[ qualifierId ].datatype ) {
+		const datatype = getConfig( 'properties.' + qualifierId + '.datatype' );
+		switch ( datatype ) {
 			case 'monolingualtext':
 				qualifierValue = {
 					text: $qualifier.text().replace( '\n', ' ' ).trim(),
@@ -316,7 +319,7 @@ export function prepareQuantity( $content, propertyId ) {
 		result = valueObj;
 	} );
 
-	if ( getConfig( 'properties' )[ propertyId ].constraints.qualifier.indexOf( 'P585' ) !== -1 ) {
+	if ( getConfig( 'properties.' + propertyId + '.constraints.qualifier' ).indexOf( 'P585' ) !== -1 ) {
 		let yearMatch = $content.text().match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
 		if ( !yearMatch ) {
 			yearMatch = $field.closest( 'tr' ).find( 'th' ).first().text().match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
@@ -338,13 +341,13 @@ export function prepareQuantity( $content, propertyId ) {
 		}
 	}
 
-	const qualifierMatch = $content.text().match( /\(([^\)]*)/ );
+	const qualifierMatch = $content.text().match( /\(([^)]*)/ );
 	if ( qualifierMatch ) {
 		const qualifierQuantity = parseQuantity( qualifierMatch[ 1 ] );
 		if ( qualifierQuantity ) {
 			const supportedProperties = [ 'P2076', 'P2077' ];
 			for ( let j = 0; j < supportedProperties.length; j++ ) {
-				const units = recognizeUnits( qualifierMatch[ 1 ], getConfig( 'properties' )[ supportedProperties[ j ] ].units );
+				const units = recognizeUnits( qualifierMatch[ 1 ], getConfig( 'properties.' + supportedProperties[ j ] + '.units' ) );
 				if ( units.length === 1 ) {
 					qualifierQuantity.value.unit = 'http://www.wikidata.org/entity/' + units[ 0 ];
 					if ( !result.wd.qualifiers ) {
@@ -412,7 +415,7 @@ export function prepareTime( $content ) {
 	return values;
 }
 
-export function prepareString( $content ) {
+export function prepareString( $content, propertyId ) {
 	const values = [];
 	let text = $content.data( 'wikidata-external-id' );
 	if ( !text ) {
@@ -660,7 +663,7 @@ export function canExportValue( $field, claims, callbackIfCan ) {
 			break;
 
 		case 'wikibase-item':
-			const value = parseItems( $field, $field, function ( values ) {
+			parseItems( $field, $field, function ( values ) {
 				const duplicates = [];
 				for ( let i = 0; i < values.length; i++ ) {
 					for ( let j = 0; j < claims.length; j++ ) {

@@ -326,7 +326,7 @@ function prepareDialog( $field, propertyId ) {
 			break;
 
 		case 'string':
-			values = prepareString( $content );
+			values = prepareString( $content, propertyId );
 			break;
 
 		case 'time':
