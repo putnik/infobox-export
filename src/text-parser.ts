@@ -1,10 +1,10 @@
-import {WikidataQuantity} from "./wikidata/types";
+import {QuantityValue} from "./types/wikidata/values";
 
 /**
  * Parsing the number and (optionally) the accuracy
  */
-export function parseRawQuantity( config: any, text: string, forceInteger: boolean ): WikidataQuantity {
-	const value: WikidataQuantity = {
+export function parseRawQuantity( config: any, text: string, forceInteger: boolean ): QuantityValue {
+	const value: QuantityValue = {
 		amount: "0",
 	};
 	text = text.replace( /,/g, '.' ).replace( /[−–—]/g, '-' ).trim();

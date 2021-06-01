@@ -1,7 +1,9 @@
-let api = null;
-let wdApi = null;
+import { KeyValue } from "./types/main";
 
-function getApi() {
+let api: any = null;
+let wdApi: any = null;
+
+function getApi(): any {
 	if ( api === null ) {
 		const mw = require('mw');
 		api = new mw.Api();
@@ -9,7 +11,7 @@ function getApi() {
 	return api;
 }
 
-export function getWdApi() {
+export function getWdApi(): any {
 	if ( wdApi === null ) {
 		const mw = require('mw');
 		wdApi = new mw.ForeignApi( '//www.wikidata.org/w/api.php' );
@@ -17,19 +19,19 @@ export function getWdApi() {
 	return wdApi;
 }
 
-export function apiRequest( params ) {
+export function apiRequest( params: KeyValue ): any {
 	return getApi().get( params );
 }
 
-export function wdApiRequest( params ) {
+export function wdApiRequest( params: KeyValue ): any {
 	return getWdApi().get( params );
 }
 
-export function getMessages( messageKeys, language ) {
+export function getMessages( messageKeys: string[], language: string ): Promise<any> {
 	return getApi().getMessages( messageKeys, { amlang: language } );
 }
 
-export function sparqlRequest( request ) {
+export function sparqlRequest( request: string ): any {
 	const $ = require('jquery');
 	const url = 'https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent( request );
 	return $.get( url );

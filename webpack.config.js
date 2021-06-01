@@ -2,7 +2,7 @@ const path = require("path");
 const APP_SOURCE = path.join(__dirname, "src");
 
 module.exports = {
-	entry: path.join(APP_SOURCE, "index.js"),
+	entry: path.join(APP_SOURCE, "index.ts"),
 	externals: {
 		jquery: "jQuery",
 		math: "Math",

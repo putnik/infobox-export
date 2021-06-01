@@ -1,6 +1,7 @@
 import { userLanguage } from "./languages";
+import {Translations} from "./types/main";
 
-const i18n: any = {
+const i18n: Translations = {
 	'az': require('./i18n/az.json'),
 	'be': require('./i18n/be.json'),
 	'de': require('./i18n/de.json'),

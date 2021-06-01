@@ -7,7 +7,7 @@ import {
 	prepareMonolingualText,
 	prepareQuantity,
 	prepareString,
-	prepareTime
+	prepareTime, prepareUrl
 } from "./parser";
 import { getI18n } from "./i18n";
 import { getConfig, loadConfig, saveConfig, setConfig } from "./config";
@@ -15,6 +15,8 @@ import { unique } from "./utils";
 import { dialog } from "./ui";
 import { loadMonths } from "./months";
 import { allLanguages, contentLanguage, userLanguage } from "./languages";
+import { DataType, DataValueType, WikidataClaim, WikidataSnakContainer, WikidataSource } from "./types/wikidata";
+import {ApiResponse, KeyValue, SparqlResponse} from "./types/main";
 
 const $ = require('jquery');
 const mw = require('mw');
@@ -27,15 +29,16 @@ let windowManager;
 /**
  * Extract reference URL
  */
-function getReference( $field ) {
+function getReference( $field: JQuery ) {
 	const references = [];
-	const $notes = $field.find( 'sup.reference a' );
+	const $notes: JQuery = $field.find( 'sup.reference a' );
 	for ( let i = 0; i < $notes.length; i++ ) {
-		const $externalLinks = $( decodeURIComponent( $notes[ i ].hash ).replace( /[!"$%&'()*+,.\/:;<=>?@[\\\]^`{|}~]/g, '\\$&' ) + ' a[rel="nofollow"]' );
+		// @ts-ignore
+		const $externalLinks: JQuery = $( decodeURIComponent( $notes[ i ].hash ).replace( /[!"$%&'()*+,.\/:;<=>?@[\\\]^`{|}~]/g, '\\$&' ) + ' a[rel="nofollow"]' );
 		for ( let j = 0; j < $externalLinks.length; j++ ) {
-			const $externalLink = $( $externalLinks.get( j ) );
+			const $externalLink: JQuery = $( $externalLinks.get( j ) );
 			if ( !$externalLink.attr( 'href' ).match( /(wikipedia.org|webcitation.org|archive.is)/ ) ) {
-				const source = {
+				const source: WikidataSource = {
 					snaks: {
 						P854: [ {
 							property: 'P854',
@@ -43,10 +46,12 @@ function getReference( $field ) {
 							snaktype: 'value',
 							datavalue: {
 								type: 'string',
-								value: $externalLink.attr( 'href' ).replace( /^\/\//, 'https://' )
-							}
-						} ]
-					}
+								value: {
+									value: $externalLink.attr( 'href' ).replace( /^\/\//, 'https://' ),
+								},
+							},
+						} ],
+					},
 				};
 
 				// P813
@@ -79,8 +84,10 @@ function getReference( $field ) {
 							snaktype: 'value',
 							datavalue: {
 								type: 'string',
-								value: $archiveLink.attr( 'href' ).replace( /^\/\//, 'https://' )
-							}
+								value: {
+									value: $archiveLink.attr( 'href' ).replace( /^\/\//, 'https://' ),
+								},
+							},
 						} ];
 
 						const archiveDate = createTimeSnak( $archiveLink.parent().text().replace( getConfig( 'mark-archived' ), '' ).trim() );
@@ -91,8 +98,8 @@ function getReference( $field ) {
 								snaktype: 'value',
 								datavalue: {
 									type: 'time',
-									value: archiveDate
-								}
+									value: archiveDate,
+								},
 							} ];
 						}
 					}
@@ -110,18 +117,18 @@ function getReference( $field ) {
 /**
  * Preload information on all properties
  */
-function realLoadProperties ( propertyIds ) {
+function realLoadProperties ( propertyIds: string[] ) {
 	if ( !propertyIds || !propertyIds.length ) {
 		return;
 	}
 
-	const units = [];
+	const units: string[] = [];
 	wdApiRequest( {
 		action: 'wbgetentities',
 		languages: allLanguages,
 		props: [ 'labels', 'datatype', 'claims' ],
 		ids: propertyIds
-	} ).done( function ( data ) {
+	} ).done( function ( data: ApiResponse ) {
 		if ( !data.success ) {
 			return;
 		}
@@ -130,8 +137,8 @@ function realLoadProperties ( propertyIds ) {
 			if ( !data.entities.hasOwnProperty( propertyId ) ) {
 				continue;
 			}
-			const entity = data.entities[ propertyId ];
-			const label = entity.labels[ contentLanguage ]
+			const entity: KeyValue = data.entities[ propertyId ];
+			const label: string = entity.labels[ contentLanguage ]
 				? entity.labels[ contentLanguage ].value
 				: entity.labels.en.value;
 			setConfig( "properties." + propertyId, {
@@ -186,7 +193,7 @@ function realLoadProperties ( propertyIds ) {
 					languages: allLanguages,
 					props: [ 'labels', 'descriptions', 'aliases', 'claims' ],
 					ids: unique( units ).slice( idx, idx + 50 )
-				} ).done( function ( unitData ) {
+				} ).done( function ( unitData: ApiResponse ) {
 					if ( !unitData.success ) {
 						return;
 					}
@@ -252,7 +259,7 @@ function realLoadProperties ( propertyIds ) {
 /**
  * Wrapper for property preloading that excludes already loaded properties
  */
-function loadProperties( propertyIds ) {
+function loadProperties( propertyIds: string[] ): void {
 	if ( !propertyIds || !propertyIds.length ) {
 		return;
 	}
@@ -273,16 +280,16 @@ function loadProperties( propertyIds ) {
 /**
  * Parsing values from parameters before displaying a dialog
  */
-function prepareDialog( $field, propertyId ) {
-	let values = [];
-	const datatype = getConfig( "properties." + propertyId + ".datatype" );
+function prepareDialog( $field: JQuery, propertyId: string ): void {
+	let values: WikidataSnakContainer[] = [];
+	const datatype: DataType = getConfig( "properties." + propertyId + ".datatype" );
 
-	const $content = $field.clone();
+	const $content: JQuery = $field.clone();
 	$content.find( 'sup.reference' ).remove();
 	$content.find( '.printonly' ).remove();
 	$content.find( '[style*="display:none"]' ).remove();
 
-	let $wrapper = $content;
+	let $wrapper: JQuery = $content;
 	const $row = $field.closest( 'tr' );
 	if ( $row.length === 1 && $row.find( '[data-wikidata-property-id]' ).length === 1 ) {
 		$wrapper = $row.clone();
@@ -302,7 +309,7 @@ function prepareDialog( $field, propertyId ) {
 				externalId = externalId.toString().replace( /^ID\s/, '' ).replace( /\s/g, '' );
 			}
 			const sparql = 'SELECT * WHERE { ?item wdt:' + propertyId + ' "' + externalId + '" }';
-			sparqlRequest( sparql ).done( function ( data ) {
+			sparqlRequest( sparql ).done( function ( data: SparqlResponse ) {
 				let $label = $( '<code>' ).text( externalId );
 				if ( data.results.bindings.length ) {
 					const url = data.results.bindings[ 0 ].item.value;
@@ -334,7 +341,7 @@ function prepareDialog( $field, propertyId ) {
 			break;
 
 		case 'wikibase-item':
-			parseItems( $content, $wrapper, function ( values ) {
+			parseItems( $content, $wrapper, function ( values: WikidataSnakContainer[] ) {
 				dialog( $field, propertyId, values, getReference( $content ) );
 			} );
 			return;
@@ -391,12 +398,13 @@ function initContinue() {
 		action: 'wbgetentities',
 		props: [ 'info', 'claims' ],
 		ids: mw.config.get( 'wgWikibaseItemId' )
-	} ).done( function ( data ) {
+	} ).done( function ( data: ApiResponse ) {
 		if ( !data.success ) {
 			return;
 		}
-		let claims;
+		let claims: {[key: string]: WikidataClaim[]};
 		for ( const i in data.entities ) {
+			// @ts-ignore
 			if ( i == -1 ) {
 				return;
 			}
@@ -418,7 +426,7 @@ function initContinue() {
 				.removeClass( 'no-wikidata' )
 				.off( 'dblclick' );
 			propertyIds.push( propertyId );
-			canExportValue( $field, claims[ propertyId ], function ( hasClaims ) {
+			canExportValue( $field, claims[ propertyId ], function ( hasClaims: boolean ) {
 				$field.addClass( 'no-wikidata' );
 				if ( hasClaims === true ) {
 					$field.addClass( 'partial-wikidata' );
@@ -457,6 +465,7 @@ export function init() {
 	if ( mw.config.get( 'wgWikibaseItemId' ) === null ||
 		mw.config.get( 'wgAction' ) !== 'view' ||
 		mw.util.getParamValue( 'veaction' ) !== null ||
+		// @ts-ignore
 		( window.ve && window.ve.init ) ||
 		mw.config.get( 'wgNamespaceNumber' )
 	) {
@@ -466,7 +475,7 @@ export function init() {
 	loadConfig();
 
 	const sparql = 'SELECT ?wiki WHERE { ?wiki wdt:P31/wdt:P279* wd:Q33120876 . ?wiki wdt:P856 ?site . FILTER REGEX(STR(?site), "https://' + location.host + '/") }';
-	sparqlRequest( sparql ).done( function ( data ) {
+	sparqlRequest( sparql ).done( function ( data: SparqlResponse ) {
 		if ( 0 === data.results.bindings.length ) {
 			return;
 		}

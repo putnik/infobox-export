@@ -2,11 +2,12 @@ import * as _ from "lodash";
 
 import { getMonths, getMonthsGen } from "./months";
 import { userLanguage } from "./languages";
+import {KeyValue, Translations} from "./types/main";
 
 const mw = require('mw');
 
 // Main config
-let config: any = {
+let config: KeyValue = {
 	'version': '3.0.0-alpha1',
 	'project': mw.config.get( 'wgDBname' ),
 	'storage-key': 'infoboxExportConfig',
@@ -19,7 +20,7 @@ let config: any = {
 	'properties': {},
 };
 
-const i18nConfig: any = {
+const i18nConfig: Translations = {
 	'az': require('./config/az.json'),
 	'be': require('./config/be.json'),
 	'de': require('./config/de.json'),
@@ -30,7 +31,7 @@ const i18nConfig: any = {
 	'tr': require('./config/tr.json'),
 }
 
-function getI18nConfig( key: any ): any {
+function getI18nConfig( key: string ): any {
 	let result: any;
 	if ( userLanguage in i18nConfig && key in i18nConfig[userLanguage] ) {
 		result = i18nConfig[userLanguage][key];

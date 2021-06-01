@@ -1,6 +1,9 @@
+import {KeyValue} from "./types/main";
+
 const $ = require('jquery');
 const mw = require('mw');
 
+// @ts-ignore
 import { inheritClass } from 'oojs';
 import {
 	CheckboxInputWidget,
@@ -11,20 +14,22 @@ import {
 	Process,
 	ProcessDialog,
 	WindowManager
+// @ts-ignore
 } from 'ooui';
 
 import { getI18n } from "./i18n";
 import { getConfig } from "./config";
 import { alreadyExistingItems } from "./parser";
 import { createClaims } from "./wikidata";
+import {WikidataSnakContainer} from "./types/wikidata";
 
-let _windowManager;
+let _windowManager: any;
 
 /**
  * Format sources for display
  */
-function formatDomains( references ) {
-	const $result = $( '<sup>' );
+function formatDomains( references: any[] ): JQuery {
+	const $result: JQuery = $( '<sup>' );
 	for ( let i = 0; i < references.length; i++ ) {
 		const p854 = references[ i ].snaks.P854;
 		if ( p854 ) {
@@ -41,7 +46,7 @@ function formatDomains( references ) {
 /**
  * Error display
  */
-export function errorDialog( title, message ) {
+export function errorDialog( title: string, message: string ): void {
 	const errorDialog = new MessageDialog();
 	_windowManager.addWindows( [ errorDialog ] );
 	_windowManager.openWindow( errorDialog, {
@@ -53,8 +58,8 @@ export function errorDialog( title, message ) {
 /**
  * Display a dialog to confirm export
  */
-export function dialog( $field, propertyId, values, refUrl ) {
-	let fieldset;
+export function dialog( $field: JQuery, propertyId: string, values: WikidataSnakContainer[], refUrl: any[] ) {
+	let fieldset: any;
 
 	if ( !values || !values.length ) {
 		mw.notify( getI18n( 'parsing-error' ), {
@@ -65,7 +70,7 @@ export function dialog( $field, propertyId, values, refUrl ) {
 	}
 
 	// Create a dialog
-	const ExtProcessDialog = function ( config ) {
+	const ExtProcessDialog: any = function ( config: any ) {
 		ExtProcessDialog.super.call( this, config );
 	}
 	inheritClass( ExtProcessDialog, ProcessDialog );
@@ -87,6 +92,7 @@ export function dialog( $field, propertyId, values, refUrl ) {
 		fieldset = new FieldsetLayout();
 		let firstSelected = false;
 		for ( let i = 0; i < values.length; i++ ) {
+			// @ts-ignore
 			const alreadyInWikidata = ( alreadyExistingItems[ propertyId ] || [] ).includes( ( ( values[ i ].wd || {} ).value || {} ).id );
 			const checkbox = new CheckboxInputWidget( {
 				value: JSON.stringify( values[ i ].wd ),
@@ -133,7 +139,7 @@ export function dialog( $field, propertyId, values, refUrl ) {
 		this.$body.append( this.content.$element );
 	};
 
-	ExtProcessDialog.prototype.getActionProcess = function ( action ) {
+	ExtProcessDialog.prototype.getActionProcess = function ( action: string ) {
 		const dialog = this;
 		if ( action === 'export' ) {
 			return new Process( function () {
