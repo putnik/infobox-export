@@ -1,3 +1,5 @@
+import { UrlValue } from './types/wikidata/values';
+
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
 
@@ -19,19 +21,22 @@ import { getI18n } from './i18n';
 import { getConfig } from './config';
 import { alreadyExistingItems } from './parser';
 import { createClaims } from './wikidata';
-import { WikidataSnakContainer } from './types/wikidata';
+import { WikidataSnakContainer, WikidataSource } from './types/wikidata';
 
 let _windowManager: any;
 
 /**
  * Format sources for display
  */
-function formatDomains( references: any[] ): JQuery {
+function formatDomains( references: WikidataSource[] ): JQuery {
 	const $result: JQuery = $( '<sup>' );
 	for ( let i = 0; i < references.length; i++ ) {
 		const p854 = references[ i ].snaks.P854;
 		if ( p854 ) {
-			let domain = p854[ 0 ].datavalue.value.replace( 'http://', '' ).replace( 'https://', '' ).replace( 'www.', '' );
+			// @ts-ignore
+			const value: UrlValue = p854[ 0 ].datavalue.value;
+			console.log( value );
+			let domain: string = value.replace( 'http://', '' ).replace( 'https://', '' ).replace( 'www.', '' );
 			if ( domain.indexOf( '/' ) > 0 ) {
 				domain = domain.substr( 0, domain.indexOf( '/' ) );
 			}
@@ -56,7 +61,7 @@ export function errorDialog( title: string, message: string ): void {
 /**
  * Display a dialog to confirm export
  */
-export function dialog( $field: JQuery, propertyId: string, values: WikidataSnakContainer[], refUrl: any[] ) {
+export function dialog( $field: JQuery, propertyId: string, values: WikidataSnakContainer[], refUrl: WikidataSource[] ) {
 	let fieldset: any;
 
 	if ( !values || !values.length ) {

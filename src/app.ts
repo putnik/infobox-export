@@ -46,9 +46,7 @@ function getReference( $field: JQuery ): WikidataSource[] {
 							snaktype: 'value',
 							datavalue: {
 								type: 'string',
-								value: {
-									value: $externalLink.attr( 'href' ).replace( /^\/\//, 'https://' )
-								}
+								value: $externalLink.attr( 'href' ).replace( /^\/\//, 'https://' )
 							}
 						} ]
 					}

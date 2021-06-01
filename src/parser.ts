@@ -460,9 +460,7 @@ export function prepareString( $content: JQuery, propertyId: string ): WikidataS
 		if ( s ) {
 			values.push( {
 				wd: {
-					value: {
-						value: s
-					}
+					value: s
 				},
 				label: $( '<code>' + s + '</code>' )
 			} );
@@ -480,9 +478,7 @@ export function prepareUrl( $content: JQuery ): WikidataSnakContainer[] {
 		const url: string = $link.attr( 'href' ).replace( /^\/\//, 'https://' );
 		values.push( {
 			wd: {
-				value: {
-					value: url
-				}
+				value: url
 			},
 			label: $( '<code>' + url + '</code>' )
 		} );

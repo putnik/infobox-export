@@ -5,7 +5,9 @@ import {
 	ItemValue,
 	MonolingualTextValue,
 	QuantityValue,
-	TimeValue
+	StringValue,
+	TimeValue,
+	UrlValue
 } from './wikidata/values';
 
 export type SnakType = 'value' | 'novalue' | 'somevalue';
@@ -25,8 +27,10 @@ export type WikidataValue =
 	| EntityIdValue
 	| ItemValue
 	| MonolingualTextValue
+	| StringValue
 	| TimeValue
-	| QuantityValue;
+	| QuantityValue
+	| UrlValue;
 
 export interface WikidataSnak {
 	value: WikidataValue;

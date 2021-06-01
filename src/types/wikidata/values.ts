@@ -17,6 +17,8 @@ export interface MonolingualTextValue {
 	text: string;
 }
 
+export type StringValue = string;
+
 // https://www.mediawiki.org/wiki/Wikibase/DataModel#Dates_and_times
 export interface TimeValue {
 	time: string;
@@ -37,3 +39,5 @@ export interface QuantityValue {
 	/** @deprecated */
 	bound?: string;
 }
+
+export type UrlValue = string;
