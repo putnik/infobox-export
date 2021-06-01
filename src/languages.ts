@@ -3,15 +3,15 @@ import { unique } from "./utils";
 const mw = require('mw');
 
 // Site and user language setup
-export const contentLanguage = mw.config.get( 'wgContentLanguage' );
-export const userLanguage = mw.user.options.get( 'language' ) || contentLanguage;
-export const allLanguages = unique( [
+export const contentLanguage: string = mw.config.get( 'wgContentLanguage' );
+export const userLanguage: string = mw.user.options.get( 'language' ) || contentLanguage;
+export const allLanguages: string[] = unique( [
 	userLanguage,
 	contentLanguage,
 	'en',
 ] );
 
-export const missedLanguages = {
+export const missedLanguages: any = {
 	ain: 'Q20968488',
 	atv: 'Q2640863',
 	bua: 'Q33120',
@@ -27,7 +27,7 @@ export const missedLanguages = {
 	yrk: 'Q36452'
 }
 
-export function checkForMissedLanguage( wd ) {
+export function checkForMissedLanguage( wd: any ): any {
 	let language = wd.value.language;
 	if ( language in missedLanguages ) {
 		wd.value.language = 'mis';

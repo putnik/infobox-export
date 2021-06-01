@@ -1,6 +1,6 @@
 import { userLanguage } from "./languages";
 
-const i18n = {
+const i18n: any = {
 	'az': require('./i18n/az.json'),
 	'be': require('./i18n/be.json'),
 	'de': require('./i18n/de.json'),
@@ -13,8 +13,8 @@ const i18n = {
 /**
  * Returns translated value
  */
-export function getI18n( key ) {
-	let result = key;
+export function getI18n( key: string ): string {
+	let result: string = key;
 	if ( userLanguage in i18n && key in i18n[userLanguage] ) {
 		result = i18n[userLanguage][key];
 	} else if ( key in i18n["en"] ) {

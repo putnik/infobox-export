@@ -1,5 +1,3 @@
-import { alreadyExistingItems } from "./parser";
-
 const $ = require('jquery');
 const mw = require('mw');
 
@@ -17,6 +15,7 @@ import {
 
 import { getI18n } from "./i18n";
 import { getConfig } from "./config";
+import { alreadyExistingItems } from "./parser";
 import { createClaims } from "./wikidata";
 
 let _windowManager;

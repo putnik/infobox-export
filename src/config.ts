@@ -1,4 +1,4 @@
-import _ from "lodash";
+import * as _ from "lodash";
 
 import { getMonths, getMonthsGen } from "./months";
 import { userLanguage } from "./languages";
@@ -6,7 +6,7 @@ import { userLanguage } from "./languages";
 const mw = require('mw');
 
 // Main config
-let config = Object.assign( {
+let config: any = {
 	'version': '3.0.0-alpha1',
 	'project': mw.config.get( 'wgDBname' ),
 	'storage-key': 'infoboxExportConfig',
@@ -17,9 +17,9 @@ let config = Object.assign( {
 		'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV',
 		'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII' ],
 	'properties': {},
-}, window.wieConfig || {} );
+};
 
-const i18nConfig = {
+const i18nConfig: any = {
 	'az': require('./config/az.json'),
 	'be': require('./config/be.json'),
 	'de': require('./config/de.json'),
@@ -30,8 +30,8 @@ const i18nConfig = {
 	'tr': require('./config/tr.json'),
 }
 
-function getI18nConfig( key ) {
-	let result;
+function getI18nConfig( key: any ): any {
+	let result: any;
 	if ( userLanguage in i18nConfig && key in i18nConfig[userLanguage] ) {
 		result = i18nConfig[userLanguage][key];
 	} else if ( key in i18nConfig["en"] ) {
@@ -57,8 +57,8 @@ function getI18nConfig( key ) {
 /**
  * Returns localized config value
  */
-export function getConfig( path ) {
-	const result = _.get( config, path );
+export function getConfig( path: string ): any {
+	const result: any = _.get( config, path );
 	if ( result ) {
 		return result;
 	}
@@ -66,29 +66,29 @@ export function getConfig( path ) {
 	return getI18nConfig( path );
 }
 
-export function setConfig( path, value ) {
+export function setConfig( path: string, value: any ): void {
 	_.set( config, path, value );
 }
 
 /**
  * Save config to localStorage
  */
-export function saveConfig() {
+export function saveConfig(): void {
 	let configForSave = config;
 	for ( const key in configForSave ) {
-		const value = config[ key ];
+		const value: any = config[ key ];
 		if ( value instanceof RegExp ) {
 			configForSave[ key ] = value.source;
 		}
 	}
 
-	localStorage.setItem( configForSave.storageKey, JSON.stringify( configForSave ) );
+	localStorage.setItem( configForSave['storage-key'], JSON.stringify( configForSave ) );
 }
 
 /**
  * Load config from localStorage
  */
-export function loadConfig() {
+export function loadConfig(): void {
 	let loadedConfig;
 	try {
 		loadedConfig = JSON.parse( localStorage.getItem( getConfig( 'storage-key' ) ) );

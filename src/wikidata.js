@@ -23,7 +23,7 @@ export function setBaseRevId( value ) {
 	baseRevId = value;
 }
 
-export function claimGuid ( entityId ) {
+export function claimGuid( entityId ) {
 	const template = 'xx-x-x-x-xxx';
 	let guid = '';
 	for ( let i = 0; i < template.length; i++ ) {
