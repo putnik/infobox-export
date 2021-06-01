@@ -1,44 +1,44 @@
-import * as _ from "lodash";
+import * as _ from 'lodash';
 
-import { getMonths, getMonthsGen } from "./months";
-import { userLanguage } from "./languages";
-import {KeyValue, Translations} from "./types/main";
+import { getMonths, getMonthsGen } from './months';
+import { userLanguage } from './languages';
+import { KeyValue, Translations } from './types/main';
 
-const mw = require('mw');
+const mw = require( 'mw' );
 
 // Main config
 let config: KeyValue = {
-	'version': '3.0.0-alpha1',
-	'project': mw.config.get( 'wgDBname' ),
+	version: '3.0.0-alpha1',
+	project: mw.config.get( 'wgDBname' ),
 	'storage-key': 'infoboxExportConfig',
-	'references': {},
-	'units': {},
+	references: {},
+	units: {},
 	'fixed-values': [],
-	'centuries': [ 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII',
+	centuries: [ 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII',
 		'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV',
 		'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII' ],
-	'properties': {},
+	properties: {}
 };
 
 const i18nConfig: Translations = {
-	'az': require('./config/az.json'),
-	'be': require('./config/be.json'),
-	'de': require('./config/de.json'),
-	'en': require('./config/en.json'),
-	'hy': require('./config/hy.json'),
-	'ru': require('./config/ru.json'),
-	'tg': require('./config/tg.json'),
-	'tr': require('./config/tr.json'),
-}
+	az: require( './config/az.json' ),
+	be: require( './config/be.json' ),
+	de: require( './config/de.json' ),
+	en: require( './config/en.json' ),
+	hy: require( './config/hy.json' ),
+	ru: require( './config/ru.json' ),
+	tg: require( './config/tg.json' ),
+	tr: require( './config/tr.json' )
+};
 
 function getI18nConfig( key: string ): any {
 	let result: any;
-	if ( userLanguage in i18nConfig && key in i18nConfig[userLanguage] ) {
-		result = i18nConfig[userLanguage][key];
-	} else if ( key in i18nConfig["en"] ) {
-		result = i18nConfig["en"][key];
+	if ( userLanguage in i18nConfig && key in i18nConfig[ userLanguage ] ) {
+		result = i18nConfig[ userLanguage ][ key ];
+	} else if ( key in i18nConfig.en ) {
+		result = i18nConfig.en[ key ];
 	} else {
-		console.warn( "Config missed for \"" + key + "\"" );
+		console.warn( 'Config missed for "' + key + '"' );
 		return undefined;
 	}
 
@@ -75,7 +75,7 @@ export function setConfig( path: string, value: any ): void {
  * Save config to localStorage
  */
 export function saveConfig(): void {
-	let configForSave = config;
+	const configForSave = config;
 	for ( const key in configForSave ) {
 		const value: any = config[ key ];
 		if ( value instanceof RegExp ) {
@@ -83,7 +83,7 @@ export function saveConfig(): void {
 		}
 	}
 
-	localStorage.setItem( configForSave['storage-key'], JSON.stringify( configForSave ) );
+	localStorage.setItem( configForSave[ 'storage-key' ], JSON.stringify( configForSave ) );
 }
 
 /**
@@ -102,7 +102,7 @@ export function loadConfig(): void {
 		}
 	}
 
-	if ( loadedConfig && loadedConfig.version === getConfig( 'version' )) {
+	if ( loadedConfig && loadedConfig.version === getConfig( 'version' ) ) {
 		config = loadedConfig;
 	}
 

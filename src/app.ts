@@ -1,4 +1,4 @@
-import { sparqlRequest, wdApiRequest } from "./api";
+import { sparqlRequest, wdApiRequest } from './api';
 import { createTimeSnak, setBaseRevId } from './wikidata';
 import {
 	canExportValue,
@@ -7,34 +7,34 @@ import {
 	prepareMonolingualText,
 	prepareQuantity,
 	prepareString,
-	prepareTime, prepareUrl
-} from "./parser";
-import { getI18n } from "./i18n";
-import { getConfig, loadConfig, saveConfig, setConfig } from "./config";
-import { unique } from "./utils";
-import { dialog } from "./ui";
-import { loadMonths } from "./months";
-import { allLanguages, contentLanguage, userLanguage } from "./languages";
-import { DataType, DataValueType, WikidataClaim, WikidataSnakContainer, WikidataSource } from "./types/wikidata";
-import {ApiResponse, KeyValue, SparqlResponse} from "./types/main";
+	prepareTime,
+	prepareUrl
+} from './parser';
+import { getI18n } from './i18n';
+import { getConfig, loadConfig, saveConfig, setConfig } from './config';
+import { unique } from './utils';
+import { dialog } from './ui';
+import { loadMonths } from './months';
+import { allLanguages, contentLanguage, userLanguage } from './languages';
+import { DataType, WikidataClaim, WikidataSnakContainer, WikidataSource } from './types/wikidata';
+import { ApiResponse, KeyValue, SparqlResponse } from './types/main';
 
-const $ = require('jquery');
-const mw = require('mw');
-const ooui = require('ooui');
+const $ = require( 'jquery' );
+const mw = require( 'mw' );
+const ooui = require( 'ooui' );
 
-
-let propertyIds = [ 'P2076', 'P2077' ]; // Temperature and pressure for qualifiers
+const propertyIds = [ 'P2076', 'P2077' ]; // Temperature and pressure for qualifiers
 let windowManager;
 
 /**
  * Extract reference URL
  */
-function getReference( $field: JQuery ) {
-	const references = [];
+function getReference( $field: JQuery ): WikidataSource[] {
+	const references: WikidataSource[] = [];
 	const $notes: JQuery = $field.find( 'sup.reference a' );
 	for ( let i = 0; i < $notes.length; i++ ) {
 		// @ts-ignore
-		const $externalLinks: JQuery = $( decodeURIComponent( $notes[ i ].hash ).replace( /[!"$%&'()*+,.\/:;<=>?@[\\\]^`{|}~]/g, '\\$&' ) + ' a[rel="nofollow"]' );
+		const $externalLinks: JQuery = $( decodeURIComponent( $notes[ i ].hash ).replace( /[!"$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, '\\$&' ) + ' a[rel="nofollow"]' );
 		for ( let j = 0; j < $externalLinks.length; j++ ) {
 			const $externalLink: JQuery = $( $externalLinks.get( j ) );
 			if ( !$externalLink.attr( 'href' ).match( /(wikipedia.org|webcitation.org|archive.is)/ ) ) {
@@ -47,11 +47,11 @@ function getReference( $field: JQuery ) {
 							datavalue: {
 								type: 'string',
 								value: {
-									value: $externalLink.attr( 'href' ).replace( /^\/\//, 'https://' ),
-								},
-							},
-						} ],
-					},
+									value: $externalLink.attr( 'href' ).replace( /^\/\//, 'https://' )
+								}
+							}
+						} ]
+					}
 				};
 
 				// P813
@@ -85,9 +85,9 @@ function getReference( $field: JQuery ) {
 							datavalue: {
 								type: 'string',
 								value: {
-									value: $archiveLink.attr( 'href' ).replace( /^\/\//, 'https://' ),
-								},
-							},
+									value: $archiveLink.attr( 'href' ).replace( /^\/\//, 'https://' )
+								}
+							}
 						} ];
 
 						const archiveDate = createTimeSnak( $archiveLink.parent().text().replace( getConfig( 'mark-archived' ), '' ).trim() );
@@ -98,8 +98,8 @@ function getReference( $field: JQuery ) {
 								snaktype: 'value',
 								datavalue: {
 									type: 'time',
-									value: archiveDate,
-								},
+									value: archiveDate
+								}
 							} ];
 						}
 					}
@@ -117,7 +117,7 @@ function getReference( $field: JQuery ) {
 /**
  * Preload information on all properties
  */
-function realLoadProperties ( propertyIds: string[] ) {
+function realLoadProperties( propertyIds: string[] ): void {
 	if ( !propertyIds || !propertyIds.length ) {
 		return;
 	}
@@ -138,17 +138,17 @@ function realLoadProperties ( propertyIds: string[] ) {
 				continue;
 			}
 			const entity: KeyValue = data.entities[ propertyId ];
-			const label: string = entity.labels[ contentLanguage ]
-				? entity.labels[ contentLanguage ].value
-				: entity.labels.en.value;
-			setConfig( "properties." + propertyId, {
+			const label: string = entity.labels[ contentLanguage ] ?
+				entity.labels[ contentLanguage ].value :
+				entity.labels.en.value;
+			setConfig( 'properties.' + propertyId, {
 				datatype: entity.datatype,
 				label: label.charAt( 0 ).toUpperCase() + label.slice( 1 ),
 				constraints: { qualifier: [] },
 				units: []
 			} );
 			if ( propertyId === 'P1128' || propertyId === 'P2196' ) {
-				setConfig( "properties." + propertyId + ".constraints.integer", 1 );
+				setConfig( 'properties.' + propertyId + '.constraints.integer', 1 );
 				if ( entity.claims ) {
 					// Property restrictions
 					if ( entity.claims.P2302 ) {
@@ -158,7 +158,7 @@ function realLoadProperties ( propertyIds: string[] ) {
 							switch ( type ) {
 								case 'Q19474404':
 								case 'Q21502410':
-									setConfig( "properties." + propertyId + ".constraints.unique", 1 );
+									setConfig( 'properties.' + propertyId + '.constraints.unique', 1 );
 									break;
 								case 'Q21510856': // Required
 									qualifiers = ( ( ( entity.claims.P2302[ i ] || {} ).qualifiers || {} ).P2306 || [] );
@@ -174,9 +174,9 @@ function realLoadProperties ( propertyIds: string[] ) {
 									for ( let idx = 0; idx < qualifiers.length; idx++ ) {
 										const unitId = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
 										if ( unitId ) {
-											const configUnits = getConfig( "properties." + propertyId + ".units" );
+											const configUnits = getConfig( 'properties.' + propertyId + '.units' );
 											configUnits.push( unitId );
-											setConfig( "properties." + propertyId + ".units", configUnits );
+											setConfig( 'properties.' + propertyId + '.units', configUnits );
 											units.push( unitId );
 										}
 									}
@@ -200,27 +200,27 @@ function realLoadProperties ( propertyIds: string[] ) {
 
 					for ( const unitId in unitData.entities ) {
 						const unit = unitData.entities[ unitId ];
-						const unitSearch = getConfig( 'units.' + unitId + ".search" ) || [];
+						const unitSearch = getConfig( 'units.' + unitId + '.search' ) || [];
 						if ( !getConfig( 'units.' + unitId ) ) {
-							setConfig( "units." + unitId, {} );
+							setConfig( 'units.' + unitId, {} );
 						}
 
 						// Label
 						if ( unit.labels ) {
-							setConfig( "units." + unitId + ".label",
+							setConfig( 'units.' + unitId + '.label',
 								unit.labels[ userLanguage ] ||
 								unit.labels.en ||
 								unit.labels[ Object.keys( unit.labels )[ 0 ] ]
 							);
 
 							if ( unit.labels[ userLanguage ] ) {
-								unitSearch.push( unit.labels[ userLanguage ].value.replace( /[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&' ) );
+								unitSearch.push( unit.labels[ userLanguage ].value.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
 							}
 						}
 
 						// Description
 						if ( unit.descriptions ) {
-							setConfig( "units." + unitId + ".description",
+							setConfig( 'units.' + unitId + '.description',
 								unit.descriptions[ userLanguage ] ||
 								unit.descriptions.en ||
 								unit.descriptions[ Object.keys( unit.labels )[ 0 ] ]
@@ -230,7 +230,7 @@ function realLoadProperties ( propertyIds: string[] ) {
 						// Aliases
 						if ( unit.aliases && unit.aliases[ userLanguage ] ) {
 							for ( const i in unit.aliases[ userLanguage ] ) {
-								unitSearch.push( unit.aliases[ userLanguage ][ i ].value.replace( /[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&' ) );
+								unitSearch.push( unit.aliases[ userLanguage ][ i ].value.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
 							}
 						}
 
@@ -242,11 +242,11 @@ function realLoadProperties ( propertyIds: string[] ) {
 									claim.mainsnak.datavalue &&
 									claim.mainsnak.datavalue.value
 								) {
-									unitSearch.push( claim.mainsnak.datavalue.value.text.replace( /[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&' ) );
+									unitSearch.push( claim.mainsnak.datavalue.value.text.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
 								}
 							}
 						}
-						setConfig( "units." + unitId + ".search", unique( unitSearch ) );
+						setConfig( 'units.' + unitId + '.search', unique( unitSearch ) );
 
 						saveConfig();
 					}
@@ -281,8 +281,8 @@ function loadProperties( propertyIds: string[] ): void {
  * Parsing values from parameters before displaying a dialog
  */
 function prepareDialog( $field: JQuery, propertyId: string ): void {
-	let values: WikidataSnakContainer[] = [];
-	const datatype: DataType = getConfig( "properties." + propertyId + ".datatype" );
+	let containers: WikidataSnakContainer[] = [];
+	const datatype: DataType = getConfig( 'properties.' + propertyId + '.datatype' );
 
 	const $content: JQuery = $field.clone();
 	$content.find( 'sup.reference' ).remove();
@@ -297,7 +297,7 @@ function prepareDialog( $field: JQuery, propertyId: string ): void {
 
 	switch ( datatype ) {
 		case 'commonsMedia':
-			values = prepareCommonsMedia( $content, $wrapper );
+			containers = prepareCommonsMedia( $content, $wrapper );
 			break;
 
 		case 'external-id':
@@ -314,7 +314,7 @@ function prepareDialog( $field: JQuery, propertyId: string ): void {
 				if ( data.results.bindings.length ) {
 					const url = data.results.bindings[ 0 ].item.value;
 					$label = $( '<span>' ).append( $( '<code>' ).text( externalId ) )
-						.append( $( '<strong>' ).css( { 'color': 'red' } ).text( getI18n( 'already-used-in' ) ) )
+						.append( $( '<strong>' ).css( { color: 'red' } ).text( getI18n( 'already-used-in' ) ) )
 						.append( $( '<a>' ).attr( 'href', url ).attr( 'target', '_blank' ).text( url.replace( /[^Q]*Q/, 'Q' ) ) );
 				}
 				dialog( $field, propertyId, [ {
@@ -325,19 +325,19 @@ function prepareDialog( $field: JQuery, propertyId: string ): void {
 			return;
 
 		case 'monolingualtext':
-			values = prepareMonolingualText( $content );
+			containers = prepareMonolingualText( $content );
 			break;
 
 		case 'quantity':
-			values = prepareQuantity( $content, propertyId );
+			containers = prepareQuantity( $content, propertyId );
 			break;
 
 		case 'string':
-			values = prepareString( $content, propertyId );
+			containers = prepareString( $content, propertyId );
 			break;
 
 		case 'time':
-			values = prepareTime( $content );
+			containers = prepareTime( $content );
 			break;
 
 		case 'wikibase-item':
@@ -347,7 +347,7 @@ function prepareDialog( $field: JQuery, propertyId: string ): void {
 			return;
 
 		case 'url':
-			values = prepareUrl( $content );
+			containers = prepareUrl( $content );
 			break;
 
 		default:
@@ -357,25 +357,25 @@ function prepareDialog( $field: JQuery, propertyId: string ): void {
 			} );
 	}
 
-	values = unique( values );
-	dialog( $field, propertyId, values, getReference( $field ) );
+	containers = unique( containers );
+	dialog( $field, propertyId, containers, getReference( $field ) );
 }
 
 /**
  * Double-click event on the infobox field
  */
-function clickEvent() {
+function clickEvent(): void {
 	const $field = $( this );
 	const propertyId = $field.attr( 'data-wikidata-property-id' );
-	return prepareDialog( $field, propertyId );
+	prepareDialog( $field, propertyId );
 }
 
 /**
  * Continue gadget initializing
  */
-function initContinue() {
+function initContinue(): void {
 	// Add a link to the current version of the page as "Wikimedia import URL"
-	setConfig( "references.P4656", [ {
+	setConfig( 'references.P4656', [ {
 		property: 'P4656',
 		datatype: 'url',
 		snaktype: 'value',
@@ -402,7 +402,7 @@ function initContinue() {
 		if ( !data.success ) {
 			return;
 		}
-		let claims: {[key: string]: WikidataClaim[]};
+		let claims: { [ key: string ]: WikidataClaim[] };
 		for ( const i in data.entities ) {
 			// @ts-ignore
 			if ( i == -1 ) {
@@ -455,13 +455,13 @@ function initContinue() {
 
 		// TODO: Do not load properties until the window is opened for the first time
 		loadProperties( propertyIds );
-	} )
+	} );
 }
 
 /**
  * Initializing the gadget
  */
-export function init() {
+export function init(): void {
 	if ( mw.config.get( 'wgWikibaseItemId' ) === null ||
 		mw.config.get( 'wgAction' ) !== 'view' ||
 		mw.util.getParamValue( 'veaction' ) !== null ||
@@ -476,7 +476,7 @@ export function init() {
 
 	const sparql = 'SELECT ?wiki WHERE { ?wiki wdt:P31/wdt:P279* wd:Q33120876 . ?wiki wdt:P856 ?site . FILTER REGEX(STR(?site), "https://' + location.host + '/") }';
 	sparqlRequest( sparql ).done( function ( data: SparqlResponse ) {
-		if ( 0 === data.results.bindings.length ) {
+		if ( data.results.bindings.length === 0 ) {
 			return;
 		}
 		// Add current wiki project as "imported from Wikimedia project"
@@ -491,5 +491,5 @@ export function init() {
 		} ] );
 
 		initContinue();
-	} )
+	} );
 }

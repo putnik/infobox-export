@@ -1,5 +1,5 @@
-import { getMessages } from "./api";
-import { contentLanguage } from "./languages";
+import { getMessages } from './api';
+import { contentLanguage } from './languages';
 
 let months: string[] = [
 	'january', 'february', 'march', 'april', 'may', 'june',

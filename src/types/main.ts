@@ -1,11 +1,11 @@
-import { SnakType } from "./wikidata";
+import { SnakType } from './wikidata';
+
+export interface KeyValue {
+	[ key: string ]: any;
+}
 
 export type ApiResponse = KeyValue
 export type SparqlResponse = KeyValue
-
-export interface KeyValue {
-	[key: string]: any;
-}
 
 export interface TimeGuess {
 	type: SnakType;
@@ -22,5 +22,5 @@ export interface Title {
 }
 
 export interface Translations {
-	[key: string]: KeyValue
+	[ key: string ]: KeyValue
 }

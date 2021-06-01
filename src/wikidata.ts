@@ -1,27 +1,27 @@
-import {getRandomHex, guessDateAndPrecision, unique} from './utils';
-import { getConfig } from "./config";
-import { getWdApi, wdApiRequest } from "./api";
-import { getI18n } from "./i18n";
-import { formatSnak } from "./formatter";
-import { errorDialog } from "./ui";
-import { allLanguages, userLanguage } from "./languages";
+import { getRandomHex, guessDateAndPrecision, unique } from './utils';
+import { getConfig } from './config';
+import { getWdApi, wdApiRequest } from './api';
+import { getI18n } from './i18n';
+import { formatSnak } from './formatter';
+import { errorDialog } from './ui';
+import { allLanguages, userLanguage } from './languages';
 import {
 	DataType,
 	WikidataClaim, WikidataMainSnak,
 	WikidataSnakContainer,
 	WikidataSource
-} from "./types/wikidata";
-import {ApiResponse, KeyValue, TimeGuess, Title} from "./types/main";
-import {TimeValue} from "./types/wikidata/values";
+} from './types/wikidata';
+import { ApiResponse, KeyValue, TimeGuess, Title } from './types/main';
+import { TimeValue } from './types/wikidata/values';
 
-const $ = require('jquery');
-const mw = require('mw');
+const $ = require( 'jquery' );
+const mw = require( 'mw' );
 
 export const typesMapping: KeyValue = {
-	'commonsMedia': 'string',
+	commonsMedia: 'string',
 	'external-id': 'string',
-	'url': 'string',
-	'wikibase-item': 'wikibase-entityid',
+	url: 'string',
+	'wikibase-item': 'wikibase-entityid'
 };
 
 let baseRevId: string;
@@ -61,7 +61,7 @@ export function claimGuid( entityId: string ): string {
 /**
  * Format dates as datavalue for Wikidata
  */
-export function createTimeSnak( timestamp: string, forceJulian: boolean|void ): TimeValue|null {
+export function createTimeSnak( timestamp: string, forceJulian: boolean | void ): TimeValue | null {
 	if ( !timestamp ) {
 		return;
 	}
@@ -70,7 +70,7 @@ export function createTimeSnak( timestamp: string, forceJulian: boolean|void ): 
 		precision: 0,
 		timezone: 0,
 		before: 0,
-		after: 0,
+		after: 0
 	};
 
 	if ( timestamp.match( /\s\([^)]*\)\s/ ) ) {
@@ -124,7 +124,7 @@ export function getWikidataIds( titles: Title[], callback: any, $wrapper?: any )
 	languages = $.merge( languages, allLanguages );
 	languages = unique( languages );
 
-	let sites = titles.map( function ( item: Title ) {
+	const sites = titles.map( function ( item: Title ) {
 		return item.project;
 	} );
 
@@ -140,8 +140,8 @@ export function getWikidataIds( titles: Title[], callback: any, $wrapper?: any )
 		if ( !data.success ) {
 			return;
 		}
-		const valuesObj: {[key: string]: WikidataSnakContainer} = {};
-		let value: WikidataSnakContainer|undefined;
+		const valuesObj: { [ key: string ]: WikidataSnakContainer } = {};
+		let value: WikidataSnakContainer | undefined;
 
 		for ( const entityId in data.entities ) {
 			if ( !data.entities.hasOwnProperty( entityId ) || !entityId.match( /^Q/ ) ) {
@@ -149,14 +149,14 @@ export function getWikidataIds( titles: Title[], callback: any, $wrapper?: any )
 			}
 
 			const entity = data.entities[ entityId ];
-			const label: {value: string} = entity.labels[ userLanguage ] || entity.labels.en || entity.labels[ Object.keys( entity.labels )[ 0 ] ] || {value: ''};
+			const label: { value: string } = entity.labels[ userLanguage ] || entity.labels.en || entity.labels[ Object.keys( entity.labels )[ 0 ] ] || { value: '' };
 			const description = entity.descriptions[ userLanguage ] || entity.descriptions.en || entity.descriptions[ Object.keys( entity.descriptions )[ 0 ] ] || '';
 
 			if ( ( ( ( ( ( ( ( entity || {} ).claims || {} ).P31 || [] )[ 0 ] || {} ).mainsnak || {} ).datavalue || {} ).value || {} ).id === 'Q4167410' ) {
 				continue; // skip disambigs
 			}
 
-			let subclassFound: boolean|string = false;
+			let subclassFound: boolean | string = false;
 			let subclassEntity: any = null;
 			const subclassPropertyIds: string[] = [ 'P17', 'P31', 'P131', 'P279', 'P361' ];
 			for ( const candidateId in data.entities ) {
@@ -164,7 +164,7 @@ export function getWikidataIds( titles: Title[], callback: any, $wrapper?: any )
 					continue;
 				}
 
-				subclassFound = subclassPropertyIds.find( function ( propertyId ) {
+				subclassFound = subclassPropertyIds.find( function ( propertyId: string ) {
 					const values = ( ( ( data.entities[ candidateId ] || {} ).claims || {} )[ propertyId ] || [] );
 					return values.find( function ( statement: WikidataClaim ) {
 						// @ts-ignore
@@ -183,7 +183,7 @@ export function getWikidataIds( titles: Title[], callback: any, $wrapper?: any )
 
 			if ( subclassFound ) {
 				if ( subclassEntity ) {
-					const subclassLabel: {value: string} = subclassEntity.labels[ userLanguage ] ||
+					const subclassLabel: { value: string } = subclassEntity.labels[ userLanguage ] ||
 						subclassEntity.labels.en ||
 						subclassEntity.labels[ Object.keys( subclassEntity.labels )[ 0 ] ];
 					const text: string = getI18n( 'more-precise-value' )
@@ -217,18 +217,18 @@ export function getWikidataIds( titles: Title[], callback: any, $wrapper?: any )
 			}
 			value.label = formatSnak( value.wd );
 			// @ts-ignore
-			if ('label' in value.wd.value) {
+			if ( 'label' in value.wd.value ) {
 				delete value.wd.value.label;
 			}
 			// @ts-ignore
-			if ('description' in value.wd.value) {
+			if ( 'description' in value.wd.value ) {
 				delete value.wd.value.description;
 			}
 			valuesObj[ entityId ] = value;
 		}
 
 		callback( valuesObj, $wrapper );
-	} )
+	} );
 }
 
 /**
@@ -241,7 +241,7 @@ export function createClaims( propertyId: string, values: string[], refUrl: Wiki
 		// All statements are added
 		$( '.no-wikidata[data-wikidata-property-id=' + propertyId + ']' )
 			.removeClass( 'no-wikidata' );
-			// .off( 'dblclick', clickEvent ); // FIXME
+		// .off( 'dblclick', clickEvent ); // FIXME
 		return;
 	} else {
 		value = JSON.parse( value );
@@ -301,4 +301,3 @@ export function createClaims( propertyId: string, values: string[], refUrl: Wiki
 		} );
 	} );
 }
-

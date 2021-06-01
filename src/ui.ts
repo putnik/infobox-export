@@ -1,7 +1,5 @@
-import {KeyValue} from "./types/main";
-
-const $ = require('jquery');
-const mw = require('mw');
+const $ = require( 'jquery' );
+const mw = require( 'mw' );
 
 // @ts-ignore
 import { inheritClass } from 'oojs';
@@ -17,11 +15,11 @@ import {
 // @ts-ignore
 } from 'ooui';
 
-import { getI18n } from "./i18n";
-import { getConfig } from "./config";
-import { alreadyExistingItems } from "./parser";
-import { createClaims } from "./wikidata";
-import {WikidataSnakContainer} from "./types/wikidata";
+import { getI18n } from './i18n';
+import { getConfig } from './config';
+import { alreadyExistingItems } from './parser';
+import { createClaims } from './wikidata';
+import { WikidataSnakContainer } from './types/wikidata';
 
 let _windowManager: any;
 
@@ -72,7 +70,7 @@ export function dialog( $field: JQuery, propertyId: string, values: WikidataSnak
 	// Create a dialog
 	const ExtProcessDialog: any = function ( config: any ) {
 		ExtProcessDialog.super.call( this, config );
-	}
+	};
 	inheritClass( ExtProcessDialog, ProcessDialog );
 
 	ExtProcessDialog.static.name = getI18n( 'window-header' );
@@ -93,14 +91,14 @@ export function dialog( $field: JQuery, propertyId: string, values: WikidataSnak
 		let firstSelected = false;
 		for ( let i = 0; i < values.length; i++ ) {
 			// @ts-ignore
-			const alreadyInWikidata = ( alreadyExistingItems[ propertyId ] || [] ).includes( ( ( values[ i ].wd || {} ).value || {} ).id );
+			const alreadyInWikidata: boolean = ( alreadyExistingItems[ propertyId ] || [] ).includes( ( ( values[ i ].wd || {} ).value || {} ).id );
 			const checkbox = new CheckboxInputWidget( {
 				value: JSON.stringify( values[ i ].wd ),
 				selected: alreadyInWikidata,
 				disabled: alreadyInWikidata
 			} );
 			if ( !checkbox.isDisabled() ) {
-				if ( !firstSelected || !getConfig( 'properties' )[ propertyId ].constraints.unique ) {
+				if ( !firstSelected || !getConfig( 'properties.' + propertyId + '.constraints.unique' ) ) {
 					firstSelected = true;
 					checkbox.setSelected( true );
 				}

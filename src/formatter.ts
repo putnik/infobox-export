@@ -1,12 +1,12 @@
-import { getI18n } from "./i18n";
-import { getConfig } from "./config";
-import { userLanguage } from "./languages";
-import {WikidataSnak} from "./types/wikidata";
-import {KeyValue} from "./types/main";
-import {EntityIdValue, QuantityValue, TimeValue} from "./types/wikidata/values";
+import { getI18n } from './i18n';
+import { getConfig } from './config';
+import { userLanguage } from './languages';
+import { WikidataSnak } from './types/wikidata';
+import { KeyValue } from './types/main';
+import { EntityIdValue, QuantityValue, TimeValue } from './types/wikidata/values';
 
 function formatEntityIdValue( value: EntityIdValue ): JQuery {
-	const $label: JQuery = $('<span>');
+	const $label: JQuery = $( '<span>' );
 
 	$label.append( $( '<strong>' ).text( value.label ? value.label : value.id ) )
 		.append( value.description ? ' — ' + value.description : '' );
@@ -40,7 +40,7 @@ function formatTimeValue( value: TimeValue ): JQuery {
 		return $label;
 	}
 	const options: KeyValue = {
-		timeZone: 'UTC',
+		timeZone: 'UTC'
 	};
 	if ( value.precision > 7 ) {
 		options.year = 'numeric';
@@ -62,7 +62,7 @@ function formatTimeValue( value: TimeValue ): JQuery {
  * Formatting wikidata values for display to the user
  */
 export function formatSnak( snak: WikidataSnak ): JQuery {
-	const $: JQueryStatic = require('jquery');
+	const $: JQueryStatic = require( 'jquery' );
 	let $label: JQuery = $( '<span>' );
 
 	switch ( snak.type ) {

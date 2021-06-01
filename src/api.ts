@@ -1,11 +1,11 @@
-import { KeyValue } from "./types/main";
+import { KeyValue } from './types/main';
 
 let api: any = null;
 let wdApi: any = null;
 
 function getApi(): any {
 	if ( api === null ) {
-		const mw = require('mw');
+		const mw = require( 'mw' );
 		api = new mw.Api();
 	}
 	return api;
@@ -13,7 +13,7 @@ function getApi(): any {
 
 export function getWdApi(): any {
 	if ( wdApi === null ) {
-		const mw = require('mw');
+		const mw = require( 'mw' );
 		wdApi = new mw.ForeignApi( '//www.wikidata.org/w/api.php' );
 	}
 	return wdApi;
@@ -32,7 +32,7 @@ export function getMessages( messageKeys: string[], language: string ): Promise<
 }
 
 export function sparqlRequest( request: string ): any {
-	const $ = require('jquery');
+	const $ = require( 'jquery' );
 	const url = 'https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent( request );
 	return $.get( url );
 }

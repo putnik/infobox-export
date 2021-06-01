@@ -5,7 +5,6 @@ module.exports = {
 	entry: path.join(APP_SOURCE, "index.ts"),
 	externals: {
 		jquery: "jQuery",
-		math: "Math",
 //		mw: "MediaWiki",
 		mw: "mw",
 		oojs: "OO",

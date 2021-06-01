@@ -1,22 +1,22 @@
-import {QuantityValue} from "./types/wikidata/values";
+import { QuantityValue } from './types/wikidata/values';
 
 /**
  * Parsing the number and (optionally) the accuracy
  */
 export function parseRawQuantity( config: any, text: string, forceInteger: boolean ): QuantityValue {
 	const value: QuantityValue = {
-		amount: "0",
+		amount: '0'
 	};
 	text = text.replace( /,/g, '.' ).replace( /[−–—]/g, '-' ).trim();
 
 	let magnitude = 0;
-	if ( text.match( config['re-10_3'] ) ) {
+	if ( text.match( config[ 're-10_3' ] ) ) {
 		magnitude += 3;
-	} else if ( text.match( config['re-10_6'] ) ) {
+	} else if ( text.match( config[ 're-10_6' ] ) ) {
 		magnitude += 6;
-	} else if ( text.match( config['re-10_9'] ) ) {
+	} else if ( text.match( config[ 're-10_9' ] ) ) {
 		magnitude += 9;
-	} else if ( text.match( config['re-10_12'] ) ) {
+	} else if ( text.match( config[ 're-10_12' ] ) ) {
 		magnitude += 12;
 	} else {
 		const match = text.match( /[*|·]10(-?\d+)/ );
@@ -47,10 +47,10 @@ export function parseRawQuantity( config: any, text: string, forceInteger: boole
 		const lowerBound: number = parseFloat( value.lowerBound );
 		const amount: number = ( upperBound + lowerBound ) / 2;
 		const bound: number = ( upperBound - lowerBound ) / 2;
-		if (upperBound % 2 !== lowerBound % 2) {
+		if ( upperBound % 2 !== lowerBound % 2 ) {
 			fractional += 1;
 		}
-		value.amount = amount.toFixed( fractional  );
+		value.amount = amount.toFixed( fractional );
 		value.bound = bound.toFixed( fractional );
 		return value;
 	} else {

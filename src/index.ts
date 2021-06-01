@@ -1,7 +1,7 @@
-import { init } from "./app";
+import { init } from './app';
 
-const $ = require('jquery');
-const mw = require('mw');
+const $ = require( 'jquery' );
+const mw = require( 'mw' );
 
 $.when(
 	$.ready,

@@ -1,12 +1,12 @@
-import {getConfig} from "./config";
-import {getMonths, getMonthsGen} from "./months";
-import {TimeGuess} from "./types/main";
+import { getConfig } from './config';
+import { getMonths, getMonthsGen } from './months';
+import { TimeGuess } from './types/main';
 
 /**
  * Returns an array of elements with duplicate values deleted
  */
 export function unique( array: any[] ): any[] {
-	const $ = require('jquery');
+	const $ = require( 'jquery' );
 	return $.grep( array, function ( el: any, index: number ) {
 		return index === $.inArray( el, array );
 	} );
@@ -29,7 +29,7 @@ export function guessDateAndPrecision( timestamp: string ): TimeGuess {
 		return {
 			type: 'value',
 			isoDate: isoDate,
-			precision: 7,
+			precision: 7
 		};
 	}
 
@@ -39,7 +39,7 @@ export function guessDateAndPrecision( timestamp: string ): TimeGuess {
 		return {
 			type: 'value',
 			isoDate: isoDate,
-			precision: 10,
+			precision: 10
 		};
 	}
 
@@ -53,39 +53,39 @@ export function guessDateAndPrecision( timestamp: string ): TimeGuess {
 		return {
 			type: 'value',
 			isoDate: isoDate,
-			precision: 11,
+			precision: 11
 		};
 	}
 
 	dateParts = timestamp.match( getConfig( 're-dot-date' ) );
 	if ( dateParts ) {
 		isoDate = new Date( Date.UTC(
-			parseInt( dateParts[ 3 ], 10 ) < 100
-				? 1900 + parseInt( dateParts[ 3 ], 10 )
-				: parseInt( dateParts[ 3 ], 10 ),
+			parseInt( dateParts[ 3 ], 10 ) < 100 ?
+				1900 + parseInt( dateParts[ 3 ], 10 ) :
+				parseInt( dateParts[ 3 ], 10 ),
 			parseInt( dateParts[ 2 ], 10 ) - 1,
 			parseInt( dateParts[ 1 ], 10 )
 		) );
 		return {
 			type: 'value',
 			isoDate: isoDate,
-			precision: 11,
+			precision: 11
 		};
 	}
 
 	dateParts = timestamp.match( getConfig( 're-iso-date' ) );
 	if ( dateParts ) {
 		isoDate = new Date( Date.UTC(
-			parseInt( dateParts[ 1 ], 10 ) < 100
-				? 1900 + parseInt( dateParts[ 1 ], 10 )
-				: parseInt( dateParts[ 1 ], 10 ),
+			parseInt( dateParts[ 1 ], 10 ) < 100 ?
+				1900 + parseInt( dateParts[ 1 ], 10 ) :
+				parseInt( dateParts[ 1 ], 10 ),
 			parseInt( dateParts[ 2 ], 10 ) - 1,
 			parseInt( dateParts[ 3 ], 10 )
 		) );
 		return {
 			type: 'value',
 			isoDate: isoDate,
-			precision: 11,
+			precision: 11
 		};
 	}
 
@@ -95,7 +95,7 @@ export function guessDateAndPrecision( timestamp: string ): TimeGuess {
 		return {
 			type: 'value',
 			isoDate: isoDate,
-			precision: 8,
+			precision: 8
 		};
 	}
 
@@ -105,19 +105,19 @@ export function guessDateAndPrecision( timestamp: string ): TimeGuess {
 		return {
 			type: 'value',
 			isoDate: isoDate,
-			precision: 9,
+			precision: 9
 		};
 	}
 
 	if ( timestamp.match( getConfig( 're-present' ) ) ) {
 		return {
-			type: 'novalue',
+			type: 'novalue'
 		};
 	}
 
 	if ( timestamp.match( getConfig( 're-unknown' ) ) ) {
 		return {
-			type: 'somevalue',
+			type: 'somevalue'
 		};
 	}
 }

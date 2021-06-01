@@ -1,21 +1,21 @@
 import { getConfig } from './config';
 import { getI18n } from './i18n';
-import { checkForMissedLanguage, contentLanguage } from "./languages";
-import { formatSnak } from "./formatter";
-import { createTimeSnak, getWikidataIds, typesMapping } from "./wikidata";
-import { lowercaseFirst, unique } from "./utils";
-import { apiRequest } from "./api";
-import { parseRawQuantity } from "./text-parser";
+import { checkForMissedLanguage, contentLanguage } from './languages';
+import { formatSnak } from './formatter';
+import { createTimeSnak, getWikidataIds, typesMapping } from './wikidata';
+import { lowercaseFirst, unique } from './utils';
+import { apiRequest } from './api';
+import { parseRawQuantity } from './text-parser';
 import {
 	DataType,
 	WikidataClaim,
 	WikidataSnak,
 	WikidataSnakContainer
-} from "./types/wikidata";
-import {ApiResponse, KeyValue, Title} from "./types/main";
-import { CommonsMediaValue, ItemValue, MonolingualTextValue, QuantityValue, TimeValue } from "./types/wikidata/values";
+} from './types/wikidata';
+import { ApiResponse, KeyValue, Title } from './types/main';
+import { CommonsMediaValue, ItemValue, MonolingualTextValue, QuantityValue, TimeValue } from './types/wikidata/values';
 
-export let alreadyExistingItems: KeyValue = {};
+export const alreadyExistingItems: KeyValue = {};
 
 /**
  * Parsing the number and (optionally) the accuracy
@@ -24,18 +24,18 @@ export function parseQuantity( text: string, forceInteger?: boolean ): WikidataS
 	text = text.replace( /,/g, '.' ).replace( /[−–—]/g, '-' ).trim();
 
 	const config: KeyValue = {
-		"re-10_3": getConfig( 're-10_3' ),
-		"re-10_6": getConfig( 're-10_6' ),
-		"re-10_9": getConfig( 're-10_9' ),
-		"re-10_12": getConfig( 're-10_12' ),
-	}
+		're-10_3': getConfig( 're-10_3' ),
+		're-10_6': getConfig( 're-10_6' ),
+		're-10_9': getConfig( 're-10_9' ),
+		're-10_12': getConfig( 're-10_12' )
+	};
 
-	const value: QuantityValue|undefined = parseRawQuantity(config, text, forceInteger);
+	const value: QuantityValue | undefined = parseRawQuantity( config, text, forceInteger );
 	if ( value === undefined ) {
 		return;
 	}
 	const out: WikidataSnak = {
-		value: value,
+		value: value
 	};
 
 	// Sourcing circumstances (P1480) = circa (Q5727902)
@@ -49,7 +49,7 @@ export function parseQuantity( text: string, forceInteger?: boolean ): WikidataS
 					type: 'wikibase-entityid',
 					value: { id: 'Q5727902' }
 				}
-			} ],
+			} ]
 		};
 		text = text.replace( circaMatch[ 0 ], '' ); // FIXME: modify text
 	}
@@ -57,8 +57,8 @@ export function parseQuantity( text: string, forceInteger?: boolean ): WikidataS
 	return out;
 }
 
-function addQualifierValue( snak: WikidataSnak, qualifierId: string, qualifierSnak: WikidataSnak, qualifierLabel: JQuery|string, $label: JQuery ): WikidataSnak {
-	const $ = require('jquery');
+function addQualifierValue( snak: WikidataSnak, qualifierId: string, qualifierSnak: WikidataSnak, qualifierLabel: JQuery | string, $label: JQuery ): WikidataSnak {
+	const $ = require( 'jquery' );
 	if ( snak.qualifiers === undefined ) {
 		snak.qualifiers = {};
 	}
@@ -85,12 +85,12 @@ function addQualifierValue( snak: WikidataSnak, qualifierId: string, qualifierSn
 	return snak;
 }
 
-function processItemTitles( itemTitles: KeyValue, callback: any, snak: WikidataSnak, $label: JQuery|string ) {
+function processItemTitles( itemTitles: KeyValue, callback: any, snak: WikidataSnak, $label: JQuery | string ) {
 	if ( Object.keys( itemTitles ).length ) {
 		const qualifierId: string = Object.keys( itemTitles ).shift();
 		const qualifierItemTitles = itemTitles[ qualifierId ];
 		delete itemTitles[ qualifierId ];
-		getWikidataIds( qualifierItemTitles, function ( valuesObj: {[key: string]: WikidataSnakContainer} ) {
+		getWikidataIds( qualifierItemTitles, function ( valuesObj: { [ key: string ]: WikidataSnakContainer } ) {
 			for ( const entityId in valuesObj ) {
 				const valueObj: WikidataSnakContainer = valuesObj[ entityId ];
 				// @ts-ignore
@@ -107,7 +107,7 @@ function processItemTitles( itemTitles: KeyValue, callback: any, snak: WikidataS
 }
 
 export function addQualifiers( $field: JQuery, snak: WikidataSnak, $label: JQuery, callback: any ) {
-	const $ = require('jquery');
+	const $ = require( 'jquery' );
 	const $qualifiers = $field.find( '[data-wikidata-qualifier-id]' );
 	if ( $qualifiers.length ) {
 		$label = $( '<div>' ).append( $label );
@@ -157,7 +157,7 @@ export function addQualifiers( $field: JQuery, snak: WikidataSnak, $label: JQuer
 								qualifiers: {}
 							};
 							if ( $link.hasClass( 'extiw' ) ) {
-								const m = $link.attr( 'href' ).match( /^https:\/\/([a-z\-]+)\.(wik[^.]+)\./ );
+								const m = $link.attr( 'href' ).match( /^https:\/\/([a-z-]+)\.(wik[^.]+)\./ );
 								if ( m && m[ 2 ] !== 'wikimedia' ) {
 									title.language = m[ 1 ];
 									title.project = m[ 1 ] + m[ 2 ].replace( 'wikipedia', 'wiki' );
@@ -233,7 +233,7 @@ export function prepareCommonsMedia( $content: JQuery, $wrapper: JQuery ): Wikid
 		fileName = fileName.replace( /_/g, ' ' );
 		const value: CommonsMediaValue = { value: fileName };
 		const snak: WikidataSnak = {
-			value: value,
+			value: value
 		};
 		const $label: JQuery = $img.clone()
 			.attr( 'title', fileName )
@@ -248,8 +248,8 @@ export function prepareCommonsMedia( $content: JQuery, $wrapper: JQuery ): Wikid
 }
 
 export function prepareMonolingualText( $content: JQuery ): WikidataSnakContainer[] {
-	const $: JQueryStatic = require('jquery');
-	const mw = require('mw');
+	const $: JQueryStatic = require( 'jquery' );
+	const mw = require( 'mw' );
 	let containers: WikidataSnakContainer[] = [];
 	let $items: JQuery = $content.find( 'span[lang]' );
 	$items.each( function () {
@@ -339,7 +339,7 @@ export function prepareQuantity( $content: JQuery, propertyId: string ): Wikidat
 			yearMatch = $content.closest( 'tr' ).find( 'th' ).first().text().match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
 		}
 		if ( yearMatch ) {
-			const extractedDate: TimeValue|string = createTimeSnak( yearMatch[ 1 ].replace( /(\d)\s(\d)/, '$1$2' ) );
+			const extractedDate: TimeValue | string = createTimeSnak( yearMatch[ 1 ].replace( /(\d)\s(\d)/, '$1$2' ) );
 			if ( extractedDate ) {
 				result.wd.qualifiers = {
 					P585: [ {
@@ -374,7 +374,7 @@ export function prepareQuantity( $content: JQuery, propertyId: string ): Wikidat
 						property: supportedProperties[ j ],
 						datavalue: {
 							type: 'quantity',
-							value: qualifierQuantity,
+							value: qualifierQuantity
 						}
 					} ];
 				}
@@ -400,7 +400,7 @@ export function prepareQuantity( $content: JQuery, propertyId: string ): Wikidat
 }
 
 export function prepareTime( $content: JQuery ): WikidataSnakContainer[] {
-	const $ = require('jquery');
+	const $ = require( 'jquery' );
 	const values = [];
 	const value: TimeValue = createTimeSnak( $content.text().toLowerCase().trim().replace( getConfig( 're-year-postfix' ), '' ),
 		$content[ 0 ].outerHTML.includes( getConfig( 'mark-julian' ) ) );
@@ -461,8 +461,8 @@ export function prepareString( $content: JQuery, propertyId: string ): WikidataS
 			values.push( {
 				wd: {
 					value: {
-						value: s,
-					},
+						value: s
+					}
 				},
 				label: $( '<code>' + s + '</code>' )
 			} );
@@ -481,8 +481,8 @@ export function prepareUrl( $content: JQuery ): WikidataSnakContainer[] {
 		values.push( {
 			wd: {
 				value: {
-					value: url,
-				},
+					value: url
+				}
 			},
 			label: $( '<code>' + url + '</code>' )
 		} );
@@ -491,8 +491,8 @@ export function prepareUrl( $content: JQuery ): WikidataSnakContainer[] {
 	return values;
 }
 
-function processWbGetItems( valuesObj: {[key: string]: WikidataSnakContainer}, callback: any, $wrapper: JQuery ) {
-	const $: JQueryStatic = require('jquery');
+function processWbGetItems( valuesObj: { [ key: string ]: WikidataSnakContainer }, callback: any, $wrapper: JQuery ) {
+	const $: JQueryStatic = require( 'jquery' );
 	const values: WikidataSnakContainer[] = $.map( valuesObj, function ( value: WikidataSnakContainer ) {
 		return [ value ];
 	} );
@@ -507,7 +507,7 @@ function processWbGetItems( valuesObj: {[key: string]: WikidataSnakContainer}, c
 }
 
 export function parseItems( $content: JQuery, $wrapper: JQuery, callback: any ) {
-	const $ = require('jquery');
+	const $ = require( 'jquery' );
 	let titles: Title[] = [];
 
 	for ( let k = 0; k < getConfig( 'fixed-values' ).length; k++ ) {
@@ -516,7 +516,7 @@ export function parseItems( $content: JQuery, $wrapper: JQuery, callback: any ) 
 		if ( $content.attr( 'data-wikidata-property-id' ) === fixedValue.property &&
 			$content.text().match( regexp )
 		) {
-			const valuesObj: {[key: string]: WikidataSnakContainer} = {};
+			const valuesObj: { [ key: string ]: WikidataSnakContainer } = {};
 			const value: WikidataSnakContainer = {
 				wd: {
 					type: 'wikibase-entityid',
@@ -529,11 +529,11 @@ export function parseItems( $content: JQuery, $wrapper: JQuery, callback: any ) 
 			};
 			value.label = formatSnak( value.wd );
 			// @ts-ignore
-			if ('label' in value.wd.value) {
+			if ( 'label' in value.wd.value ) {
 				delete value.wd.value.label;
 			}
 			// @ts-ignore
-			if ('description' in value.wd.value) {
+			if ( 'description' in value.wd.value ) {
 				delete value.wd.value.description;
 			}
 			valuesObj[ fixedValue.item ] = value;
@@ -577,7 +577,7 @@ export function parseItems( $content: JQuery, $wrapper: JQuery, callback: any ) 
 					} ];
 				}
 				if ( $link.hasClass( 'extiw' ) ) {
-					const m = $links[ j ].getAttribute( 'href' ).match( /^https:\/\/([a-z\-]+)\.(wik[^.]+)\./ );
+					const m = $links[ j ].getAttribute( 'href' ).match( /^https:\/\/([a-z-]+)\.(wik[^.]+)\./ );
 					if ( m && m[ 2 ] !== 'wikimedia' ) {
 						value.language = m[ 1 ];
 						value.project = m[ 1 ] + m[ 2 ].replace( 'wikipedia', 'wiki' );
@@ -711,14 +711,16 @@ export function canExportValue( $field: JQuery, claims: WikidataClaim[], callbac
 				}
 				if ( duplicates.length < values.length ) {
 					if ( duplicates.length > 0 ) {
-						const propertyId = claims[ 0 ].mainsnak.property;
+						const propertyId: string = claims[ 0 ].mainsnak.property;
 						alreadyExistingItems[ propertyId ] = duplicates;
-						if ( propertyId === 'P166' && values.length === claims.length )
+						if ( propertyId === 'P166' && values.length === claims.length ) {
 							return;
+						}
 					}
 					if ( Object.keys( claims ).length > 0 ) {
-						if ( claims[ 0 ].mainsnak.property === 'P19' || claims[ 0 ].mainsnak.property === 'P20' )
+						if ( claims[ 0 ].mainsnak.property === 'P19' || claims[ 0 ].mainsnak.property === 'P20' ) {
 							return;
+						}
 					}
 					callbackIfCan( true );
 				}

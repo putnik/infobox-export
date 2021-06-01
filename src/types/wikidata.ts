@@ -1,4 +1,4 @@
-import {KeyValue} from "./main";
+import { KeyValue } from './main';
 import {
 	CommonsMediaValue,
 	EntityIdValue,
@@ -6,25 +6,38 @@ import {
 	MonolingualTextValue,
 	QuantityValue,
 	TimeValue
-} from "./wikidata/values";
+} from './wikidata/values';
 
 export type SnakType = 'value' | 'novalue' | 'somevalue';
-export type DataType = 'commonsMedia' | 'external-id' | 'monolingualtext' | 'quantity' | 'string' | 'time' | 'url' | 'wikibase-item';
+export type DataType =
+	'commonsMedia'
+	| 'external-id'
+	| 'monolingualtext'
+	| 'quantity'
+	| 'string'
+	| 'time'
+	| 'url'
+	| 'wikibase-item';
 export type DataValueType = 'string' | 'time' | 'wikibase-entityid'
 
-export interface WikidataClaim {
-	type: string;
-	mainsnak: WikidataMainSnak;
+export type WikidataValue =
+	CommonsMediaValue
+	| EntityIdValue
+	| ItemValue
+	| MonolingualTextValue
+	| TimeValue
+	| QuantityValue;
+
+export interface WikidataSnak {
+	value: WikidataValue;
+	type?: DataValueType | DataType; // FIXME
 	qualifiers?: KeyValue;
-	id: string;
-	references: any;
-	rank: string;
+	references?: KeyValue;
 }
 
-export interface WikidataSource {
-	snaks: {
-		[key: string]: WikidataMainSnak[];
-	}
+export interface WikidataSnakContainer {
+	wd: WikidataSnak;
+	label?: JQuery;
 }
 
 export interface WikidataMainSnak {
@@ -34,16 +47,17 @@ export interface WikidataMainSnak {
 	datavalue?: WikidataSnak;
 }
 
-export interface WikidataSnakContainer {
-	wd: WikidataSnak;
-	label?: JQuery;
+export interface WikidataSource {
+	snaks: {
+		[ key: string ]: WikidataMainSnak[];
+	}
 }
 
-export interface WikidataSnak {
-	value: WikidataValue;
-	type?: DataValueType|DataType; // FIXME
+export interface WikidataClaim {
+	type: string;
+	mainsnak: WikidataMainSnak;
 	qualifiers?: KeyValue;
-	references?: KeyValue;
+	id: string;
+	references: any;
+	rank: string;
 }
-
-export type WikidataValue = CommonsMediaValue | EntityIdValue | ItemValue | MonolingualTextValue | TimeValue | QuantityValue;

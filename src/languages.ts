@@ -1,6 +1,6 @@
-import { unique } from "./utils";
+import { unique } from './utils';
 
-const mw = require('mw');
+const mw = require( 'mw' );
 
 // Site and user language setup
 export const contentLanguage: string = mw.config.get( 'wgContentLanguage' );
@@ -8,7 +8,7 @@ export const userLanguage: string = mw.user.options.get( 'language' ) || content
 export const allLanguages: string[] = unique( [
 	userLanguage,
 	contentLanguage,
-	'en',
+	'en'
 ] );
 
 export const missedLanguages: any = {
@@ -25,10 +25,10 @@ export const missedLanguages: any = {
 	phn: 'Q36734', // phn-latn or phn-phnx
 	sga: 'Q35308',
 	yrk: 'Q36452'
-}
+};
 
 export function checkForMissedLanguage( wd: any ): any {
-	let language = wd.value.language;
+	const language = wd.value.language;
 	if ( language in missedLanguages ) {
 		wd.value.language = 'mis';
 		if ( !( 'qualifiers' in wd ) ) {
