@@ -3,7 +3,7 @@ import { createTimeSnak, setBaseRevId } from './wikidata';
 import {
 	canExportValue,
 	parseItems,
-	prepareCommonsMedia,
+	prepareCommonsMedia, prepareExternalId,
 	prepareMonolingualText,
 	prepareQuantity,
 	prepareString,
@@ -12,7 +12,7 @@ import {
 } from './parser';
 import { getI18n } from './i18n';
 import { getConfig, loadConfig, saveConfig, setConfig } from './config';
-import { unique } from './utils';
+import { unique, uppercaseFirst } from './utils';
 import { dialog } from './ui';
 import { loadMonths } from './months';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
@@ -115,149 +115,147 @@ function getReference( $field: JQuery ): WikidataSource[] {
 /**
  * Preload information on all properties
  */
-function realLoadProperties( propertyIds: string[] ): void {
+async function realLoadProperties( propertyIds: string[] ): Promise<void> {
 	if ( !propertyIds || !propertyIds.length ) {
 		return;
 	}
 
 	const units: string[] = [];
-	wdApiRequest( {
+	const data: ApiResponse = await wdApiRequest( {
 		action: 'wbgetentities',
 		languages: allLanguages,
 		props: [ 'labels', 'datatype', 'claims' ],
 		ids: propertyIds
-	} ).done( function ( data: ApiResponse ) {
-		if ( !data.success ) {
-			return;
-		}
+	} );
+	if ( !data.success ) {
+		return;
+	}
 
-		for ( const propertyId in data.entities ) {
-			if ( !data.entities.hasOwnProperty( propertyId ) ) {
-				continue;
-			}
-			const entity: KeyValue = data.entities[ propertyId ];
-			const label: string = entity.labels[ contentLanguage ] ?
-				entity.labels[ contentLanguage ].value :
-				entity.labels.en.value;
-			setConfig( 'properties.' + propertyId, {
-				datatype: entity.datatype,
-				label: label.charAt( 0 ).toUpperCase() + label.slice( 1 ),
-				constraints: { qualifier: [] },
-				units: []
-			} );
-			if ( propertyId === 'P1128' || propertyId === 'P2196' ) {
-				setConfig( 'properties.' + propertyId + '.constraints.integer', 1 );
-				if ( entity.claims ) {
-					// Property restrictions
-					if ( entity.claims.P2302 ) {
-						for ( const i in entity.claims.P2302 ) {
-							const type = ( ( ( ( entity.claims.P2302[ i ] || {} ).mainsnak || {} ).datavalue || {} ).value || {} ).id;
-							let qualifiers;
-							switch ( type ) {
-								case 'Q19474404':
-								case 'Q21502410':
-									setConfig( 'properties.' + propertyId + '.constraints.unique', 1 );
-									break;
-								case 'Q21510856': // Required
-									qualifiers = ( ( ( entity.claims.P2302[ i ] || {} ).qualifiers || {} ).P2306 || [] );
-									for ( let idx = 0; idx < qualifiers.length; idx++ ) {
-										const qualifierId = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
-										if ( qualifierId ) {
-											getConfig( 'properties' )[ propertyId ].constraints.qualifier.push( qualifierId.toString() );
-										}
+	for ( const propertyId in data.entities ) {
+		if ( !data.entities.hasOwnProperty( propertyId ) ) {
+			continue;
+		}
+		const entity: KeyValue = data.entities[ propertyId ];
+		const label: string = entity.labels[ contentLanguage ] ?
+			entity.labels[ contentLanguage ].value :
+			entity.labels.en.value;
+		setConfig( 'properties.' + propertyId, {
+			datatype: entity.datatype,
+			label: uppercaseFirst( label ),
+			constraints: { qualifier: [] },
+			units: []
+		} );
+		if ( propertyId === 'P1128' || propertyId === 'P2196' ) {
+			setConfig( 'properties.' + propertyId + '.constraints.integer', 1 );
+			if ( entity.claims ) {
+				// Property restrictions
+				if ( entity.claims.P2302 ) {
+					for ( const i in entity.claims.P2302 ) {
+						const type = ( ( ( ( entity.claims.P2302[ i ] || {} ).mainsnak || {} ).datavalue || {} ).value || {} ).id;
+						let qualifiers;
+						switch ( type ) {
+							case 'Q19474404':
+							case 'Q21502410':
+								setConfig( 'properties.' + propertyId + '.constraints.unique', 1 );
+								break;
+							case 'Q21510856': // Required
+								qualifiers = ( ( ( entity.claims.P2302[ i ] || {} ).qualifiers || {} ).P2306 || [] );
+								for ( let idx = 0; idx < qualifiers.length; idx++ ) {
+									const qualifierId = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
+									if ( qualifierId ) {
+										getConfig( 'properties' )[ propertyId ].constraints.qualifier.push( qualifierId.toString() );
 									}
-									break;
-								case 'Q21514353': // Units
-									qualifiers = ( ( ( entity.claims.P2302[ i ] || {} ).qualifiers || {} ).P2305 || [] );
-									for ( let idx = 0; idx < qualifiers.length; idx++ ) {
-										const unitId = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
-										if ( unitId ) {
-											const configUnits = getConfig( 'properties.' + propertyId + '.units' );
-											configUnits.push( unitId );
-											setConfig( 'properties.' + propertyId + '.units', configUnits );
-											units.push( unitId );
-										}
+								}
+								break;
+							case 'Q21514353': // Units
+								qualifiers = ( ( ( entity.claims.P2302[ i ] || {} ).qualifiers || {} ).P2305 || [] );
+								for ( let idx = 0; idx < qualifiers.length; idx++ ) {
+									const unitId = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
+									if ( unitId ) {
+										const configUnits = getConfig( 'properties.' + propertyId + '.units' );
+										configUnits.push( unitId );
+										setConfig( 'properties.' + propertyId + '.units', configUnits );
+										units.push( unitId );
 									}
-									break;
-							}
+								}
+								break;
 						}
 					}
 				}
 			}
+		}
 
-			for ( let idx = 0; idx < unique( units ).length; idx += 50 ) {
-				wdApiRequest( {
-					action: 'wbgetentities',
-					languages: allLanguages,
-					props: [ 'labels', 'descriptions', 'aliases', 'claims' ],
-					ids: unique( units ).slice( idx, idx + 50 )
-				} ).done( function ( unitData: ApiResponse ) {
-					if ( !unitData.success ) {
-						return;
+		for ( let idx = 0; idx < unique( units ).length; idx += 50 ) {
+			const unitData: ApiResponse = await wdApiRequest( {
+				action: 'wbgetentities',
+				languages: allLanguages,
+				props: [ 'labels', 'descriptions', 'aliases', 'claims' ],
+				ids: unique( units ).slice( idx, idx + 50 )
+			} );
+			if ( !unitData.success ) {
+				return;
+			}
+
+			for ( const unitId in unitData.entities ) {
+				const unit = unitData.entities[ unitId ];
+				const unitSearch = getConfig( 'units.' + unitId + '.search' ) || [];
+				if ( !getConfig( 'units.' + unitId ) ) {
+					setConfig( 'units.' + unitId, {} );
+				}
+
+				// Label
+				if ( unit.labels ) {
+					setConfig( 'units.' + unitId + '.label',
+						unit.labels[ userLanguage ] ||
+						unit.labels.en ||
+						unit.labels[ Object.keys( unit.labels )[ 0 ] ]
+					);
+
+					if ( unit.labels[ userLanguage ] ) {
+						unitSearch.push( unit.labels[ userLanguage ].value.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
 					}
+				}
 
-					for ( const unitId in unitData.entities ) {
-						const unit = unitData.entities[ unitId ];
-						const unitSearch = getConfig( 'units.' + unitId + '.search' ) || [];
-						if ( !getConfig( 'units.' + unitId ) ) {
-							setConfig( 'units.' + unitId, {} );
-						}
+				// Description
+				if ( unit.descriptions ) {
+					setConfig( 'units.' + unitId + '.description',
+						unit.descriptions[ userLanguage ] ||
+						unit.descriptions.en ||
+						unit.descriptions[ Object.keys( unit.labels )[ 0 ] ]
+					);
+				}
 
-						// Label
-						if ( unit.labels ) {
-							setConfig( 'units.' + unitId + '.label',
-								unit.labels[ userLanguage ] ||
-								unit.labels.en ||
-								unit.labels[ Object.keys( unit.labels )[ 0 ] ]
-							);
-
-							if ( unit.labels[ userLanguage ] ) {
-								unitSearch.push( unit.labels[ userLanguage ].value.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
-							}
-						}
-
-						// Description
-						if ( unit.descriptions ) {
-							setConfig( 'units.' + unitId + '.description',
-								unit.descriptions[ userLanguage ] ||
-								unit.descriptions.en ||
-								unit.descriptions[ Object.keys( unit.labels )[ 0 ] ]
-							);
-						}
-
-						// Aliases
-						if ( unit.aliases && unit.aliases[ userLanguage ] ) {
-							for ( const i in unit.aliases[ userLanguage ] ) {
-								unitSearch.push( unit.aliases[ userLanguage ][ i ].value.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
-							}
-						}
-
-						// Units (P5061)
-						if ( unit.claims && unit.claims.P5061 ) {
-							for ( const i in unit.claims.P5061 ) {
-								const claim = unit.claims.P5061[ i ];
-								if ( claim.mainsnak &&
-									claim.mainsnak.datavalue &&
-									claim.mainsnak.datavalue.value
-								) {
-									unitSearch.push( claim.mainsnak.datavalue.value.text.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
-								}
-							}
-						}
-						setConfig( 'units.' + unitId + '.search', unique( unitSearch ) );
-
-						saveConfig();
+				// Aliases
+				if ( unit.aliases && unit.aliases[ userLanguage ] ) {
+					for ( const i in unit.aliases[ userLanguage ] ) {
+						unitSearch.push( unit.aliases[ userLanguage ][ i ].value.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
 					}
-				} );
+				}
+
+				// Units (P5061)
+				if ( unit.claims && unit.claims.P5061 ) {
+					for ( const i in unit.claims.P5061 ) {
+						const claim = unit.claims.P5061[ i ];
+						if ( claim.mainsnak &&
+							claim.mainsnak.datavalue &&
+							claim.mainsnak.datavalue.value
+						) {
+							unitSearch.push( claim.mainsnak.datavalue.value.text.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
+						}
+					}
+				}
+				setConfig( 'units.' + unitId + '.search', unique( unitSearch ) );
+
+				saveConfig();
 			}
 		}
-	} );
+	}
 }
 
 /**
  * Wrapper for property preloading that excludes already loaded properties
  */
-function loadProperties( propertyIds: string[] ): void {
+async function loadProperties( propertyIds: string[] ): Promise<void> {
 	if ( !propertyIds || !propertyIds.length ) {
 		return;
 	}
@@ -271,14 +269,14 @@ function loadProperties( propertyIds: string[] ): void {
 	}
 
 	if ( realPropertyIds.length ) {
-		realLoadProperties( realPropertyIds );
+		await realLoadProperties( realPropertyIds );
 	}
 }
 
 /**
  * Parsing values from parameters before displaying a dialog
  */
-function prepareDialog( $field: JQuery, propertyId: string ): void {
+async function prepareDialog( $field: JQuery, propertyId: string ): Promise<WikidataSnakContainer[]> {
 	let containers: WikidataSnakContainer[] = [];
 	const datatype: DataType = getConfig( 'properties.' + propertyId + '.datatype' );
 
@@ -295,39 +293,19 @@ function prepareDialog( $field: JQuery, propertyId: string ): void {
 
 	switch ( datatype ) {
 		case 'commonsMedia':
-			containers = prepareCommonsMedia( $content, $wrapper );
+			containers = await prepareCommonsMedia( $content, $wrapper );
 			break;
 
 		case 'external-id':
-			let externalId = $content.data( 'wikidata-external-id' ) || $content.text();
-			if ( propertyId === 'P345' ) { // IMDb
-				externalId = $content.find( 'a' ).first().attr( 'href' );
-				externalId = externalId.substr( externalId.lastIndexOf( '/', externalId.length - 2 ) ).replace( /\//g, '' );
-			} else {
-				externalId = externalId.toString().replace( /^ID\s/, '' ).replace( /\s/g, '' );
-			}
-			const sparql = 'SELECT * WHERE { ?item wdt:' + propertyId + ' "' + externalId + '" }';
-			sparqlRequest( sparql ).done( function ( data: SparqlResponse ) {
-				let $label = $( '<code>' ).text( externalId );
-				if ( data.results.bindings.length ) {
-					const url = data.results.bindings[ 0 ].item.value;
-					$label = $( '<span>' ).append( $( '<code>' ).text( externalId ) )
-						.append( $( '<strong>' ).css( { color: 'red' } ).text( getI18n( 'already-used-in' ) ) )
-						.append( $( '<a>' ).attr( 'href', url ).attr( 'target', '_blank' ).text( url.replace( /[^Q]*Q/, 'Q' ) ) );
-				}
-				dialog( $field, propertyId, [ {
-					wd: { value: externalId.toString() },
-					label: $label
-				} ], getReference( $content ) );
-			} );
-			return;
+			containers = await prepareExternalId( $content, propertyId );
+			break;
 
 		case 'monolingualtext':
 			containers = prepareMonolingualText( $content );
 			break;
 
 		case 'quantity':
-			containers = prepareQuantity( $content, propertyId );
+			containers = await prepareQuantity( $content, propertyId );
 			break;
 
 		case 'string':
@@ -339,10 +317,8 @@ function prepareDialog( $field: JQuery, propertyId: string ): void {
 			break;
 
 		case 'wikibase-item':
-			parseItems( $content, $wrapper, function ( values: WikidataSnakContainer[] ) {
-				dialog( $field, propertyId, values, getReference( $content ) );
-			} );
-			return;
+			containers = await parseItems( $content, $wrapper );
+			break;
 
 		case 'url':
 			containers = prepareUrl( $content );
@@ -355,23 +331,38 @@ function prepareDialog( $field: JQuery, propertyId: string ): void {
 			} );
 	}
 
-	containers = unique( containers );
-	dialog( $field, propertyId, containers, getReference( $field ) );
+	return unique( containers );
 }
 
 /**
  * Double-click event on the infobox field
  */
-function clickEvent(): void {
+async function clickEvent(): Promise<void> {
 	const $field = $( this );
 	const propertyId = $field.attr( 'data-wikidata-property-id' );
-	prepareDialog( $field, propertyId );
+	const containers: WikidataSnakContainer[] = await prepareDialog( $field, propertyId );
+	const reference = getReference( $field );
+	dialog( $field, propertyId, containers, reference );
 }
 
-/**
- * Continue gadget initializing
- */
-function initContinue(): void {
+async function loadDefaultReference(): Promise<void> {
+	const sparql = 'SELECT ?wiki WHERE { ?wiki wdt:P31/wdt:P279* wd:Q33120876 . ?wiki wdt:P856 ?site . FILTER REGEX(STR(?site), "https://' + location.host + '/") }';
+	const data: SparqlResponse = await sparqlRequest( sparql );
+	if ( data.results.bindings.length === 0 ) {
+		return;
+	}
+
+	// Add current wiki project as "imported from Wikimedia project"
+	const projectId = data.results.bindings[ 0 ].wiki.value.replace( 'http://www.wikidata.org/entity/', '' );
+	setConfig( 'references.P143', [ {
+		property: 'P143',
+		snaktype: 'value',
+		datavalue: {
+			type: 'wikibase-entityid',
+			value: { id: projectId }
+		}
+	} ] );
+
 	// Add a link to the current version of the page as "Wikimedia import URL"
 	setConfig( 'references.P4656', [ {
 		property: 'P4656',
@@ -384,82 +375,12 @@ function initContinue(): void {
 	} ] );
 
 	saveConfig();
-
-	// Dialogs initialization
-	windowManager = new ooui.WindowManager();
-	$( 'body' ).append( windowManager.$element );
-
-	loadMonths();
-
-	// Item data request
-	wdApiRequest( {
-		action: 'wbgetentities',
-		props: [ 'info', 'claims' ],
-		ids: mw.config.get( 'wgWikibaseItemId' )
-	} ).done( function ( data: ApiResponse ) {
-		if ( !data.success ) {
-			return;
-		}
-		let claims: { [ key: string ]: WikidataClaim[] };
-		for ( const i in data.entities ) {
-			// @ts-ignore
-			if ( i == -1 ) {
-				return;
-			}
-
-			claims = data.entities[ i ].claims;
-			setBaseRevId( data.entities[ i ].lastrevid );
-			break;
-		}
-		if ( !claims ) {
-			return;
-		}
-
-		const $fields = $( '.infobox .no-wikidata' );
-		$fields.each( function () {
-			const $field = $( this );
-			const propertyId = $field.attr( 'data-wikidata-property-id' );
-
-			$field
-				.removeClass( 'no-wikidata' )
-				.off( 'dblclick' );
-			propertyIds.push( propertyId );
-			canExportValue( $field, claims[ propertyId ], function ( hasClaims: boolean ) {
-				$field.addClass( 'no-wikidata' );
-				if ( hasClaims === true ) {
-					$field.addClass( 'partial-wikidata' );
-				}
-				$field.on( 'dblclick', clickEvent );
-			} );
-
-			const $fieldQualifiers = $field.closest( 'tr' ).find( '[data-wikidata-qualifier-id]' );
-			$fieldQualifiers.each( function () {
-				propertyIds.push( $( this ).data( 'wikidata-qualifier-id' ) );
-			} );
-		} );
-		mw.util.addCSS( '\
-				.infobox .no-wikidata {\
-					display: block !important;\
-					background: #fdc;\
-					padding: 5px 0;\
-				}\
-				.infobox .no-wikidata.partial-wikidata {\
-					background: #eeb;\
-				}\
-				.infobox .no-wikidata .no-wikidata {\
-					margin: -5px 0;\
-				}\
-			' );
-
-		// TODO: Do not load properties until the window is opened for the first time
-		loadProperties( propertyIds );
-	} );
 }
 
 /**
  * Initializing the gadget
  */
-export function init(): void {
+export async function init(): Promise<any> {
 	if ( mw.config.get( 'wgWikibaseItemId' ) === null ||
 		mw.config.get( 'wgAction' ) !== 'view' ||
 		mw.util.getParamValue( 'veaction' ) !== null ||
@@ -471,23 +392,74 @@ export function init(): void {
 	}
 
 	loadConfig();
+	await loadDefaultReference();
 
-	const sparql = 'SELECT ?wiki WHERE { ?wiki wdt:P31/wdt:P279* wd:Q33120876 . ?wiki wdt:P856 ?site . FILTER REGEX(STR(?site), "https://' + location.host + '/") }';
-	sparqlRequest( sparql ).done( function ( data: SparqlResponse ) {
-		if ( data.results.bindings.length === 0 ) {
+	// Dialogs initialization
+	windowManager = new ooui.WindowManager();
+	$( 'body' ).append( windowManager.$element );
+
+	await loadMonths();
+
+	// Item data request
+	const data: ApiResponse = await wdApiRequest( {
+		action: 'wbgetentities',
+		props: [ 'info', 'claims' ],
+		ids: mw.config.get( 'wgWikibaseItemId' )
+	} );
+	if ( !data.success ) {
+		return;
+	}
+	let claims: { [ key: string ]: WikidataClaim[] };
+	for ( const i in data.entities ) {
+		// @ts-ignore
+		if ( i == -1 ) {
 			return;
 		}
-		// Add current wiki project as "imported from Wikimedia project"
-		const projectId = data.results.bindings[ 0 ].wiki.value.replace( 'http://www.wikidata.org/entity/', '' );
-		setConfig( 'references.P143', [ {
-			property: 'P143',
-			snaktype: 'value',
-			datavalue: {
-				type: 'wikibase-entityid',
-				value: { id: projectId }
-			}
-		} ] );
 
-		initContinue();
+		claims = data.entities[ i ].claims;
+		setBaseRevId( data.entities[ i ].lastrevid );
+		break;
+	}
+	if ( !claims ) {
+		return;
+	}
+
+	const $fields = $( '.infobox .no-wikidata' );
+	$fields.each( function () {
+		const $field = $( this );
+		const propertyId = $field.attr( 'data-wikidata-property-id' );
+
+		$field
+			.removeClass( 'no-wikidata' )
+			.off( 'dblclick' );
+		propertyIds.push( propertyId );
+		canExportValue( $field, claims[ propertyId ], function ( hasClaims: boolean ) {
+			$field.addClass( 'no-wikidata' );
+			if ( hasClaims === true ) {
+				$field.addClass( 'partial-wikidata' );
+			}
+			$field.on( 'dblclick', clickEvent );
+		} );
+
+		const $fieldQualifiers = $field.closest( 'tr' ).find( '[data-wikidata-qualifier-id]' );
+		$fieldQualifiers.each( function () {
+			propertyIds.push( $( this ).data( 'wikidata-qualifier-id' ) );
+		} );
 	} );
+	mw.util.addCSS( '\
+			.infobox .no-wikidata {\
+				display: block !important;\
+				background: #fdc;\
+				padding: 5px 0;\
+			}\
+			.infobox .no-wikidata.partial-wikidata {\
+				background: #eeb;\
+			}\
+			.infobox .no-wikidata .no-wikidata {\
+				margin: -5px 0;\
+			}\
+		' );
+
+	// TODO: Do not load properties until the window is opened for the first time
+	await loadProperties( propertyIds );
 }

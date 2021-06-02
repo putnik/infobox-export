@@ -20,6 +20,10 @@ export function lowercaseFirst( value: string ): string {
 	return value.substr( 0, 1 ).toLowerCase() + value.substr( 1 );
 }
 
+export function uppercaseFirst( value: string ): string {
+	return value.substr( 0, 1 ).toUpperCase() + value.substr( 1 );
+}
+
 export function guessDateAndPrecision( timestamp: string ): TimeGuess {
 	let dateParts = timestamp.match( getConfig( 're-century' ) );
 	let isoDate;
@@ -120,4 +124,8 @@ export function guessDateAndPrecision( timestamp: string ): TimeGuess {
 			type: 'somevalue'
 		};
 	}
+
+	return {
+		type: 'empty'
+	};
 }

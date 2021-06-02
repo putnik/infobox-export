@@ -3,8 +3,8 @@ import { getI18n } from './i18n';
 import { checkForMissedLanguage, contentLanguage } from './languages';
 import { formatSnak } from './formatter';
 import { createTimeSnak, getWikidataIds, typesMapping } from './wikidata';
-import { lowercaseFirst, unique } from './utils';
-import { apiRequest } from './api';
+import { lowercaseFirst, unique, uppercaseFirst } from './utils';
+import { apiRequest, sparqlRequest } from './api';
 import { parseRawQuantity } from './text-parser';
 import {
 	DataType,
@@ -12,7 +12,7 @@ import {
 	WikidataSnak,
 	WikidataSnakContainer
 } from './types/wikidata';
-import { ApiResponse, KeyValue, Title } from './types/main';
+import { ApiResponse, KeyValue, SparqlResponse, Title } from './types/main';
 import { CommonsMediaValue, ItemValue, MonolingualTextValue, QuantityValue, TimeValue } from './types/wikidata/values';
 
 export const alreadyExistingItems: KeyValue = {};
@@ -85,28 +85,27 @@ function addQualifierValue( snak: WikidataSnak, qualifierId: string, qualifierSn
 	return snak;
 }
 
-function processItemTitles( itemTitles: KeyValue, callback: any, snak: WikidataSnak, $label: JQuery | string ) {
-	if ( Object.keys( itemTitles ).length ) {
-		const qualifierId: string = Object.keys( itemTitles ).shift();
+async function processItemTitles( itemTitles: KeyValue, snak: WikidataSnak, $label: JQuery ): Promise<WikidataSnakContainer[]> {
+	const containers: WikidataSnakContainer[] = [];
+
+	for ( const qualifierId in itemTitles ) {
 		const qualifierItemTitles = itemTitles[ qualifierId ];
-		delete itemTitles[ qualifierId ];
-		getWikidataIds( qualifierItemTitles, function ( valuesObj: { [ key: string ]: WikidataSnakContainer } ) {
-			for ( const entityId in valuesObj ) {
-				const valueObj: WikidataSnakContainer = valuesObj[ entityId ];
-				// @ts-ignore
-				snak = addQualifierValue( {}, qualifierId, valueObj.wd.value, valueObj.label, $label );
-			}
-			processItemTitles( itemTitles, callback, snak, $label );
-		} );
-	} else {
-		callback( {
-			wd: snak,
-			label: $label
-		} );
+		const valuesObj: { [ key: string ]: WikidataSnakContainer } = await getWikidataIds( qualifierItemTitles );
+		for ( const entityId in valuesObj ) {
+			const valueObj: WikidataSnakContainer = valuesObj[ entityId ];
+			// @ts-ignore
+			snak = addQualifierValue( {}, qualifierId, valueObj.wd.value, valueObj.label, $label );
+			containers.push( {
+				wd: snak,
+				label: $label
+			} );
+		}
 	}
+
+	return containers;
 }
 
-export function addQualifiers( $field: JQuery, snak: WikidataSnak, $label: JQuery, callback: any ) {
+export async function addQualifiers( $field: JQuery, snak: WikidataSnak, $label: JQuery ): Promise<WikidataSnakContainer[]> {
 	const $ = require( 'jquery' );
 	const $qualifiers = $field.find( '[data-wikidata-qualifier-id]' );
 	if ( $qualifiers.length ) {
@@ -168,7 +167,7 @@ export function addQualifiers( $field: JQuery, snak: WikidataSnak, $label: JQuer
 					}
 				} else {
 					qualifierTitles[ qualifierId ].push( {
-						label: qualifierValue.charAt( 0 ).toUpperCase() + qualifierValue.substr( 1, qualifierValue.length - 1 ),
+						label: uppercaseFirst( qualifierValue ),
 						language: contentLanguage,
 						project: getConfig( 'project' ),
 						qualifiers: {}
@@ -178,7 +177,7 @@ export function addQualifiers( $field: JQuery, snak: WikidataSnak, $label: JQuer
 		}
 	}
 
-	processItemTitles( qualifierTitles, callback, snak, $label );
+	return processItemTitles( qualifierTitles, snak, $label );
 }
 
 /**
@@ -215,11 +214,15 @@ function recognizeUnits( text: string, units: KeyValue, label?: string ): string
 	return result;
 }
 
-export function prepareCommonsMedia( $content: JQuery, $wrapper: JQuery ): WikidataSnakContainer[] {
-	const containers: WikidataSnakContainer[] = [];
+export async function prepareCommonsMedia( $content: JQuery, $wrapper: JQuery ): Promise<WikidataSnakContainer[]> {
+	let containers: WikidataSnakContainer[] = [];
 	const $imgs: JQuery = $content.find( 'img' );
+	const imgs: JQuery[] = [];
 	$imgs.each( function () {
-		const $img: JQuery = $( this );
+		imgs.push( $( this ) );
+	} );
+	for ( const pos in imgs ) {
+		const $img: JQuery = imgs[ pos ];
 		const src: string = $img.attr( 'src' );
 		if ( !src.match( /upload.wikimedia.org\/wikipedia\/commons/ ) ) {
 			return;
@@ -239,10 +242,38 @@ export function prepareCommonsMedia( $content: JQuery, $wrapper: JQuery ): Wikid
 			.attr( 'title', fileName )
 			.css( 'border', '1px dashed #a2a9b1' );
 
-		addQualifiers( $wrapper, snak, $label, function ( valueObj: WikidataSnakContainer ) {
-			containers.push( valueObj );
+		containers = await addQualifiers( $wrapper, snak, $label );
+	}
+
+	return containers;
+}
+
+export async function prepareExternalId( $content: JQuery, propertyId: string ): Promise<WikidataSnakContainer[]> {
+	let externalId = $content.data( 'wikidata-external-id' ) || $content.text();
+	const containers: WikidataSnakContainer[] = [];
+
+	if ( propertyId === 'P345' ) { // IMDb
+		externalId = $content.find( 'a' ).first().attr( 'href' );
+		externalId = externalId.substr( externalId.lastIndexOf( '/', externalId.length - 2 ) ).replace( /\//g, '' );
+	} else {
+		externalId = externalId.toString().replace( /^ID\s/, '' ).replace( /\s/g, '' );
+	}
+
+	const sparql = 'SELECT * WHERE { ?item wdt:' + propertyId + ' "' + externalId + '" }';
+	const data: SparqlResponse = await sparqlRequest( sparql );
+	if ( data.results.bindings.length ) {
+		const url = data.results.bindings[ 0 ].item.value;
+		const $: JQueryStatic = require( 'jquery' );
+		const $label: JQuery = $( '<span>' ).append( $( '<code>' ).text( externalId ) )
+			.append( $( '<strong>' ).css( { color: 'red' } ).text( getI18n( 'already-used-in' ) ) )
+			.append( $( '<a>' ).attr( 'href', url ).attr( 'target', '_blank' ).text( url.replace( /[^Q]*Q/, 'Q' ) ) );
+		containers.push( {
+			wd: {
+				value: externalId.toString()
+			},
+			label: $label
 		} );
-	} );
+	}
 
 	return containers;
 }
@@ -301,8 +332,8 @@ export function prepareMonolingualText( $content: JQuery ): WikidataSnakContaine
 	return containers;
 }
 
-export function prepareQuantity( $content: JQuery, propertyId: string ): WikidataSnakContainer[] {
-	const values: WikidataSnakContainer[] = [];
+export async function prepareQuantity( $content: JQuery, propertyId: string ): Promise<WikidataSnakContainer[]> {
+	let containers: WikidataSnakContainer[] = [];
 	let text: string = $content.text()
 		.replace( /[\u00a0\u25bc\u25b2]/g, ' ' )
 		.replace( /\s*\(([^)]*\))/g, '' )
@@ -322,16 +353,14 @@ export function prepareQuantity( $content: JQuery, propertyId: string ): Wikidat
 		text = amount + getI18n( 'unit-sec' );
 	}
 
-	let result: WikidataSnakContainer = {
+	const result: WikidataSnakContainer = {
 		wd: parseQuantity( text, getConfig( 'properties.' + propertyId + '.constraints.integer' ) )
 	};
 	if ( !result.wd || !result.wd.value ) {
 		return;
 	}
 
-	addQualifiers( $content, result.wd, formatSnak( result.wd ), function ( valueObj: WikidataSnakContainer ) {
-		result = valueObj;
-	} );
+	containers = await addQualifiers( $content, result.wd, formatSnak( result.wd ) );
 
 	if ( getConfig( 'properties.' + propertyId + '.constraints.qualifier' ).indexOf( 'P585' ) !== -1 ) {
 		let yearMatch: string[] = $content.text().match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
@@ -393,10 +422,10 @@ export function prepareQuantity( $content: JQuery, propertyId: string ): Wikidat
 		}
 		result.wd.type = 'quantity';
 		result.label = formatSnak( result.wd );
-		values.push( result );
+		containers.push( result );
 	}
 
-	return values;
+	return containers;
 }
 
 export function prepareTime( $content: JQuery ): WikidataSnakContainer[] {
@@ -487,22 +516,19 @@ export function prepareUrl( $content: JQuery ): WikidataSnakContainer[] {
 	return values;
 }
 
-function processWbGetItems( valuesObj: { [ key: string ]: WikidataSnakContainer }, callback: any, $wrapper: JQuery ) {
+async function processWbGetItems( valuesObj: { [ key: string ]: WikidataSnakContainer }, $wrapper: JQuery ): Promise<WikidataSnakContainer[]> {
 	const $: JQueryStatic = require( 'jquery' );
-	const values: WikidataSnakContainer[] = $.map( valuesObj, function ( value: WikidataSnakContainer ) {
-		return [ value ];
+	let containers: WikidataSnakContainer[] = $.map( valuesObj, function ( container: WikidataSnakContainer ) {
+		return [ container ];
 	} );
-	if ( values.length === 1 ) {
-		const value: WikidataSnakContainer = values.pop();
-		addQualifiers( $wrapper, value.wd, value.label, function ( value: WikidataSnakContainer ) {
-			callback( [ value ] );
-		} );
-	} else if ( callback ) {
-		callback( values );
+	if ( containers.length === 1 ) {
+		const value: WikidataSnakContainer = containers.pop();
+		containers = await addQualifiers( $wrapper, value.wd, value.label );
 	}
+	return containers;
 }
 
-export function parseItems( $content: JQuery, $wrapper: JQuery, callback: any ) {
+export async function parseItems( $content: JQuery, $wrapper: JQuery ): Promise<WikidataSnakContainer[]> {
 	const $ = require( 'jquery' );
 	let titles: Title[] = [];
 
@@ -533,8 +559,9 @@ export function parseItems( $content: JQuery, $wrapper: JQuery, callback: any ) 
 				delete value.wd.value.description;
 			}
 			valuesObj[ fixedValue.item ] = value;
-			processWbGetItems( valuesObj, callback, $wrapper );
-			return;
+			// processWbGetItems( valuesObj, $wrapper, callback );
+			// @ts-ignore
+			return valuesObj.values();
 		}
 	}
 
@@ -551,7 +578,7 @@ export function parseItems( $content: JQuery, $wrapper: JQuery, callback: any ) 
 			if ( extractedUrl ) {
 				extractedUrl = extractedUrl.replace( /_/g, ' ' ).trim();
 				const value: Title = {
-					label: extractedUrl.charAt( 0 ).toUpperCase() + extractedUrl.substr( 1, extractedUrl.length - 1 ),
+					label: uppercaseFirst( extractedUrl ),
 					language: contentLanguage,
 					project: getConfig( 'project' ),
 					qualifiers: {}
@@ -598,8 +625,9 @@ export function parseItems( $content: JQuery, $wrapper: JQuery, callback: any ) 
 				return '';
 			} ).trim();
 			if ( articleTitle ) {
+
 				const value: Title = {
-					label: articleTitle.charAt( 0 ).toUpperCase() + articleTitle.substr( 1, articleTitle.length - 1 ),
+					label: uppercaseFirst( articleTitle ),
 					language: contentLanguage,
 					project: getConfig( 'project' ),
 					qualifiers: {}
@@ -621,40 +649,38 @@ export function parseItems( $content: JQuery, $wrapper: JQuery, callback: any ) 
 		titles = unique( titles );
 	}
 	if ( redirects.length ) {
-		apiRequest( {
+		const data: ApiResponse = await apiRequest( {
 			action: 'query',
 			redirects: 1,
 			titles: redirects
-		} ).done( function ( data: ApiResponse ) {
-			if ( data.query && data.query.redirects ) {
-				for ( let i = 0; i < data.query.redirects.length; i++ ) {
-					for ( let j = 0; j < titles.length; j++ ) {
-						const lcTitle = lowercaseFirst( titles[ j ].label );
-						const lcRedirect = lowercaseFirst( data.query.redirects[ i ].from );
-						if ( lcTitle === lcRedirect ) {
-							titles.splice( j + 1, 0, {
-								label: data.query.redirects[ i ].to,
-								language: contentLanguage,
-								project: getConfig( 'project' ),
-								year: titles[ j ].year
-							} );
-							j++;
-						}
+		} );
+		if ( data.query && data.query.redirects ) {
+			for ( let i = 0; i < data.query.redirects.length; i++ ) {
+				for ( let j = 0; j < titles.length; j++ ) {
+					const lcTitle = lowercaseFirst( titles[ j ].label );
+					const lcRedirect = lowercaseFirst( data.query.redirects[ i ].from );
+					if ( lcTitle === lcRedirect ) {
+						titles.splice( j + 1, 0, {
+							label: data.query.redirects[ i ].to,
+							language: contentLanguage,
+							project: getConfig( 'project' ),
+							year: titles[ j ].year
+						} );
+						j++;
 					}
 				}
 			}
-
-			getWikidataIds( titles, processWbGetItems, $wrapper );
-		} );
-	} else {
-		getWikidataIds( titles, processWbGetItems, $wrapper );
+		}
 	}
+
+	const valuesObj: any = await getWikidataIds( titles );
+	return processWbGetItems( valuesObj, $wrapper );
 }
 
 /**
  * Compares the values of the infobox and Wikidata
  */
-export function canExportValue( $field: JQuery, claims: WikidataClaim[], callbackIfCan: any ): void {
+export async function canExportValue( $field: JQuery, claims: WikidataClaim[], callbackIfCan: any ): Promise<void> {
 	if ( !claims || !( claims.length ) ) {
 		// Can't export only if image is local and large
 		const $localImg = $field.find( '.image img[src*="/wikipedia/' + contentLanguage + '/"]' );
@@ -692,35 +718,34 @@ export function canExportValue( $field: JQuery, claims: WikidataClaim[], callbac
 			break;
 
 		case 'wikibase-item':
-			parseItems( $field, $field, function ( values: WikidataSnakContainer[] ) {
-				const duplicates = [];
-				for ( let i = 0; i < values.length; i++ ) {
-					for ( let j = 0; j < Object.keys( claims ).length; j++ ) {
-						// @ts-ignore
-						const valuesValue: ItemValue = values[ i ].wd.value;
-						// @ts-ignore
-						const claimsValue: ItemValue = claims[ j ].mainsnak.datavalue.value;
-						if ( valuesValue.id === claimsValue.id ) {
-							duplicates.push( valuesValue.id );
-						}
+			const containers: WikidataSnakContainer[] = await parseItems( $field, $field );
+			const duplicates = [];
+			for ( let i = 0; i < containers.length; i++ ) {
+				for ( let j = 0; j < Object.keys( claims ).length; j++ ) {
+					// @ts-ignore
+					const valuesValue: ItemValue = containers[ i ].wd.value;
+					// @ts-ignore
+					const claimsValue: ItemValue = claims[ j ].mainsnak.datavalue.value;
+					if ( valuesValue.id === claimsValue.id ) {
+						duplicates.push( valuesValue.id );
 					}
 				}
-				if ( duplicates.length < values.length ) {
-					if ( duplicates.length > 0 ) {
-						const propertyId: string = claims[ 0 ].mainsnak.property;
-						alreadyExistingItems[ propertyId ] = duplicates;
-						if ( propertyId === 'P166' && values.length === claims.length ) {
-							return;
-						}
+			}
+			if ( duplicates.length < containers.length ) {
+				if ( duplicates.length > 0 ) {
+					const propertyId: string = claims[ 0 ].mainsnak.property;
+					alreadyExistingItems[ propertyId ] = duplicates;
+					if ( propertyId === 'P166' && containers.length === claims.length ) {
+						return;
 					}
-					if ( Object.keys( claims ).length > 0 ) {
-						if ( claims[ 0 ].mainsnak.property === 'P19' || claims[ 0 ].mainsnak.property === 'P20' ) {
-							return;
-						}
-					}
-					callbackIfCan( true );
 				}
-			} );
+				if ( Object.keys( claims ).length > 0 ) {
+					if ( claims[ 0 ].mainsnak.property === 'P19' || claims[ 0 ].mainsnak.property === 'P20' ) {
+						return;
+					}
+				}
+				callbackIfCan( true );
+			}
 	}
 	// By default we can't export if there are claims already
 }

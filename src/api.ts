@@ -19,19 +19,19 @@ export function getWdApi(): any {
 	return wdApi;
 }
 
-export function apiRequest( params: KeyValue ): any {
+export async function apiRequest( params: KeyValue ): Promise<any> {
 	return getApi().get( params );
 }
 
-export function wdApiRequest( params: KeyValue ): any {
+export async function wdApiRequest( params: KeyValue ): Promise<any> {
 	return getWdApi().get( params );
 }
 
-export function getMessages( messageKeys: string[], language: string ): Promise<any> {
+export async function getMessages( messageKeys: string[], language: string ): Promise<any> {
 	return getApi().getMessages( messageKeys, { amlang: language } );
 }
 
-export function sparqlRequest( request: string ): any {
+export async function sparqlRequest( request: string ): Promise<any> {
 	const $ = require( 'jquery' );
 	const url = 'https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent( request );
 	return $.get( url );

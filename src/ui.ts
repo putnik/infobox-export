@@ -35,7 +35,6 @@ function formatDomains( references: WikidataSource[] ): JQuery {
 		if ( p854 ) {
 			// @ts-ignore
 			const value: UrlValue = p854[ 0 ].datavalue.value;
-			console.log( value );
 			let domain: string = value.replace( 'http://', '' ).replace( 'https://', '' ).replace( 'www.', '' );
 			if ( domain.indexOf( '/' ) > 0 ) {
 				domain = domain.substr( 0, domain.indexOf( '/' ) );

@@ -8,7 +8,7 @@ import { EntityIdValue, QuantityValue, TimeValue } from './types/wikidata/values
 function formatEntityIdValue( value: EntityIdValue ): JQuery {
 	const $label: JQuery = $( '<span>' );
 
-	$label.append( $( '<strong>' ).text( value.label ? value.label : value.id ) )
+	$label.append( $( '<strong>' ).html( value.label ? value.label : value.id ) )
 		.append( value.description ? ' — ' + value.description : '' );
 
 	return $label;

@@ -10,7 +10,7 @@ import {
 	UrlValue
 } from './wikidata/values';
 
-export type SnakType = 'value' | 'novalue' | 'somevalue';
+export type SnakType = 'value' | 'novalue' | 'somevalue' | 'empty';
 export type DataType =
 	'commonsMedia'
 	| 'external-id'
