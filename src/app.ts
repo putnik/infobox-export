@@ -17,7 +17,8 @@ import { dialog } from './ui';
 import { loadMonths } from './months';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
 import { DataType, WikidataClaim, WikidataSnakContainer, WikidataSource } from './types/wikidata';
-import { ApiResponse, KeyValue, SparqlResponse } from './types/main';
+import { KeyValue } from './types/main';
+import { ApiResponse, SparqlResponse } from './types/api';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );

@@ -1,9 +1,10 @@
 import { KeyValue } from './types/main';
+import { ApiResponse, MediaWikiApi, SparqlResponse } from './types/api';
 
 let api: any = null;
 let wdApi: any = null;
 
-function getApi(): any {
+function getApi(): MediaWikiApi {
 	if ( api === null ) {
 		const mw = require( 'mw' );
 		api = new mw.Api();
@@ -11,7 +12,7 @@ function getApi(): any {
 	return api;
 }
 
-export function getWdApi(): any {
+export function getWdApi(): MediaWikiApi {
 	if ( wdApi === null ) {
 		const mw = require( 'mw' );
 		wdApi = new mw.ForeignApi( '//www.wikidata.org/w/api.php' );
@@ -19,19 +20,19 @@ export function getWdApi(): any {
 	return wdApi;
 }
 
-export async function apiRequest( params: KeyValue ): Promise<any> {
+export async function apiRequest( params: KeyValue ): Promise<ApiResponse> {
 	return getApi().get( params );
 }
 
-export async function wdApiRequest( params: KeyValue ): Promise<any> {
+export async function wdApiRequest( params: KeyValue ): Promise<ApiResponse> {
 	return getWdApi().get( params );
 }
 
-export async function getMessages( messageKeys: string[], language: string ): Promise<any> {
+export async function getMessages( messageKeys: string[], language: string ): Promise<ApiResponse> {
 	return getApi().getMessages( messageKeys, { amlang: language } );
 }
 
-export async function sparqlRequest( request: string ): Promise<any> {
+export async function sparqlRequest( request: string ): Promise<SparqlResponse> {
 	const $ = require( 'jquery' );
 	const url = 'https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent( request );
 	return $.get( url );

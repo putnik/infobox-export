@@ -1,4 +1,6 @@
 import { unique } from './utils';
+import { WikidataSnak } from './types/wikidata';
+import { MonolingualTextValue } from './types/wikidata/values';
 
 const mw = require( 'mw' );
 
@@ -11,7 +13,7 @@ export const allLanguages: string[] = unique( [
 	'en'
 ] );
 
-export const missedLanguages: any = {
+export const missedLanguages: {[key: string]: string} = {
 	ain: 'Q20968488',
 	atv: 'Q2640863',
 	bua: 'Q33120',
@@ -27,10 +29,10 @@ export const missedLanguages: any = {
 	yrk: 'Q36452'
 };
 
-export function checkForMissedLanguage( wd: any ): any {
-	const language = wd.value.language;
-	if ( language in missedLanguages ) {
-		wd.value.language = 'mis';
+export function checkForMissedLanguage( wd: WikidataSnak ): WikidataSnak {
+	const value: MonolingualTextValue = wd.value as MonolingualTextValue;
+	if ( value.language in missedLanguages ) {
+		( wd.value as MonolingualTextValue ).language = 'mis';
 		if ( !( 'qualifiers' in wd ) ) {
 			wd.qualifiers = {};
 		}
@@ -39,7 +41,7 @@ export function checkForMissedLanguage( wd: any ): any {
 			snaktype: 'value',
 			datavalue: {
 				type: 'wikibase-entityid',
-				value: { id: missedLanguages[ language ] }
+				value: { id: missedLanguages[ value.language ] }
 			}
 		} ];
 	}

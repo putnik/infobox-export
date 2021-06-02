@@ -12,8 +12,9 @@ import {
 	WikidataSnak,
 	WikidataSnakContainer
 } from './types/wikidata';
-import { ApiResponse, KeyValue, SparqlResponse, Title } from './types/main';
+import { KeyValue, Title } from './types/main';
 import { CommonsMediaValue, ItemValue, MonolingualTextValue, QuantityValue, TimeValue } from './types/wikidata/values';
+import { ApiResponse, SparqlResponse } from './types/api';
 
 export const alreadyExistingItems: KeyValue = {};
 
@@ -22,7 +23,6 @@ export const alreadyExistingItems: KeyValue = {};
  */
 export function parseQuantity( text: string, forceInteger?: boolean ): WikidataSnak {
 	text = text.replace( /,/g, '.' ).replace( /[−–—]/g, '-' ).trim();
-
 	const config: KeyValue = {
 		're-10_3': getConfig( 're-10_3' ),
 		're-10_6': getConfig( 're-10_6' ),

@@ -11,8 +11,9 @@ import {
 	WikidataSnakContainer,
 	WikidataSource
 } from './types/wikidata';
-import { ApiResponse, KeyValue, TimeGuess, Title } from './types/main';
+import { KeyValue, TimeGuess, Title } from './types/main';
 import { TimeValue } from './types/wikidata/values';
+import { ApiResponse } from './types/api';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );

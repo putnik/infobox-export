@@ -4,9 +4,6 @@ export interface KeyValue {
 	[ key: string ]: any;
 }
 
-export type ApiResponse = KeyValue
-export type SparqlResponse = KeyValue
-
 export interface TimeGuess {
 	type: SnakType;
 	isoDate?: Date;
