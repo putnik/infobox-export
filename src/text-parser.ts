@@ -95,25 +95,24 @@ export function parseRawQuantity( config: any, text: string, forceInteger?: bool
 		fractionalMultiplier = parseFloat( '1e' + fractional.toString() );
 		magnitudeMultiplier = parseFloat( '1e' + magnitude.toString() );
 		integralMultiplier = parseFloat( '1e-' + integral.toString() );
+
+		const lowerBound = amount - bound;
+		const upperBound = amount + bound;
 		if ( magnitude >= 0 ) {
 			if ( magnitude <= fractional ) {
-				value.lowerBound = ( magnitudeMultiplier * ( amount - bound ) ).toFixed( fractional - magnitude );
-				value.upperBound = ( magnitudeMultiplier * ( amount + bound ) ).toFixed( fractional - magnitude );
-				// value.bound = ( magnitudeMultiplier * bound ).toFixed( fractional - magnitude ); // need to show it to user
+				value.lowerBound = ( magnitudeMultiplier * lowerBound ).toFixed( fractional - magnitude );
+				value.upperBound = ( magnitudeMultiplier * upperBound ).toFixed( fractional - magnitude );
 			} else {
-				value.lowerBound = ( fractionalMultiplier * ( amount - bound ) ).toFixed( 0 ).replace( /$/, new Array( magnitude - fractional + 1 ).join( '0' ) );
-				value.upperBound = ( fractionalMultiplier * ( amount + bound ) ).toFixed( 0 ).replace( /$/, new Array( magnitude - fractional + 1 ).join( '0' ) );
-				// value.bound = ( fractionalMultiplier * bound ).toFixed( 0 ).replace( /$/, new Array( magnitude - fractional + 1 ).join( '0' ) );
+				value.lowerBound = ( fractionalMultiplier * lowerBound ).toFixed( 0 ).replace( /$/, new Array( magnitude - fractional + 1 ).join( '0' ) );
+				value.upperBound = ( fractionalMultiplier * upperBound ).toFixed( 0 ).replace( /$/, new Array( magnitude - fractional + 1 ).join( '0' ) );
 			}
 		} else {
 			if ( magnitude >= -integral ) {
-				value.lowerBound = ( magnitudeMultiplier * ( amount - bound ) ).toFixed( fractional - magnitude );
-				value.upperBound = ( magnitudeMultiplier * ( amount + bound ) ).toFixed( fractional - magnitude );
-				// value.bound = ( magnitudeMultiplier * bound ).toFixed( fractional - magnitude );
+				value.lowerBound = ( magnitudeMultiplier * lowerBound ).toFixed( fractional - magnitude );
+				value.upperBound = ( magnitudeMultiplier * upperBound ).toFixed( fractional - magnitude );
 			} else {
-				value.lowerBound = ( integralMultiplier * ( amount - bound ) ).toFixed( integral + fractional ).replace( /0\./, '0.' + new Array( -magnitude - integral + 1 ).join( '0' ) );
-				value.upperBound = ( integralMultiplier * ( amount + bound ) ).toFixed( integral + fractional ).replace( /0\./, '0.' + new Array( -magnitude - integral + 1 ).join( '0' ) );
-				// value.bound = ( integralMultiplier * bound ).toFixed( integral + fractional ).replace( /0\./, '0.' + new Array( -magnitude - integral + 1 ).join( '0' ) );
+				value.lowerBound = ( integralMultiplier * lowerBound ).toFixed( integral + fractional ).replace( /0\./, '0.' + new Array( -magnitude - integral + 1 ).join( '0' ) );
+				value.upperBound = ( integralMultiplier * upperBound ).toFixed( integral + fractional ).replace( /0\./, '0.' + new Array( -magnitude - integral + 1 ).join( '0' ) );
 			}
 		}
 	}
