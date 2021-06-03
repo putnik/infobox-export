@@ -116,19 +116,19 @@ export async function addQualifiers( $field: JQuery, snak: WikidataSnak, $label:
 	for ( let q = 0; q < $qualifiers.length; q++ ) {
 		const $qualifier = $( $qualifiers[ q ] );
 		const qualifierId = $qualifier.data( 'wikidata-qualifier-id' );
-		let qualifierValue = $qualifier.text().replace( '\n', ' ' ).trim();
+		let qualifierValue = $qualifier.text().replace( /\n/g, ' ' ).trim();
 		const datatype: DataType = getConfig( 'properties.' + qualifierId + '.datatype' );
 		switch ( datatype ) {
 			case 'monolingualtext':
 				qualifierValue = {
-					text: $qualifier.text().replace( '\n', ' ' ).trim(),
+					text: $qualifier.text().replace( /\n/g, ' ' ).trim(),
 					language: $qualifier.attr( 'lang' ) || contentLanguage
 				};
 				snak = addQualifierValue( snak, qualifierId, qualifierValue, $qualifier.text(), $label );
 				break;
 
 			case 'string':
-				qualifierValue = $qualifier.text().replace( '\n', ' ' ).trim();
+				qualifierValue = $qualifier.text().replace( /\n/g, ' ' ).trim();
 				snak = addQualifierValue( snak, qualifierId, qualifierValue, $qualifier.text(), $label );
 				break;
 
@@ -224,7 +224,7 @@ export async function prepareCommonsMedia( $content: JQuery, $wrapper: JQuery ):
 	for ( const pos in imgs ) {
 		const $img: JQuery = imgs[ pos ];
 		const src: string = $img.attr( 'src' );
-		if ( !src.match( /upload.wikimedia.org\/wikipedia\/commons/ ) ) {
+		if ( !src.match( /upload\.wikimedia\.org\/wikipedia\/commons/ ) ) {
 			return;
 		}
 		const srcParts: string[] = src.split( '/' );
