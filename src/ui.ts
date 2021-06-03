@@ -129,6 +129,7 @@ export async function dialog( $field: JQuery, propertyId: string, snaks: Wikidat
 				.append( $( '<a>' )
 					.attr( 'href', 'https://wikidata.org/wiki/Property:' + propertyId )
 					.attr( 'target', '_blank' )
+					.attr( 'rel', 'noopener noreferrer' )
 					.text( getConfig( 'properties' )[ propertyId ].label )
 				)
 				.append( $( '<span>' ).text( ':' ) )
