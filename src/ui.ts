@@ -21,7 +21,8 @@ import { getI18n } from './i18n';
 import { getConfig } from './config';
 import { alreadyExistingItems } from './parser';
 import { createClaims } from './wikidata';
-import { WikidataSnakContainer, WikidataSource } from './types/wikidata';
+import { WikidataSnak, WikidataSource } from './types/wikidata';
+import { formatSnak } from './formatter';
 
 let _windowManager: any;
 
@@ -60,10 +61,8 @@ export function errorDialog( title: string, message: string ): void {
 /**
  * Display a dialog to confirm export
  */
-export function dialog( $field: JQuery, propertyId: string, values: WikidataSnakContainer[], refUrl: WikidataSource[] ) {
-	let fieldset: any;
-
-	if ( !values || !values.length ) {
+export async function dialog( $field: JQuery, propertyId: string, snaks: WikidataSnak[], refUrl: WikidataSource[] ) {
+	if ( !snaks || !snaks.length ) {
 		mw.notify( getI18n( 'parsing-error' ), {
 			type: 'error',
 			tag: 'wikidataInfoboxExport-error'
@@ -87,42 +86,43 @@ export function dialog( $field: JQuery, propertyId: string, values: WikidataSnak
 		{ label: getI18n( 'cancel-button-label' ), flags: [ 'safe' ] }
 	];
 
+	const fieldset: any = new FieldsetLayout();
+	let firstSelected = false;
+	for ( let i = 0; i < snaks.length; i++ ) {
+		const $label: JQuery = await formatSnak( snaks[ i ] );
+		// @ts-ignore
+		const alreadyInWikidata: boolean = ( alreadyExistingItems[ propertyId ] || [] ).includes( ( ( snaks[ i ].wd || {} ).value || {} ).id );
+		const checkbox = new CheckboxInputWidget( {
+			value: JSON.stringify( snaks[ i ] ),
+			selected: alreadyInWikidata,
+			disabled: alreadyInWikidata
+		} );
+		if ( !checkbox.isDisabled() ) {
+			if ( !firstSelected || !getConfig( 'properties.' + propertyId + '.constraints.unique' ) ) {
+				firstSelected = true;
+				checkbox.setSelected( true );
+			}
+
+			if ( $label[ 0 ].innerText.match( new RegExp( getI18n( 'already-used-in' ) ) ) &&
+				getConfig( 'properties' )[ propertyId ].constraints.unique &&
+				getConfig( 'properties' )[ propertyId ].datatype === 'external-id' ) {
+				checkbox.setSelected( false );
+			}
+		}
+		if ( refUrl ) {
+			$label.append( formatDomains( refUrl ) );
+		}
+		fieldset.addItems( [
+			new FieldLayout( checkbox, {
+				label: $label,
+				align: 'inline'
+			} )
+		] );
+	}
+
 	ExtProcessDialog.prototype.initialize = function () {
 		ExtProcessDialog.super.prototype.initialize.apply( this, arguments );
 		this.content = new PanelLayout( { padded: true, expanded: false } );
-
-		fieldset = new FieldsetLayout();
-		let firstSelected = false;
-		for ( let i = 0; i < values.length; i++ ) {
-			// @ts-ignore
-			const alreadyInWikidata: boolean = ( alreadyExistingItems[ propertyId ] || [] ).includes( ( ( values[ i ].wd || {} ).value || {} ).id );
-			const checkbox = new CheckboxInputWidget( {
-				value: JSON.stringify( values[ i ].wd ),
-				selected: alreadyInWikidata,
-				disabled: alreadyInWikidata
-			} );
-			if ( !checkbox.isDisabled() ) {
-				if ( !firstSelected || !getConfig( 'properties.' + propertyId + '.constraints.unique' ) ) {
-					firstSelected = true;
-					checkbox.setSelected( true );
-				}
-
-				if ( values[ i ].label[ 0 ].innerText.match( new RegExp( getI18n( 'already-used-in' ) ) ) &&
-					getConfig( 'properties' )[ propertyId ].constraints.unique &&
-					getConfig( 'properties' )[ propertyId ].datatype === 'external-id' ) {
-					checkbox.setSelected( false );
-				}
-			}
-			if ( refUrl ) {
-				values[ i ].label.append( formatDomains( refUrl ) );
-			}
-			fieldset.addItems( [
-				new FieldLayout( checkbox, {
-					label: values[ i ].label,
-					align: 'inline'
-				} )
-			] );
-		}
 
 		this.content.$element
 			.append( $( '<p>' ).append( $( '<strong>' )

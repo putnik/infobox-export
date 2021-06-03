@@ -14,12 +14,21 @@ export type SnakType = 'value' | 'novalue' | 'somevalue' | 'empty';
 export type DataType =
 	'commonsMedia'
 	| 'external-id'
+	| 'geo-shape'
+	| 'globe-coordinate'
+	| 'math'
 	| 'monolingualtext'
+	| 'musical-notation'
 	| 'quantity'
 	| 'string'
+	| 'tabular-data'
 	| 'time'
 	| 'url'
-	| 'wikibase-item';
+	| 'wikibase-form'
+	| 'wikibase-item'
+	| 'wikibase-lexeme'
+	| 'wikibase-property'
+	| 'wikibase-sense';
 export type DataValueType = 'string' | 'time' | 'wikibase-entityid'
 
 export type WikidataValue =
@@ -34,20 +43,15 @@ export type WikidataValue =
 
 export interface WikidataSnak {
 	value: WikidataValue;
-	type?: DataValueType | DataType; // FIXME
+	type: DataType;
 	qualifiers?: KeyValue;
 	references?: KeyValue;
-}
-
-export interface WikidataSnakContainer {
-	wd: WikidataSnak;
-	label?: JQuery;
 }
 
 export interface WikidataMainSnak {
 	snaktype: SnakType;
 	property: string;
-	datatype?: DataType;
+	datatype?: DataType | DataValueType;
 	datavalue?: WikidataSnak;
 }
 

@@ -16,7 +16,7 @@ import { unique, uppercaseFirst } from './utils';
 import { dialog } from './ui';
 import { loadMonths } from './months';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
-import { DataType, WikidataClaim, WikidataSnakContainer, WikidataSource } from './types/wikidata';
+import { DataType, WikidataClaim, WikidataSnak, WikidataSource } from './types/wikidata';
 import { KeyValue } from './types/main';
 import { ApiResponse, SparqlResponse } from './types/api';
 
@@ -277,8 +277,8 @@ async function loadProperties( propertyIds: string[] ): Promise<void> {
 /**
  * Parsing values from parameters before displaying a dialog
  */
-async function prepareDialog( $field: JQuery, propertyId: string ): Promise<WikidataSnakContainer[]> {
-	let containers: WikidataSnakContainer[] = [];
+async function prepareDialog( $field: JQuery, propertyId: string ): Promise<WikidataSnak[]> {
+	let snaks: WikidataSnak[] = [];
 	const datatype: DataType = getConfig( 'properties.' + propertyId + '.datatype' );
 
 	const $content: JQuery = $field.clone();
@@ -294,35 +294,35 @@ async function prepareDialog( $field: JQuery, propertyId: string ): Promise<Wiki
 
 	switch ( datatype ) {
 		case 'commonsMedia':
-			containers = await prepareCommonsMedia( $content, $wrapper );
+			snaks = await prepareCommonsMedia( $content, $wrapper );
 			break;
 
 		case 'external-id':
-			containers = await prepareExternalId( $content, propertyId );
+			snaks = await prepareExternalId( $content, propertyId );
 			break;
 
 		case 'monolingualtext':
-			containers = prepareMonolingualText( $content );
+			snaks = prepareMonolingualText( $content );
 			break;
 
 		case 'quantity':
-			containers = await prepareQuantity( $content, propertyId );
+			snaks = await prepareQuantity( $content, propertyId );
 			break;
 
 		case 'string':
-			containers = prepareString( $content, propertyId );
+			snaks = prepareString( $content, propertyId );
 			break;
 
 		case 'time':
-			containers = prepareTime( $content );
+			snaks = prepareTime( $content );
 			break;
 
 		case 'wikibase-item':
-			containers = await parseItems( $content, $wrapper );
+			snaks = await parseItems( $content, $wrapper, propertyId );
 			break;
 
 		case 'url':
-			containers = prepareUrl( $content );
+			snaks = prepareUrl( $content );
 			break;
 
 		default:
@@ -332,7 +332,7 @@ async function prepareDialog( $field: JQuery, propertyId: string ): Promise<Wiki
 			} );
 	}
 
-	return unique( containers );
+	return unique( snaks );
 }
 
 /**
@@ -341,9 +341,9 @@ async function prepareDialog( $field: JQuery, propertyId: string ): Promise<Wiki
 async function clickEvent(): Promise<void> {
 	const $field = $( this );
 	const propertyId = $field.attr( 'data-wikidata-property-id' );
-	const containers: WikidataSnakContainer[] = await prepareDialog( $field, propertyId );
+	const snaks: WikidataSnak[] = await prepareDialog( $field, propertyId );
 	const reference = getReference( $field );
-	dialog( $field, propertyId, containers, reference );
+	await dialog( $field, propertyId, snaks, reference );
 }
 
 async function loadDefaultReference(): Promise<void> {
@@ -426,21 +426,22 @@ export async function init(): Promise<any> {
 	}
 
 	const $fields = $( '.infobox .no-wikidata' );
-	$fields.each( function () {
-		const $field = $( this );
-		const propertyId = $field.attr( 'data-wikidata-property-id' );
+	$fields.each( async function () {
+		const $field: JQuery = $( this );
+		const propertyId: string = $field.attr( 'data-wikidata-property-id' );
 
 		$field
 			.removeClass( 'no-wikidata' )
 			.off( 'dblclick' );
 		propertyIds.push( propertyId );
-		canExportValue( $field, claims[ propertyId ], function ( hasClaims: boolean ) {
+		const canExport: boolean = await canExportValue( propertyId, $field, claims[ propertyId ] );
+		if ( canExport ) {
 			$field.addClass( 'no-wikidata' );
-			if ( hasClaims === true ) {
-				$field.addClass( 'partial-wikidata' );
-			}
+			// if ( hasClaims === true ) {
+			// $field.addClass( 'partial-wikidata' );
+			// }
 			$field.on( 'dblclick', clickEvent );
-		} );
+		}
 
 		const $fieldQualifiers = $field.closest( 'tr' ).find( '[data-wikidata-qualifier-id]' );
 		$fieldQualifiers.each( function () {

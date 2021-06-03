@@ -2,23 +2,24 @@ import { getRandomHex, guessDateAndPrecision, unique } from './utils';
 import { getConfig } from './config';
 import { getWdApi, wdApiRequest } from './api';
 import { getI18n } from './i18n';
-import { formatSnak } from './formatter';
 import { errorDialog } from './ui';
 import { allLanguages, userLanguage } from './languages';
 import {
 	DataType,
-	WikidataClaim, WikidataMainSnak,
-	WikidataSnakContainer,
+	DataValueType,
+	WikidataClaim,
+	WikidataMainSnak,
+	WikidataSnak,
 	WikidataSource
 } from './types/wikidata';
-import { KeyValue, TimeGuess, Title } from './types/main';
+import { TimeGuess, Title } from './types/main';
 import { TimeValue } from './types/wikidata/values';
 import { ApiResponse } from './types/api';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
 
-export const typesMapping: KeyValue = {
+export const typesMapping: { [key in DataType]?: DataValueType } = {
 	commonsMedia: 'string',
 	'external-id': 'string',
 	url: 'string',
@@ -118,7 +119,7 @@ export function createTimeSnak( timestamp: string, forceJulian: boolean | void )
 	return result;
 }
 
-export async function getWikidataIds( titles: Title[] ): Promise<{ [ key: string ]: WikidataSnakContainer }> {
+export async function getWikidataIds( propertyId: string, titles: Title[] ): Promise<{ [ key: string ]: WikidataSnak }> {
 	let languages = titles.map( function ( item: Title ) {
 		return item.language;
 	} );
@@ -142,8 +143,8 @@ export async function getWikidataIds( titles: Title[] ): Promise<{ [ key: string
 		return;
 	}
 
-	const valuesObj: { [ key: string ]: WikidataSnakContainer } = {};
-	let value: WikidataSnakContainer | undefined;
+	const valuesObj: { [ key: string ]: WikidataSnak } = {};
+	let value: WikidataSnak | undefined;
 
 	for ( const entityId in data.entities ) {
 		if ( !data.entities.hasOwnProperty( entityId ) || !entityId.match( /^Q/ ) ) {
@@ -200,13 +201,11 @@ export async function getWikidataIds( titles: Title[] ): Promise<{ [ key: string
 		}
 
 		value = {
-			wd: {
-				type: 'wikibase-entityid',
-				value: {
-					id: entityId,
-					label: $( '<span>' ).text( label ? label.value : label ),
-					description: description ? description.value : description
-				}
+			type: 'wikibase-item',
+			value: {
+				id: entityId,
+				label: $( '<span>' ).text( label ? label.value : label ),
+				description: description ? description.value : description
 			}
 		};
 		if ( label ) {
@@ -214,17 +213,16 @@ export async function getWikidataIds( titles: Title[] ): Promise<{ [ key: string
 				return item.label.toLowerCase() === label.value.toLowerCase();
 			} );
 			if ( results.length === 1 ) {
-				value.wd.qualifiers = results[ 0 ].qualifiers;
+				value.qualifiers = results[ 0 ].qualifiers;
 			}
 		}
-		value.label = formatSnak( value.wd );
 		// @ts-ignore
-		if ( 'label' in value.wd.value ) {
-			delete value.wd.value.label;
+		if ( 'label' in value.value ) {
+			delete value.value.label;
 		}
 		// @ts-ignore
-		if ( 'description' in value.wd.value ) {
-			delete value.wd.value.description;
+		if ( 'description' in value.value ) {
+			delete value.value.description;
 		}
 		valuesObj[ entityId ] = value;
 	}
@@ -255,6 +253,7 @@ export function createClaims( propertyId: string, values: string[], refUrl: Wiki
 		return;
 	}
 	const datatype: DataType = getConfig( 'properties' )[ propertyId ].datatype;
+	// @ts-ignore
 	const mainsnak: WikidataMainSnak = value.value.toString().match( /^(novalue|somevalue)$/ ) ? {
 		snaktype: value.value,
 		property: propertyId
@@ -301,4 +300,24 @@ export function createClaims( propertyId: string, values: string[], refUrl: Wiki
 			tag: 'wikidataInfoboxExport-error'
 		} );
 	} );
+}
+
+export async function wbFormatValue( snak: WikidataSnak ): Promise<JQuery> {
+	const response: ApiResponse = await wdApiRequest( {
+		action: 'wbformatvalue',
+		generate: 'text/html; disposition=verbose',
+		datavalue: JSON.stringify( {
+			type: typesMapping[ snak.type ] ? typesMapping[ snak.type ] : snak.type,
+			value: snak.value
+		} ),
+		datatype: snak.type,
+		options: JSON.stringify( {
+			lang: userLanguage
+		} )
+	} );
+	if ( response.errors ) {
+		const firstError: string = response.errors[ 0 ][ '*' ];
+		return $( '<span>' ).addClass( 'error' ).text( firstError );
+	}
+	return $( '<strong>' ).html( response.result );
 }

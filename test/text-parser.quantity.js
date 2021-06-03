@@ -15,18 +15,21 @@ describe("parseRawQuantity()", function() {
 			const result = parseRawQuantity( config, "28300", true );
 			assert.deepStrictEqual( result, {
 				"amount": "28300",
+				"unit": "1"
 			} );
 		} );
 		it( "should return integer amount for float value (comma)", function () {
 			const result = parseRawQuantity( config, "28300,15", true );
 			assert.deepStrictEqual( result, {
 				"amount": "2830015",
+				"unit": "1"
 			} );
 		} );
 		it( "should return integer amount for float value (dot)", function () {
 			const result = parseRawQuantity( config, "28300.15", true );
 			assert.deepStrictEqual( result, {
 				"amount": "2830015",
+				"unit": "1"
 			} );
 		} );
 	} );
@@ -35,18 +38,21 @@ describe("parseRawQuantity()", function() {
 			const result = parseRawQuantity( config, "28300" );
 			assert.deepStrictEqual( result, {
 				"amount": "28300",
+				"unit": "1"
 			} );
 		} );
 		it( "should return amount for float value (comma)", function () {
 			const result = parseRawQuantity( config, "28300,15" );
 			assert.deepStrictEqual( result, {
 				"amount": "28300.15",
+				"unit": "1"
 			} );
 		} );
 		it( "should return amount for float value (dot)", function () {
 			const result = parseRawQuantity( config, "28300.15" );
 			assert.deepStrictEqual( result, {
 				"amount": "28300.15",
+				"unit": "1"
 			} );
 		} );
 		describe("for dash-separated range", function() {
@@ -54,27 +60,27 @@ describe("parseRawQuantity()", function() {
 				const result = parseRawQuantity( config, "103-113" );
 				assert.deepStrictEqual( result, {
 					"amount": "108",
-					"bound": "5",
 					"lowerBound": "103",
 					"upperBound": "113",
+					"unit": "1"
 				} );
 			} );
 			it( "should return float amount if parities are different", function () {
 				const result = parseRawQuantity( config, "103-114" );
 				assert.deepStrictEqual( result, {
 					"amount": "108.5",
-					"bound": "5.5",
 					"lowerBound": "103",
 					"upperBound": "114",
+					"unit": "1"
 				} );
 			} );
 			xit( "should return float amount if bounds are float", function () {
 				const result = parseRawQuantity( config, "103,5-114,5" );
 				assert.deepStrictEqual( result, {
 					"amount": "109.0",
-					"bound": "5.5",
 					"lowerBound": "103.5",
 					"upperBound": "114.5",
+					"unit": "1"
 				} );
 			} );
 		} );
@@ -83,18 +89,18 @@ describe("parseRawQuantity()", function() {
 				const result = parseRawQuantity( config, "108±5" );
 				assert.deepStrictEqual( result, {
 					"amount": "108",
-					"bound": "5",
 					"lowerBound": "103",
 					"upperBound": "113",
+					"unit": "1"
 				} );
 			} );
 			it( "should return float amount if bound is float", function () {
 				const result = parseRawQuantity( config, "108±5,5" );
 				assert.deepStrictEqual( result, {
 					"amount": "108",
-					"bound": "5.5",
 					"lowerBound": "102.5",
 					"upperBound": "113.5",
+					"unit": "1"
 				} );
 			} );
 		} );

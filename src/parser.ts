@@ -1,19 +1,17 @@
 import { getConfig } from './config';
 import { getI18n } from './i18n';
 import { checkForMissedLanguage, contentLanguage } from './languages';
-import { formatSnak } from './formatter';
-import { createTimeSnak, getWikidataIds, typesMapping } from './wikidata';
+import { createTimeSnak, getWikidataIds } from './wikidata';
 import { lowercaseFirst, unique, uppercaseFirst } from './utils';
 import { apiRequest, sparqlRequest } from './api';
 import { parseRawQuantity } from './text-parser';
 import {
 	DataType,
 	WikidataClaim,
-	WikidataSnak,
-	WikidataSnakContainer
+	WikidataSnak
 } from './types/wikidata';
 import { KeyValue, Title } from './types/main';
-import { CommonsMediaValue, ItemValue, MonolingualTextValue, QuantityValue, TimeValue } from './types/wikidata/values';
+import { CommonsMediaValue, ItemValue, QuantityValue, TimeValue } from './types/wikidata/values';
 import { ApiResponse, SparqlResponse } from './types/api';
 
 export const alreadyExistingItems: KeyValue = {};
@@ -34,14 +32,15 @@ export function parseQuantity( text: string, forceInteger?: boolean ): WikidataS
 	if ( value === undefined ) {
 		return;
 	}
-	const out: WikidataSnak = {
+	const snak: WikidataSnak = {
+		type: 'quantity',
 		value: value
 	};
 
 	// Sourcing circumstances (P1480) = circa (Q5727902)
 	const circaMatch = text.match( getConfig( 're-circa' ) );
 	if ( circaMatch ) {
-		out.qualifiers = {
+		snak.qualifiers = {
 			P1480: [ {
 				property: 'P1480',
 				snaktype: 'value',
@@ -54,11 +53,10 @@ export function parseQuantity( text: string, forceInteger?: boolean ): WikidataS
 		text = text.replace( circaMatch[ 0 ], '' ); // FIXME: modify text
 	}
 
-	return out;
+	return snak;
 }
 
-function addQualifierValue( snak: WikidataSnak, qualifierId: string, qualifierSnak: WikidataSnak, qualifierLabel: JQuery | string, $label: JQuery ): WikidataSnak {
-	const $ = require( 'jquery' );
+function addQualifierValue( snak: WikidataSnak, qualifierId: string, qualifierSnak: WikidataSnak ): WikidataSnak {
 	if ( snak.qualifiers === undefined ) {
 		snak.qualifiers = {};
 	}
@@ -70,47 +68,31 @@ function addQualifierValue( snak: WikidataSnak, qualifierId: string, qualifierSn
 		snaktype: 'value',
 		property: qualifierId,
 		datavalue: {
-			type: typesMapping[ datatype ] || datatype,
+			type: datatype,
 			value: qualifierSnak
 		}
 	} );
-	$label.append( $( '<p>' )
-		.append( $( '<a>' )
-			.attr( 'href', '//www.wikidata.org/wiki/Property:' + qualifierId )
-			.text( getConfig( 'properties' )[ qualifierId ].label )
-		)
-		.append( $( '<span>' ).text( ': ' ) )
-		.append( qualifierLabel )
-	);
 	return snak;
 }
 
-async function processItemTitles( itemTitles: KeyValue, snak: WikidataSnak, $label: JQuery ): Promise<WikidataSnakContainer[]> {
-	const containers: WikidataSnakContainer[] = [];
+async function processItemTitles( itemTitles: KeyValue ): Promise<WikidataSnak[]> {
+	const snaks: WikidataSnak[] = [];
 
 	for ( const qualifierId in itemTitles ) {
 		const qualifierItemTitles = itemTitles[ qualifierId ];
-		const valuesObj: { [ key: string ]: WikidataSnakContainer } = await getWikidataIds( qualifierItemTitles );
+		const valuesObj: { [ key: string ]: WikidataSnak } = await getWikidataIds( qualifierId, qualifierItemTitles );
 		for ( const entityId in valuesObj ) {
-			const valueObj: WikidataSnakContainer = valuesObj[ entityId ];
-			// @ts-ignore
-			snak = addQualifierValue( {}, qualifierId, valueObj.wd.value, valueObj.label, $label );
-			containers.push( {
-				wd: snak,
-				label: $label
-			} );
+			const snak: WikidataSnak = addQualifierValue( {} as WikidataSnak, qualifierId, valuesObj[ entityId ] );
+			snaks.push( snak );
 		}
 	}
 
-	return containers;
+	return snaks;
 }
 
-export async function addQualifiers( $field: JQuery, snak: WikidataSnak, $label: JQuery ): Promise<WikidataSnakContainer[]> {
+export async function addQualifiers( $field: JQuery, snak: WikidataSnak ): Promise<WikidataSnak[]> {
 	const $ = require( 'jquery' );
 	const $qualifiers = $field.find( '[data-wikidata-qualifier-id]' );
-	if ( $qualifiers.length ) {
-		$label = $( '<div>' ).append( $label );
-	}
 
 	const qualifierTitles: KeyValue = {};
 	for ( let q = 0; q < $qualifiers.length; q++ ) {
@@ -124,17 +106,17 @@ export async function addQualifiers( $field: JQuery, snak: WikidataSnak, $label:
 					text: $qualifier.text().replace( /\n/g, ' ' ).trim(),
 					language: $qualifier.attr( 'lang' ) || contentLanguage
 				};
-				snak = addQualifierValue( snak, qualifierId, qualifierValue, $qualifier.text(), $label );
+				snak = addQualifierValue( snak, qualifierId, qualifierValue );
 				break;
 
 			case 'string':
 				qualifierValue = $qualifier.text().replace( /\n/g, ' ' ).trim();
-				snak = addQualifierValue( snak, qualifierId, qualifierValue, $qualifier.text(), $label );
+				snak = addQualifierValue( snak, qualifierId, qualifierValue );
 				break;
 
 			case 'time':
 				qualifierValue = createTimeSnak( qualifierValue );
-				snak = addQualifierValue( snak, qualifierId, qualifierValue, $qualifier.text(), $label );
+				snak = addQualifierValue( snak, qualifierId, qualifierValue );
 				break;
 
 			case 'wikibase-item':
@@ -177,7 +159,7 @@ export async function addQualifiers( $field: JQuery, snak: WikidataSnak, $label:
 		}
 	}
 
-	return processItemTitles( qualifierTitles, snak, $label );
+	return processItemTitles( qualifierTitles );
 }
 
 /**
@@ -214,8 +196,8 @@ function recognizeUnits( text: string, units: KeyValue, label?: string ): string
 	return result;
 }
 
-export async function prepareCommonsMedia( $content: JQuery, $wrapper: JQuery ): Promise<WikidataSnakContainer[]> {
-	let containers: WikidataSnakContainer[] = [];
+export async function prepareCommonsMedia( $content: JQuery, $wrapper: JQuery ): Promise<WikidataSnak[]> {
+	let snaks: WikidataSnak[] = [];
 	const $imgs: JQuery = $content.find( 'img' );
 	const imgs: JQuery[] = [];
 	$imgs.each( function () {
@@ -234,23 +216,23 @@ export async function prepareCommonsMedia( $content: JQuery, $wrapper: JQuery ):
 		}
 		fileName = decodeURIComponent( fileName );
 		fileName = fileName.replace( /_/g, ' ' );
-		const value: CommonsMediaValue = { value: fileName };
+		const value: CommonsMediaValue = {
+			value: fileName
+		};
 		const snak: WikidataSnak = {
+			type: 'commonsMedia',
 			value: value
 		};
-		const $label: JQuery = $img.clone()
-			.attr( 'title', fileName )
-			.css( 'border', '1px dashed #a2a9b1' );
 
-		containers = await addQualifiers( $wrapper, snak, $label );
+		snaks = await addQualifiers( $wrapper, snak );
 	}
 
-	return containers;
+	return snaks;
 }
 
-export async function prepareExternalId( $content: JQuery, propertyId: string ): Promise<WikidataSnakContainer[]> {
+export async function prepareExternalId( $content: JQuery, propertyId: string ): Promise<WikidataSnak[]> {
 	let externalId = $content.data( 'wikidata-external-id' ) || $content.text();
-	const containers: WikidataSnakContainer[] = [];
+	const snaks: WikidataSnak[] = [];
 
 	if ( propertyId === 'P345' ) { // IMDb
 		externalId = $content.find( 'a' ).first().attr( 'href' );
@@ -262,78 +244,54 @@ export async function prepareExternalId( $content: JQuery, propertyId: string ):
 	const sparql = 'SELECT * WHERE { ?item wdt:' + propertyId + ' "' + externalId + '" }';
 	const data: SparqlResponse = await sparqlRequest( sparql );
 	if ( data.results.bindings.length ) {
-		const url = data.results.bindings[ 0 ].item.value;
-		const $: JQueryStatic = require( 'jquery' );
-		const $label: JQuery = $( '<span>' ).append( $( '<code>' ).text( externalId ) )
-			.append( $( '<strong>' ).css( { color: 'red' } ).text( getI18n( 'already-used-in' ) ) )
-			.append( $( '<a>' ).attr( 'href', url ).attr( 'target', '_blank' ).text( url.replace( /[^Q]*Q/, 'Q' ) ) );
-		containers.push( {
-			wd: {
-				value: externalId.toString()
-			},
-			label: $label
+		snaks.push( {
+			type: 'external-id',
+			value: externalId.toString()
 		} );
 	}
 
-	return containers;
+	return snaks;
 }
 
-export function prepareMonolingualText( $content: JQuery ): WikidataSnakContainer[] {
+export function prepareMonolingualText( $content: JQuery ): WikidataSnak[] {
 	const $: JQueryStatic = require( 'jquery' );
 	const mw = require( 'mw' );
-	let containers: WikidataSnakContainer[] = [];
+	const snaks: WikidataSnak[] = [];
 	let $items: JQuery = $content.find( 'span[lang]' );
 	$items.each( function () {
 		const $item: JQuery = $( this );
-		containers.push( {
-			wd: checkForMissedLanguage( {
-				value: {
-					text: $item.text().trim(),
-					language: $item.attr( 'lang' ).trim()
-				}
-			} )
-		} );
+		snaks.push( checkForMissedLanguage( {
+			type: 'monolingualtext',
+			value: {
+				text: $item.text().trim(),
+				language: $item.attr( 'lang' ).trim()
+			}
+		} ) );
 	} );
-	if ( !containers.length ) {
+	if ( !snaks.length ) {
 		const text = $content.text().trim();
 		if ( text ) {
 			$items = mw.util.$content.find( 'span[lang]' );
 			$items.each( function () {
 				const $item = $( this );
 				if ( $item.text().trim().startsWith( text ) ) {
-					containers.push( {
-						wd: checkForMissedLanguage( {
-							value: {
-								text: text,
-								language: $item.attr( 'lang' ).trim()
-							}
-						} )
-					} );
+					snaks.push( checkForMissedLanguage( {
+						value: {
+							text: text,
+							language: $item.attr( 'lang' ).trim()
+						},
+						type: 'monolingualtext'
+					} ) );
 				}
 			} );
 		}
 	}
-	const valueLanguages = [];
-	for ( const i in containers ) {
-		// @ts-ignore
-		const value: MonolingualTextValue = containers[ i ].wd.value;
-		if ( valueLanguages.indexOf( value.language ) > -1 ) {
-			continue;
-		}
-		valueLanguages.push( value.language );
-		containers[ i ].label = $( '<span>' )
-			.append( $( '<span>' ).css( 'color', '#666' ).text( '(' + value.language + ') ' ) )
-			.append( $( '<strong>' ).text( value.text ) );
-	}
-	containers = containers.filter( function ( item ) {
-		return item.label !== undefined;
-	} );
 
-	return containers;
+	return snaks;
 }
 
-export async function prepareQuantity( $content: JQuery, propertyId: string ): Promise<WikidataSnakContainer[]> {
-	let containers: WikidataSnakContainer[] = [];
+export async function prepareQuantity( $content: JQuery, propertyId: string ): Promise<WikidataSnak[]> {
+	let snaks: WikidataSnak[] = [];
 	let text: string = $content.text()
 		.replace( /[\u00a0\u25bc\u25b2]/g, ' ' )
 		.replace( /\s*\(([^)]*\))/g, '' )
@@ -353,14 +311,12 @@ export async function prepareQuantity( $content: JQuery, propertyId: string ): P
 		text = amount + getI18n( 'unit-sec' );
 	}
 
-	const result: WikidataSnakContainer = {
-		wd: parseQuantity( text, getConfig( 'properties.' + propertyId + '.constraints.integer' ) )
-	};
-	if ( !result.wd || !result.wd.value ) {
+	const snak: WikidataSnak = parseQuantity( text, getConfig( 'properties.' + propertyId + '.constraints.integer' ) );
+	if ( !snak || !snak.value ) {
 		return;
 	}
 
-	containers = await addQualifiers( $content, result.wd, formatSnak( result.wd ) );
+	snaks = await addQualifiers( $content, snak );
 
 	if ( getConfig( 'properties.' + propertyId + '.constraints.qualifier' ).indexOf( 'P585' ) !== -1 ) {
 		let yearMatch: string[] = $content.text().match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
@@ -370,7 +326,7 @@ export async function prepareQuantity( $content: JQuery, propertyId: string ): P
 		if ( yearMatch ) {
 			const extractedDate: TimeValue | string = createTimeSnak( yearMatch[ 1 ].replace( /(\d)\s(\d)/, '$1$2' ) );
 			if ( extractedDate ) {
-				result.wd.qualifiers = {
+				snak.qualifiers = {
 					P585: [ {
 						snaktype: 'value',
 						property: 'P585',
@@ -384,21 +340,21 @@ export async function prepareQuantity( $content: JQuery, propertyId: string ): P
 		}
 	}
 
-	const qualifierMatch = $content.text().match( /\(([^)]*)/ );
+	const qualifierMatch: RegExpMatchArray = $content.text().match( /\(([^)]*)/ );
 	if ( qualifierMatch ) {
 		const qualifierQuantitySnak: WikidataSnak = parseQuantity( qualifierMatch[ 1 ] );
 		if ( qualifierQuantitySnak ) {
 			// @ts-ignore
 			const qualifierQuantity: QuantityValue = qualifierQuantitySnak.value;
-			const supportedProperties = [ 'P2076', 'P2077' ];
+			const supportedProperties: string[] = [ 'P2076', 'P2077' ];
 			for ( let j = 0; j < supportedProperties.length; j++ ) {
-				const units = recognizeUnits( qualifierMatch[ 1 ], getConfig( 'properties.' + supportedProperties[ j ] + '.units' ) );
+				const units: string[] = recognizeUnits( qualifierMatch[ 1 ], getConfig( 'properties.' + supportedProperties[ j ] + '.units' ) );
 				if ( units.length === 1 ) {
 					qualifierQuantity.unit = 'http://www.wikidata.org/entity/' + units[ 0 ];
-					if ( !result.wd.qualifiers ) {
-						result.wd.qualifiers = {};
+					if ( !snak.qualifiers ) {
+						snak.qualifiers = {};
 					}
-					result.wd.qualifiers[ supportedProperties[ j ] ] = [ {
+					snak.qualifiers[ supportedProperties[ j ] ] = [ {
 						snaktype: 'value',
 						property: supportedProperties[ j ],
 						datavalue: {
@@ -411,70 +367,49 @@ export async function prepareQuantity( $content: JQuery, propertyId: string ): P
 		}
 	}
 
-	const founded = recognizeUnits( text, getConfig( 'properties' )[ propertyId ].units, $content.closest( 'tr' ).find( 'th' ).first().text() );
+	const founded: string[] = recognizeUnits( text, getConfig( 'properties' )[ propertyId ].units, $content.closest( 'tr' ).find( 'th' ).first().text() );
 	for ( let u = 0; u < founded.length; u++ ) {
 		// @ts-ignore
-		result.wd.value.unit = '1';
+		snak.value.unit = '1';
 		if ( founded[ u ] !== '1' ) {
 			// @ts-ignore
-			result.wd.value.unit = 'http://www.wikidata.org/entity/' + founded[ u ];
+			snak.value.unit = 'http://www.wikidata.org/entity/' + founded[ u ];
 			// const item = getConfig( 'units.' + founded[ u ] );
 		}
-		result.wd.type = 'quantity';
-		result.label = formatSnak( result.wd );
-		containers.push( result );
+		snak.type = 'quantity';
+		snaks.push( snak );
 	}
 
-	return containers;
+	return snaks;
 }
 
-export function prepareTime( $content: JQuery ): WikidataSnakContainer[] {
-	const $ = require( 'jquery' );
-	const values = [];
+export function prepareTime( $content: JQuery ): WikidataSnak[] {
+	const snaks: WikidataSnak[] = [];
 	const value: TimeValue = createTimeSnak( $content.text().toLowerCase().trim().replace( getConfig( 're-year-postfix' ), '' ),
 		$content[ 0 ].outerHTML.includes( getConfig( 'mark-julian' ) ) );
 	if ( value ) {
-		if ( value.toString().match( /^(novalue|somevalue)$/ ) ) {
-			const $label = $( '<span>' );
-			if ( getI18n( 'value-prefix' ) !== '' ) {
-				$label.append( $( '<span>' ).css( 'color', '#666' ).text( getI18n( 'value-prefix' ) ) );
-			}
-			$label.append( $( '<strong>' ).text( value.toString() === 'novalue' ? getI18n( 'no-value' ) : getI18n( 'unknown-value' ) ) );
-
-			values.push( {
-				wd: { value: value },
-				label: $label
-			} );
-		} else {
-			values.push( {
-				wd: { value: value },
-				label: $( '<span>' )
-					.append( $( '<strong>' ).append( formatSnak( {
-						type: 'time',
-						value: value
-					} ) ) )
-					.append( $( '<span>' ).css( 'color', '#666' ).text( ' (' +
-						( value.calendarmodel.includes( '1985727' ) ? getI18n( 'grigorian-calendar' ) : getI18n( 'julian-calendar' ) ) + ') ' ) )
-			} );
-		}
+		snaks.push( {
+			type: 'time',
+			value: value
+		} );
 	}
 
-	return values;
+	return snaks;
 }
 
-export function prepareString( $content: JQuery, propertyId: string ): WikidataSnakContainer[] {
-	const values = [];
-	let text = $content.data( 'wikidata-external-id' );
+export function prepareString( $content: JQuery, propertyId: string ): WikidataSnak[] {
+	const snaks: WikidataSnak[] = [];
+	let text: string = $content.data( 'wikidata-external-id' );
 	if ( !text ) {
 		text = $content.text();
 	}
-	let strings = text.toString().trim().split( /[\n,;]+/ );
+	let strings: string[] = text.toString().trim().split( /[\n,;]+/ );
 
 	// Commons category
 	if ( propertyId === 'P373' ) {
-		const $link = $content.find( 'a[class="extiw"]' ).first();
+		const $link: JQuery = $content.find( 'a[class="extiw"]' ).first();
 		if ( $link.length ) {
-			const url = $link.attr( 'href' );
+			const url: string = $link.attr( 'href' );
 			let value = url.substr( url.indexOf( '/wiki/' ) + 6 )
 				.replace( /_/g, ' ' )
 				.replace( /^[Cc]ategory:/, '' )
@@ -485,96 +420,89 @@ export function prepareString( $content: JQuery, propertyId: string ): WikidataS
 	}
 
 	for ( const i in strings ) {
-		const s = strings[ i ].replace( /\n/g, ' ' ).trim();
+		const s: string = strings[ i ].replace( /\n/g, ' ' ).trim();
 		if ( s ) {
-			values.push( {
-				wd: {
-					value: s
-				},
-				label: $( '<code>' + s + '</code>' )
+			snaks.push( {
+				type: 'string',
+				value: s
 			} );
 		}
 	}
 
-	return values;
+	return snaks;
 }
 
-export function prepareUrl( $content: JQuery ): WikidataSnakContainer[] {
-	const values: WikidataSnakContainer[] = [];
+export function prepareUrl( $content: JQuery ): WikidataSnak[] {
+	const snaks: WikidataSnak[] = [];
 	const $links: JQuery = $content.find( 'a' );
 	$links.each( function () {
 		const $link: JQuery = $( this );
 		const url: string = $link.attr( 'href' ).replace( /^\/\//, 'https://' );
-		values.push( {
-			wd: {
-				value: url
-			},
-			label: $( '<code>' + url + '</code>' )
+		snaks.push( {
+			type: 'url',
+			value: url
 		} );
 	} );
 
-	return values;
+	return snaks;
 }
 
-async function processWbGetItems( valuesObj: { [ key: string ]: WikidataSnakContainer }, $wrapper: JQuery ): Promise<WikidataSnakContainer[]> {
+async function processWbGetItems( valuesObj: { [ key: string ]: WikidataSnak }, $wrapper: JQuery ): Promise<WikidataSnak[]> {
 	const $: JQueryStatic = require( 'jquery' );
-	let containers: WikidataSnakContainer[] = $.map( valuesObj, function ( container: WikidataSnakContainer ) {
-		return [ container ];
+	let snaks: WikidataSnak[] = $.map( valuesObj, function ( snak: WikidataSnak ) {
+		return [ snak ];
 	} );
-	if ( containers.length === 1 ) {
-		const value: WikidataSnakContainer = containers.pop();
-		containers = await addQualifiers( $wrapper, value.wd, value.label );
+	if ( snaks.length === 1 ) {
+		const snak: WikidataSnak = snaks.pop();
+		snaks = await addQualifiers( $wrapper, snak );
 	}
-	return containers;
+	return snaks;
 }
 
-export async function parseItems( $content: JQuery, $wrapper: JQuery ): Promise<WikidataSnakContainer[]> {
-	const $ = require( 'jquery' );
+export async function parseItems( $content: JQuery, $wrapper: JQuery, propertyId: string ): Promise<WikidataSnak[]> {
+	const $: JQueryStatic = require( 'jquery' );
 	let titles: Title[] = [];
 
 	for ( let k = 0; k < getConfig( 'fixed-values' ).length; k++ ) {
 		const fixedValue = getConfig( 'fixed-values' )[ k ];
-		const regexp = new RegExp( fixedValue.search );
+		const regexp: RegExp = new RegExp( fixedValue.search );
 		if ( $content.attr( 'data-wikidata-property-id' ) === fixedValue.property &&
 			$content.text().match( regexp )
 		) {
-			const valuesObj: { [ key: string ]: WikidataSnakContainer } = {};
-			const value: WikidataSnakContainer = {
-				wd: {
-					type: 'wikibase-entityid',
-					value: {
-						id: fixedValue.item,
-						label: fixedValue.label,
-						description: ''
-					}
+			const valuesObj: { [ key: string ]: WikidataSnak } = {};
+			const snak: WikidataSnak = {
+				type: 'wikibase-item',
+				value: {
+					id: fixedValue.item,
+					label: fixedValue.label,
+					description: ''
 				}
 			};
-			value.label = formatSnak( value.wd );
 			// @ts-ignore
-			if ( 'label' in value.wd.value ) {
-				delete value.wd.value.label;
+			if ( 'label' in snak.value ) {
+				delete snak.value.label;
 			}
 			// @ts-ignore
-			if ( 'description' in value.wd.value ) {
-				delete value.wd.value.description;
+			if ( 'description' in snak.value ) {
+				delete snak.value.description;
 			}
-			valuesObj[ fixedValue.item ] = value;
+			valuesObj[ fixedValue.item ] = snak;
 			// processWbGetItems( valuesObj, $wrapper, callback );
 			// @ts-ignore
 			return valuesObj.values();
 		}
 	}
 
-	const $links = $content.find( 'a[title][class!=image][class!=new]' );
-	const redirects = [];
+	const $links: JQuery = $content.find( 'a[title][class!=image][class!=new]' );
+	const redirects: string[] = [];
 
 	if ( $links.length ) {
 		for ( let j = 0; j < $links.length; j++ ) {
-			const $link = $( $links[ j ] );
+			const $link: JQuery = $( $links[ j ] );
 			if ( $link.parents( '[data-wikidata-qualifier-id]' ).length ) {
 				continue;
 			}
-			let extractedUrl = decodeURIComponent( $link.attr( 'href' ) ).replace( /^.*\/wiki\//, '' );
+			let extractedUrl: string = decodeURIComponent( $link.attr( 'href' ) ).replace( /^.*\/wiki\//, '' );
 			if ( extractedUrl ) {
 				extractedUrl = extractedUrl.replace( /_/g, ' ' ).trim();
 				const value: Title = {
@@ -583,11 +511,11 @@ export async function parseItems( $content: JQuery, $wrapper: JQuery ): Promise<
 					project: getConfig( 'project' ),
 					qualifiers: {}
 				};
-				let match = $links[ j ].innerHTML.match( getConfig( 're-since-year' ) );
+				let match: RegExpMatchArray = $links[ j ].innerHTML.match( getConfig( 're-since-year' ) );
 				if ( !match ) {
 					match = $links[ j ].innerHTML.match( getConfig( 're-until-year' ) );
 				}
-				const extractedYear = match ? createTimeSnak( match[ 1 ] ) : createTimeSnak( ( $links[ j ].nextSibling || {} ).textContent );
+				const extractedYear: TimeValue = match ? createTimeSnak( match[ 1 ] ) : createTimeSnak( ( $links[ j ].nextSibling || {} ).textContent );
 				if ( extractedYear ) {
 					value.qualifiers.P585 = [ {
 						property: 'P585',
@@ -600,7 +528,7 @@ export async function parseItems( $content: JQuery, $wrapper: JQuery ): Promise<
 					} ];
 				}
 				if ( $link.hasClass( 'extiw' ) ) {
-					const m = $links[ j ].getAttribute( 'href' ).match( /^https:\/\/([a-z-]+)\.(wik[^.]+)\./ );
+					const m: RegExpMatchArray = $links[ j ].getAttribute( 'href' ).match( /^https:\/\/([a-z-]+)\.(wik[^.]+)\./ );
 					if ( m && m[ 2 ] !== 'wikimedia' ) {
 						value.language = m[ 1 ];
 						value.project = m[ 1 ] + m[ 2 ].replace( 'wikipedia', 'wiki' );
@@ -617,23 +545,22 @@ export async function parseItems( $content: JQuery, $wrapper: JQuery ): Promise<
 		}
 	} else if ( $content.text().trim() ) {
 		// If no links found try to search for articles by text value
-		const parts = $content.text().split( /[\n,;]+/ );
+		const parts: string[] = $content.text().split( /[\n,;]+/ );
 		for ( const i in parts ) {
-			let year = '';
-			const articleTitle = parts[ i ].replace( /\([^)]*\)/, function ( match ) {
+			let year: string = '';
+			const articleTitle: string = parts[ i ].replace( /\([^)]*\)/, function ( match: string ) {
 				year = match.replace( /\(\)/, '' );
 				return '';
 			} ).trim();
 			if ( articleTitle ) {
-
-				const value: Title = {
+				const title: Title = {
 					label: uppercaseFirst( articleTitle ),
 					language: contentLanguage,
 					project: getConfig( 'project' ),
 					qualifiers: {}
 				};
 				if ( createTimeSnak( year ) ) {
-					value.qualifiers.P585 = [ {
+					title.qualifiers.P585 = [ {
 						property: 'P585',
 						datatype: 'time',
 						snaktype: 'value',
@@ -643,7 +570,7 @@ export async function parseItems( $content: JQuery, $wrapper: JQuery ): Promise<
 						}
 					} ];
 				}
-				titles.push( value );
+				titles.push( title );
 			}
 		}
 		titles = unique( titles );
@@ -657,8 +584,8 @@ export async function parseItems( $content: JQuery, $wrapper: JQuery ): Promise<
 		if ( data.query && data.query.redirects ) {
 			for ( let i = 0; i < data.query.redirects.length; i++ ) {
 				for ( let j = 0; j < titles.length; j++ ) {
-					const lcTitle = lowercaseFirst( titles[ j ].label );
-					const lcRedirect = lowercaseFirst( data.query.redirects[ i ].from );
+					const lcTitle: string = lowercaseFirst( titles[ j ].label );
+					const lcRedirect: string = lowercaseFirst( data.query.redirects[ i ].from );
 					if ( lcTitle === lcRedirect ) {
 						titles.splice( j + 1, 0, {
 							label: data.query.redirects[ i ].to,
@@ -673,21 +600,18 @@ export async function parseItems( $content: JQuery, $wrapper: JQuery ): Promise<
 		}
 	}
 
-	const valuesObj: any = await getWikidataIds( titles );
+	const valuesObj: { [ key: string ]: WikidataSnak } = await getWikidataIds( propertyId, titles );
 	return processWbGetItems( valuesObj, $wrapper );
 }
 
 /**
  * Compares the values of the infobox and Wikidata
  */
-export async function canExportValue( $field: JQuery, claims: WikidataClaim[], callbackIfCan: any ): Promise<void> {
+export async function canExportValue( propertyId: string, $field: JQuery, claims: WikidataClaim[] ): Promise<boolean> {
 	if ( !claims || !( claims.length ) ) {
 		// Can't export only if image is local and large
-		const $localImg = $field.find( '.image img[src*="/wikipedia/' + contentLanguage + '/"]' );
-		if ( !$localImg.length || $localImg.width() < 80 ) {
-			callbackIfCan();
-		}
-		return;
+		const $localImg: JQuery = $field.find( '.image img[src*="/wikipedia/' + contentLanguage + '/"]' );
+		return !$localImg.length || $localImg.width() < 80;
 	}
 
 	switch ( claims[ 0 ].mainsnak.datatype ) {
@@ -696,34 +620,29 @@ export async function canExportValue( $field: JQuery, claims: WikidataClaim[], c
 				// @ts-ignore
 				const parsedTime: TimeValue = createTimeSnak( ( $field.text().match( /\(([^)]*\d\d\d\d)[,)\s]/ ) || [] )[ 1 ] );
 				if ( parsedTime && ( claims[ i ].qualifiers || {} ).P585 ) {
-					const claimPrecision = claims[ i ].qualifiers.P585[ 0 ].datavalue.value.precision;
+					const claimPrecision: number = claims[ i ].qualifiers.P585[ 0 ].datavalue.value.precision;
 					if ( parsedTime.precision < claimPrecision ) {
 						claims[ i ].qualifiers.P585[ 0 ].datavalue.value.precision = parsedTime.precision;
 					} else if ( parsedTime.precision > claimPrecision ) { // FIXME: Specify the date in Wikidata later
 						parsedTime.precision = claimPrecision;
 					}
-					const p585 = parsedTime ? formatSnak( {
-						type: 'time',
-						value: parsedTime
-					} )[ 0 ].innerText : '';
 
-					if ( formatSnak( claims[ i ].qualifiers.P585[ 0 ].datavalue )[ 0 ].innerText !== p585 ) {
-						claims[ i ].qualifiers.P585[ 0 ].datavalue.value.precision = claimPrecision;
-						continue;
-					}
+					// if ( await formatSnak( 'P585', claims[ i ].qualifiers.P585[ 0 ].datavalue )[ 0 ].innerText !== p585 ) {
+					// claims[ i ].qualifiers.P585[ 0 ].datavalue.value.precision = claimPrecision;
+					// continue;
+					// }
 				}
-				return;
+				return false;
 			}
-			callbackIfCan( true );
-			break;
+			return true;
 
 		case 'wikibase-item':
-			const containers: WikidataSnakContainer[] = await parseItems( $field, $field );
-			const duplicates = [];
-			for ( let i = 0; i < containers.length; i++ ) {
+			const snaks: WikidataSnak[] = await parseItems( $field, $field, propertyId );
+			const duplicates: string[] = [];
+			for ( let i = 0; i < snaks.length; i++ ) {
 				for ( let j = 0; j < Object.keys( claims ).length; j++ ) {
 					// @ts-ignore
-					const valuesValue: ItemValue = containers[ i ].wd.value;
+					const valuesValue: ItemValue = snaks[ i ].wd.value;
 					// @ts-ignore
 					const claimsValue: ItemValue = claims[ j ].mainsnak.datavalue.value;
 					if ( valuesValue.id === claimsValue.id ) {
@@ -731,21 +650,22 @@ export async function canExportValue( $field: JQuery, claims: WikidataClaim[], c
 					}
 				}
 			}
-			if ( duplicates.length < containers.length ) {
+			if ( duplicates.length < snaks.length ) {
 				if ( duplicates.length > 0 ) {
 					const propertyId: string = claims[ 0 ].mainsnak.property;
 					alreadyExistingItems[ propertyId ] = duplicates;
-					if ( propertyId === 'P166' && containers.length === claims.length ) {
-						return;
+					if ( propertyId === 'P166' && snaks.length === claims.length ) {
+						return false;
 					}
 				}
 				if ( Object.keys( claims ).length > 0 ) {
 					if ( claims[ 0 ].mainsnak.property === 'P19' || claims[ 0 ].mainsnak.property === 'P20' ) {
-						return;
+						return false;
 					}
 				}
-				callbackIfCan( true );
+				return true;
 			}
 	}
-	// By default we can't export if there are claims already
+
+	return false;
 }
