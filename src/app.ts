@@ -447,19 +447,8 @@ export async function init(): Promise<any> {
 			propertyIds.push( $( this ).data( 'wikidata-qualifier-id' ) );
 		} );
 	} );
-	mw.util.addCSS( '\
-			.infobox .no-wikidata {\
-				display: block !important;\
-				background: #fdc;\
-				padding: 5px 0;\
-			}\
-			.infobox .no-wikidata.partial-wikidata {\
-				background: #eeb;\
-			}\
-			.infobox .no-wikidata .no-wikidata {\
-				margin: -5px 0;\
-			}\
-		' );
+	const css = require( './assets/init.css' ).toString();
+	mw.util.addCSS( css );
 
 	// TODO: Do not load properties until the window is opened for the first time
 	await loadProperties( propertyIds );

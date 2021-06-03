@@ -1,0 +1,13 @@
+.infobox .no-wikidata {
+    display: block !important;
+    background: #fdc;
+    padding: 5px 0;
+}
+
+.infobox .no-wikidata.partial-wikidata {
+    background: #eeb;
+}
+
+.infobox .no-wikidata .no-wikidata {
+    margin: -5px 0;
+}
