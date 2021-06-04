@@ -29,14 +29,14 @@ export const missedLanguages: {[key: string]: string} = {
 	yrk: 'Q36452'
 };
 
-export function checkForMissedLanguage( wd: WikidataSnak ): WikidataSnak {
-	const value: MonolingualTextValue = wd.value as MonolingualTextValue;
+export function checkForMissedLanguage( snak: WikidataSnak ): WikidataSnak {
+	const value: MonolingualTextValue = snak.value as MonolingualTextValue;
 	if ( value.language in missedLanguages ) {
-		( wd.value as MonolingualTextValue ).language = 'mis';
-		if ( !( 'qualifiers' in wd ) ) {
-			wd.qualifiers = {};
+		( snak.value as MonolingualTextValue ).language = 'mis';
+		if ( !( 'qualifiers' in snak ) ) {
+			snak.qualifiers = {};
 		}
-		wd.qualifiers.P585 = [ {
+		snak.qualifiers.P585 = [ {
 			property: 'P407',
 			snaktype: 'value',
 			datavalue: {
@@ -46,5 +46,5 @@ export function checkForMissedLanguage( wd: WikidataSnak ): WikidataSnak {
 		} ];
 	}
 
-	return wd;
+	return snak;
 }
