@@ -165,7 +165,11 @@ export async function dialog( $field: JQuery, propertyId: string, snaks: Wikidat
 
 	_windowManager = new WindowManager();
 	$( 'body' ).append( _windowManager.$element );
-	const processDialog = new ExtProcessDialog();
+	const processDialog = new ExtProcessDialog( {
+		classes: [
+			'wikidata-infobox-export-dialog'
+		]
+	} );
 	_windowManager.addWindows( [ processDialog ] );
 	_windowManager.openWindow( processDialog );
 }

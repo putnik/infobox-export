@@ -319,5 +319,5 @@ export async function wbFormatValue( snak: WikidataSnak ): Promise<JQuery> {
 		const firstError: string = response.errors[ 0 ][ '*' ];
 		return $( '<span>' ).addClass( 'error' ).text( firstError );
 	}
-	return $( '<strong>' ).html( response.result );
+	return $( '<span>' ).html( response.result );
 }

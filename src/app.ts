@@ -5,7 +5,6 @@ import {
 	parseItems,
 	prepareCommonsMedia, prepareExternalId,
 	prepareMonolingualText,
-	prepareQuantity,
 	prepareString,
 	prepareTime,
 	prepareUrl
@@ -19,6 +18,7 @@ import { allLanguages, contentLanguage, userLanguage } from './languages';
 import { DataType, WikidataClaim, WikidataSnak, WikidataSource } from './types/wikidata';
 import { KeyValue } from './types/main';
 import { ApiResponse, SparqlResponse } from './types/api';
+import { prepareQuantity } from './parser/quantity';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );

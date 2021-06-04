@@ -11,3 +11,28 @@
 .infobox .no-wikidata .no-wikidata {
     margin: -5px 0;
 }
+
+.wikidata-infobox-export-dialog .wb-monolingualtext-value {
+    font-weight: bold;
+}
+
+.wikidata-infobox-export-dialog .wb-monolingualtext-language-name {
+    float: left;
+    margin-right: .25em;
+    color: #54595d;
+}
+
+.wikidata-infobox-export-calendar {
+    margin-left: .25em;
+    color: #54595d;
+}
+
+.wikidata-infobox-export-calendar::before {
+    display: inline-block;
+    content: '(';
+}
+
+.wikidata-infobox-export-calendar::after {
+    display: inline-block;
+    content: ')';
+}

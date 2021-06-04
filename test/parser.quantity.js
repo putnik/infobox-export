@@ -1,4 +1,4 @@
-import { parseRawQuantity } from "../src/text-parser";
+import { parseRawQuantity } from "../src/parser/quantity";
 
 const assert = require("assert");
 

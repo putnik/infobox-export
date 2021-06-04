@@ -1,60 +1,19 @@
 import { getConfig } from './config';
-import { getI18n } from './i18n';
 import { checkForMissedLanguage, contentLanguage } from './languages';
 import { createTimeSnak, getWikidataIds } from './wikidata';
 import { lowercaseFirst, unique, uppercaseFirst } from './utils';
 import { apiRequest, sparqlRequest } from './api';
-import { parseRawQuantity } from './text-parser';
 import {
 	DataType,
 	WikidataClaim,
 	WikidataSnak
 } from './types/wikidata';
 import { KeyValue, Title } from './types/main';
-import { CommonsMediaValue, ItemValue, QuantityValue, TimeValue } from './types/wikidata/values';
+import { CommonsMediaValue, ItemValue, TimeValue } from './types/wikidata/values';
 import { ApiResponse, SparqlResponse } from './types/api';
+import { canExportQuantity } from './parser/quantity';
 
 export const alreadyExistingItems: KeyValue = {};
-
-/**
- * Parsing the number and (optionally) the accuracy
- */
-export function parseQuantity( text: string, forceInteger?: boolean ): WikidataSnak {
-	text = text.replace( /,/g, '.' ).replace( /[−–—]/g, '-' ).trim();
-	const config: KeyValue = {
-		're-10_3': getConfig( 're-10_3' ),
-		're-10_6': getConfig( 're-10_6' ),
-		're-10_9': getConfig( 're-10_9' ),
-		're-10_12': getConfig( 're-10_12' )
-	};
-
-	const value: QuantityValue | undefined = parseRawQuantity( config, text, forceInteger );
-	if ( value === undefined ) {
-		return;
-	}
-	const snak: WikidataSnak = {
-		type: 'quantity',
-		value: value
-	};
-
-	// Sourcing circumstances (P1480) = circa (Q5727902)
-	const circaMatch = text.match( getConfig( 're-circa' ) );
-	if ( circaMatch ) {
-		snak.qualifiers = {
-			P1480: [ {
-				property: 'P1480',
-				snaktype: 'value',
-				datavalue: {
-					type: 'wikibase-entityid',
-					value: { id: 'Q5727902' }
-				}
-			} ]
-		};
-		text = text.replace( circaMatch[ 0 ], '' ); // FIXME: modify text
-	}
-
-	return snak;
-}
 
 function addQualifierValue( snak: WikidataSnak, qualifierId: string, qualifierSnak: WikidataSnak ): WikidataSnak {
 	if ( snak.qualifiers === undefined ) {
@@ -162,40 +121,6 @@ export async function addQualifiers( $field: JQuery, snak: WikidataSnak ): Promi
 	return processItemTitles( qualifierTitles );
 }
 
-/**
- * Recognition of units of measurement in the infobox parameter and its label
- */
-function recognizeUnits( text: string, units: KeyValue, label?: string ): string[] {
-	if ( Array.isArray( units ) && units.length === 0 ) {
-		return [ '1' ];
-	}
-	const result: string[] = [];
-	for ( const idx in units ) {
-		if ( !units.hasOwnProperty( idx ) ) {
-			continue;
-		}
-		const item: string = parseInt( idx, 10 ) >= 0 ? units[ idx ] : idx;
-		const search: string = getConfig( 'units' )[ item ].search;
-		for ( let j = 0; j < search.length; j++ ) {
-			let expr = search[ j ];
-			if ( search[ j ].charAt( 0 ) !== '^' ) {
-				expr = '[\\d\\s\\.]' + expr;
-				if ( search[ j ].length < 5 ) {
-					expr = expr + '\\.?$';
-				}
-			}
-			if ( text.match( new RegExp( expr ) ) ) {
-				result.push( item );
-				break;
-			} else if ( search[ j ].charAt( 0 ) !== '^' && label && label.match( new RegExp( '\\s' + search[ j ] + ':?$' ) ) ) {
-				result.push( item );
-				break;
-			}
-		}
-	}
-	return result;
-}
-
 export async function prepareCommonsMedia( $content: JQuery, $wrapper: JQuery ): Promise<WikidataSnak[]> {
 	let snaks: WikidataSnak[] = [];
 	const $imgs: JQuery = $content.find( 'img' );
@@ -285,99 +210,6 @@ export function prepareMonolingualText( $content: JQuery ): WikidataSnak[] {
 				}
 			} );
 		}
-	}
-
-	return snaks;
-}
-
-export async function prepareQuantity( $content: JQuery, propertyId: string ): Promise<WikidataSnak[]> {
-	let snaks: WikidataSnak[] = [];
-	let text: string = $content.text()
-		.replace( /[\u00a0\u25bc\u25b2]/g, ' ' )
-		.replace( /\s*\(([^)]*\))/g, '' )
-		.trim();
-
-	// Hack for time in formats "hh:mm:ss" and "00m 00s""
-	const match: string[] = text.replace( getConfig( 're-min-sec' ), '$1:$2' )
-		.match( /^(?:(\d+):)?(\d+):(\d+)$/ );
-	if ( match ) {
-		let amount = 0;
-		for ( let i = 1; i < match.length; i++ ) {
-			if ( match[ i ] !== undefined ) {
-				amount = amount * 60 + parseInt( match[ i ], 10 );
-			}
-		}
-
-		text = amount + getI18n( 'unit-sec' );
-	}
-
-	const snak: WikidataSnak = parseQuantity( text, getConfig( 'properties.' + propertyId + '.constraints.integer' ) );
-	if ( !snak || !snak.value ) {
-		return;
-	}
-
-	snaks = await addQualifiers( $content, snak );
-
-	if ( getConfig( 'properties.' + propertyId + '.constraints.qualifier' ).indexOf( 'P585' ) !== -1 ) {
-		let yearMatch: string[] = $content.text().match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
-		if ( !yearMatch ) {
-			yearMatch = $content.closest( 'tr' ).find( 'th' ).first().text().match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
-		}
-		if ( yearMatch ) {
-			const extractedDate: TimeValue | string = createTimeSnak( yearMatch[ 1 ].replace( /(\d)\s(\d)/, '$1$2' ) );
-			if ( extractedDate ) {
-				snak.qualifiers = {
-					P585: [ {
-						snaktype: 'value',
-						property: 'P585',
-						datavalue: {
-							type: 'time',
-							value: extractedDate
-						}
-					} ]
-				};
-			}
-		}
-	}
-
-	const qualifierMatch: RegExpMatchArray = $content.text().match( /\(([^)]*)/ );
-	if ( qualifierMatch ) {
-		const qualifierQuantitySnak: WikidataSnak = parseQuantity( qualifierMatch[ 1 ] );
-		if ( qualifierQuantitySnak ) {
-			// @ts-ignore
-			const qualifierQuantity: QuantityValue = qualifierQuantitySnak.value;
-			const supportedProperties: string[] = [ 'P2076', 'P2077' ];
-			for ( let j = 0; j < supportedProperties.length; j++ ) {
-				const units: string[] = recognizeUnits( qualifierMatch[ 1 ], getConfig( 'properties.' + supportedProperties[ j ] + '.units' ) );
-				if ( units.length === 1 ) {
-					qualifierQuantity.unit = 'http://www.wikidata.org/entity/' + units[ 0 ];
-					if ( !snak.qualifiers ) {
-						snak.qualifiers = {};
-					}
-					snak.qualifiers[ supportedProperties[ j ] ] = [ {
-						snaktype: 'value',
-						property: supportedProperties[ j ],
-						datavalue: {
-							type: 'quantity',
-							value: qualifierQuantity
-						}
-					} ];
-				}
-			}
-		}
-	}
-
-	const founded: string[] = recognizeUnits( text, getConfig( 'properties' )[ propertyId ].units, $content.closest( 'tr' ).find( 'th' ).first().text() );
-	for ( let u = 0; u < founded.length; u++ ) {
-		// @ts-ignore
-		snak.value.unit = '1';
-		if ( founded[ u ] !== '1' ) {
-			// @ts-ignore
-			snak.value.unit = 'http://www.wikidata.org/entity/' + founded[ u ];
-			// const item = getConfig( 'units.' + founded[ u ] );
-		}
-		snak.type = 'quantity';
-		snaks.push( snak );
 	}
 
 	return snaks;
@@ -616,25 +448,7 @@ export async function canExportValue( propertyId: string, $field: JQuery, claims
 
 	switch ( claims[ 0 ].mainsnak.datatype ) {
 		case 'quantity':
-			for ( let i = 0; i < Object.keys( claims ).length; i++ ) {
-				// @ts-ignore
-				const parsedTime: TimeValue = createTimeSnak( ( $field.text().match( /\(([^)]*\d\d\d\d)[,)\s]/ ) || [] )[ 1 ] );
-				if ( parsedTime && ( claims[ i ].qualifiers || {} ).P585 ) {
-					const claimPrecision: number = claims[ i ].qualifiers.P585[ 0 ].datavalue.value.precision;
-					if ( parsedTime.precision < claimPrecision ) {
-						claims[ i ].qualifiers.P585[ 0 ].datavalue.value.precision = parsedTime.precision;
-					} else if ( parsedTime.precision > claimPrecision ) { // FIXME: Specify the date in Wikidata later
-						parsedTime.precision = claimPrecision;
-					}
-
-					// if ( await formatSnak( 'P585', claims[ i ].qualifiers.P585[ 0 ].datavalue )[ 0 ].innerText !== p585 ) {
-					// claims[ i ].qualifiers.P585[ 0 ].datavalue.value.precision = claimPrecision;
-					// continue;
-					// }
-				}
-				return false;
-			}
-			return true;
+			return canExportQuantity( claims );
 
 		case 'wikibase-item':
 			const snaks: WikidataSnak[] = await parseItems( $field, $field, propertyId );
