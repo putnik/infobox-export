@@ -19,7 +19,10 @@ export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
 	const label = itemData.labels[ userLanguage ].value; // FIXME
 	const description = itemData.descriptions[ userLanguage ].value; // FIXME
 
-	const $label = $( '<span>' ).append( $( '<strong>' ).html( label ) );
+	const $mainLabel: JQuery = $( '<span>' )
+		.addClass( 'wikidata-infobox-export-main-label' )
+		.html( label );
+	const $label: JQuery = $( '<span>' ).append( $mainLabel );
 	if ( description ) {
 		$label.append( $( '<span>' ).html( ' — ' + description ) );
 	}

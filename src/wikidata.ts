@@ -221,7 +221,9 @@ export async function wbFormatValue( snak: Snak ): Promise<JQuery> {
 		const firstError: string = response.errors[ 0 ][ '*' ];
 		return $( '<span>' ).addClass( 'error' ).text( firstError );
 	}
-	return $( '<span>' ).html( response.result );
+	return $( '<span>' )
+		.addClass( 'wikidata-infobox-export-main-label' )
+		.html( response.result );
 }
 
 export function convertStatementsToClaimsObject( statements: Statement[] ): ClaimsObject {

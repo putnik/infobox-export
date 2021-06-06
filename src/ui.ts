@@ -21,8 +21,8 @@ import { getI18n } from './i18n';
 import { getConfig } from './config';
 import { alreadyExistingItems } from './parser';
 import { convertStatementsToClaimsObject, createClaims } from './wikidata';
-import { formatStatement } from './formatter';
-import { ClaimsObject, Reference, Statement } from './types/wikidata/main';
+import { formatSnak } from './formatter';
+import { ClaimsObject, Reference, Snak, SnaksObject, Statement } from './types/wikidata/main';
 
 let _windowManager: any;
 
@@ -58,13 +58,51 @@ export function errorDialog( title: string, message: string ): void {
 	} );
 }
 
-async function getPropertyFieldset( statements: Statement[] ): Promise<any> {
-	const fieldset: any = new FieldsetLayout();
+async function getQualifierFields( qualifiers: SnaksObject ): Promise<any> {
+	const qualifierFields = [];
+	for ( const qualifierPropertyId in qualifiers ) {
+		if ( !qualifiers.hasOwnProperty( qualifierPropertyId ) ) {
+			continue;
+		}
+
+		for ( const i in qualifiers[ qualifierPropertyId ] ) {
+			const qualifierSnak: Snak = qualifiers[ qualifierPropertyId ][ i ];
+			const $qualifierPropertyLabel = $( '<span>' ).text( getConfig( `properties.${qualifierPropertyId}.label` ) );
+			const $qualifierLabel: JQuery = await formatSnak( qualifierSnak );
+
+			const qualifierCheckbox = new CheckboxInputWidget( {
+				value: JSON.stringify( qualifierSnak ),
+				selected: true,
+				disabled: true
+			} );
+			const qualifierField: any = new FieldLayout( qualifierCheckbox, {
+				label: $( '<span>' ).append( $qualifierPropertyLabel, ': ', $qualifierLabel ),
+				align: 'inline',
+				classes: [
+					'wikidata-infobox-export-qualifier'
+				]
+			} );
+			qualifierFields.push( qualifierField );
+		}
+	}
+	return qualifierFields;
+}
+
+async function getPropertyFieldset( propertyId: string, statements: Statement[] ): Promise<any> {
+	const $labelLink: JQuery = $( '<a>' )
+		.attr( 'href', `https://wikidata.org/wiki/Property:${propertyId}` )
+		.attr( 'rel', 'noopener noreferrer' )
+		.attr( 'target', '_blank' )
+		.text( getConfig( `properties.${propertyId}.label` ) );
+
+	const fieldset: any = new FieldsetLayout( {
+		label: $( '<span>' ).append( $labelLink, ': ' )
+	} );
 	let firstSelected: boolean = false;
 	for ( let i = 0; i < statements.length; i++ ) {
 		const statement: Statement = statements[ i ];
 
-		const $label: JQuery = await formatStatement( statement );
+		const $label: JQuery = await formatSnak( statement.mainsnak );
 		const propertyId: string = statement.mainsnak.property;
 		const isAlreadyInWikidata: boolean = ( alreadyExistingItems[ propertyId ] || [] ).includes( statement.id );
 
@@ -91,47 +129,42 @@ async function getPropertyFieldset( statements: Statement[] ): Promise<any> {
 
 		const field: any = new FieldLayout( checkbox, {
 			label: $label,
-			align: 'inline'
+			align: 'inline',
+			classes: [
+				'wikidata-infobox-export-statement'
+			]
 		} );
 		fieldset.addItems( [ field ] );
+
+		if ( statement.qualifiers ) {
+			const qualifierFields = await getQualifierFields( statement.qualifiers );
+			fieldset.addItems( qualifierFields );
+		}
 	}
 
 	return fieldset;
 }
 
-async function getPropertyPanel( propertyId: string, statements: Statement[] ): Promise<any> {
-	const panel = new PanelLayout( { padded: true, expanded: false } );
-	const fieldset = await getPropertyFieldset( statements );
-
-	panel.$element
-		.append( $( '<p>' ).append( $( '<strong>' )
-			.append( $( '<a>' )
-				.attr( 'href', 'https://wikidata.org/wiki/Property:' + propertyId )
-				.attr( 'target', '_blank' )
-				.attr( 'rel', 'noopener noreferrer' )
-				.text( getConfig( `properties.${propertyId}.label` ) )
-			)
-			.append( $( '<span>' ).text( ':' ) )
-		) )
-		.append( fieldset.$element )
-		.append( $( '<hr>' ).css( 'margin-top', '1.5em' ) )
-		.append( $( '<p>' ).text( getI18n( 'export-confirmation' ) ) )
-		.append( $( '<p>' ).css( 'font-size', 'smaller' ).html( getI18n( 'license-cc0' ) ) );
-
-	return panel;
-}
-
 async function getFormPanel( statements: Statement[] ): Promise<any> {
-	const formPanel = new PanelLayout( { padded: true, expanded: false } );
-
 	const claimsObject: ClaimsObject = convertStatementsToClaimsObject( statements );
 	const propertyIds: string[] = Object.keys( claimsObject );
+	const propertyFieldsets: JQuery[] = [];
 	for ( const i in propertyIds ) {
 		const propertyId: string = propertyIds[ i ];
-		const propertyPanel = await getPropertyPanel( propertyId, claimsObject[ propertyId ] );
-		formPanel.$element.append( propertyPanel.$element );
+		const propertyFieldset = await getPropertyFieldset( propertyId, claimsObject[ propertyId ] );
+		propertyFieldsets.push( propertyFieldset );
 	}
-	return formPanel;
+
+	return new PanelLayout( {
+		padded: true,
+		expanded: false,
+		content: [
+			...propertyFieldsets,
+			$( '<hr>' ).css( 'margin-top', '1.5em' ),
+			$( '<p>' ).text( getI18n( 'export-confirmation' ) ),
+			$( '<p>' ).css( 'font-size', 'smaller' ).html( getI18n( 'license-cc0' ) )
+		]
+	} );
 }
 
 function collectFormData( formPanel: any ): Statement[] {

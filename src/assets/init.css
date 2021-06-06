@@ -20,6 +20,7 @@
     float: left;
     margin-right: .25em;
     color: #54595d;
+    font-weight: normal;
 }
 
 .wikidata-infobox-export-calendar {
@@ -35,6 +36,14 @@
 .wikidata-infobox-export-calendar::after {
     display: inline-block;
     content: ')';
+}
+
+.wikidata-infobox-export-statement .wikidata-infobox-export-main-label {
+    font-weight: bold;
+}
+
+.wikidata-infobox-export-qualifier {
+    margin-left: 2em;
 }
 
 .wikidata-infobox-export-all {
