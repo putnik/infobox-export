@@ -7,7 +7,6 @@ import {
 	prepareExternalId,
 	prepareMonolingualText,
 	prepareString,
-	prepareTime,
 	prepareUrl
 } from './parser';
 import { getI18n } from './i18n';
@@ -21,6 +20,7 @@ import { ApiResponse, SparqlResponse } from './types/api';
 import { prepareQuantity } from './parser/quantity';
 import { Statement } from './types/wikidata/main';
 import { DataType } from './types/wikidata/types';
+import { prepareTime } from './parser/time';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
@@ -263,7 +263,21 @@ async function clickEvent(): Promise<void> {
 		statements.push( ...subStatements );
 	}
 
-	await showDialog( $field, statements );
+	await showDialog( statements );
+}
+
+async function exportAll(): Promise<void> {
+	const fields: JQuery[] = mw.util.$content.find( '.infobox .no-wikidata[data-wikidata-property-id]' ).toArray();
+	const allStatements: Statement[] = [];
+
+	for ( const i in fields ) {
+		const $field: JQuery = $( fields[ i ] );
+		const propertyId: string = $field.data( 'wikidata-property-id' );
+		const statements: Statement[] = await parseField( $field, propertyId );
+		allStatements.push( ...statements );
+	}
+
+	await showDialog( allStatements );
 }
 
 async function loadDefaultReference(): Promise<void> {
@@ -370,6 +384,17 @@ export async function init(): Promise<any> {
 	} );
 	const css = require( './assets/init.css' ).toString();
 	mw.util.addCSS( css );
+
+	const $exportAllImage: JQuery = $( '<img>' )
+		.width( '14' )
+		.height( '14' )
+		.attr( 'src', '//upload.wikimedia.org/wikipedia/commons/6/6b/OOjs_UI_icon_upload.svg' );
+	const $exportAll: JQuery = $( '<div>' )
+		.addClass( 'wikidata-infobox-export-all' )
+		.append( $exportAllImage )
+		.on( 'click', exportAll );
+	const $container: JQuery = $( '.infobox' ).find( 'caption:visible, th:visible, td:visible' ).first();
+	$container.prepend( $exportAll );
 
 	// TODO: Do not load properties until the window is opened for the first time
 	await loadProperties( propertyIds );

@@ -23,6 +23,7 @@
 		"no-jquery/no-grep": "off",
 		"no-jquery/no-in-array": "off",
 		"no-jquery/no-map-util": "off",
+		"no-jquery/no-sizzle": "off",
 		"no-jquery/variable-pattern": "off",
 		"no-loop-func": "off",
 		"no-multi-str": "off",

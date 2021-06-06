@@ -2,11 +2,12 @@ import { KeyValue } from '../types/main';
 import { getConfig } from '../config';
 import { QuantityValue, TimeValue } from '../types/wikidata/values';
 import { getI18n } from '../i18n';
-import { randomEntityGuid, createTimeValue, generateItemSnak } from '../wikidata';
+import { randomEntityGuid, generateItemSnak } from '../wikidata';
 import { addQualifiers } from '../parser';
 import { DataValue } from '../types/wikidata/datavalues';
 import { Snak, Statement } from '../types/wikidata/main';
 import { Entity, Unit } from '../types/wikidata/types';
+import { createTimeValue } from './time';
 
 /**
  * Parsing the number and (optionally) the accuracy

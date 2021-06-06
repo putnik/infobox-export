@@ -150,7 +150,7 @@ function collectFormData( formPanel: any ): Statement[] {
 /**
  * Display a dialog to confirm export
  */
-export async function showDialog( $field: JQuery, statements: Statement[] ) {
+export async function showDialog( statements: Statement[] ) {
 	if ( !statements || !statements.length ) {
 		mw.notify( getI18n( 'parsing-error' ), {
 			type: 'error',

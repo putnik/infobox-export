@@ -36,3 +36,11 @@
     display: inline-block;
     content: ')';
 }
+
+.wikidata-infobox-export-all {
+    float: right;
+    margin-right: 0.3em;
+    margin-top: 1px;
+    line-height: 14px;
+    cursor: pointer;
+}

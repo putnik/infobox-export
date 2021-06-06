@@ -1,10 +1,9 @@
-import { getRandomHex, guessDateAndPrecision, unique } from './utils';
-import { getConfig } from './config';
+import { getRandomHex, unique } from './utils';
 import { getWdApi, wdApiRequest } from './api';
 import { getI18n } from './i18n';
 import { allLanguages, userLanguage } from './languages';
-import { TimeGuess, Title } from './types/main';
-import { ItemValue, TimeValue } from './types/wikidata/values';
+import { Title } from './types/main';
+import { ItemValue } from './types/wikidata/values';
 import { ApiResponse } from './types/api';
 import { Entity } from './types/wikidata/types';
 import { Statement, Snak, Reference, ClaimsObject } from './types/wikidata/main';
@@ -14,8 +13,8 @@ import { errorDialog } from './ui';
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
 
-const grigorianCalendar: Entity = 'http://www.wikidata.org/entity/Q1985727';
-const julianCalendar: Entity = 'http://www.wikidata.org/entity/Q1985786';
+export const grigorianCalendar: Entity = 'http://www.wikidata.org/entity/Q1985727';
+export const julianCalendar: Entity = 'http://www.wikidata.org/entity/Q1985786';
 
 let baseRevId: string;
 const entityId: string = mw.config.get( 'wgWikibaseItemId' );
@@ -50,68 +49,6 @@ export function randomEntityGuid(): string {
 	}
 
 	return entityId + '$' + guid;
-}
-
-/**
- * Format dates as datavalue for Wikidata
- */
-export function createTimeValue( timestamp: string, forceJulian: boolean | void ): TimeValue | void {
-	if ( !timestamp ) {
-		return;
-	}
-	const result: TimeValue = {
-		time: '',
-		precision: 0,
-		timezone: 0,
-		before: 0,
-		after: 0,
-		calendarmodel: grigorianCalendar
-	};
-
-	if ( timestamp.match( /\s\([^)]*\)\s/ ) ) {
-		forceJulian = true;
-	}
-	timestamp = timestamp.replace( /\([^)]*\)/, '' ).trim();
-
-	let isBce = false;
-	const bceMatch = timestamp.match( getConfig( 're-bce' ) );
-	if ( bceMatch ) {
-		isBce = true;
-		timestamp = timestamp.replace( bceMatch[ 0 ], '' ).trim();
-	} else {
-		const ceMatch = timestamp.match( getConfig( 're-ce' ) );
-		if ( ceMatch ) {
-			timestamp = timestamp.replace( ceMatch[ 0 ], '' ).trim();
-		}
-	}
-
-	const guess: TimeGuess = guessDateAndPrecision( timestamp );
-	if ( guess.type !== 'value' ) {
-		return;
-	}
-
-	try {
-		guess.isoDate.setUTCHours( 0 );
-		guess.isoDate.setUTCMinutes( 0 );
-		guess.isoDate.setUTCSeconds( 0 );
-
-		result.time = ( isBce ? '-' : '+' ) + guess.isoDate.toISOString().replace( /\.000Z/, 'Z' );
-		result.precision = guess.precision;
-	} catch ( e ) {
-		return;
-	}
-	if ( result.precision < 11 ) {
-		result.time = result.time.replace( /-\d\dT/, '-00T' );
-	}
-	if ( result.precision < 10 ) {
-		result.time = result.time.replace( /-\d\d-/, '-00-' );
-	}
-
-	if ( forceJulian || guess.isoDate < new Date( Date.UTC( 1582, 9, 15 ) ) ) {
-		result.calendarmodel = julianCalendar;
-	}
-
-	return result;
 }
 
 export function generateItemSnak( propertyId: string, entityId: string ): Snak {
