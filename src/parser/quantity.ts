@@ -5,9 +5,10 @@ import { getI18n } from '../i18n';
 import { randomEntityGuid, generateItemSnak } from '../wikidata';
 import { addQualifiers } from '../parser';
 import { DataValue } from '../types/wikidata/datavalues';
-import { Snak, Statement } from '../types/wikidata/main';
+import { Reference, Snak, Statement } from '../types/wikidata/main';
 import { Entity, Unit } from '../types/wikidata/types';
 import { createTimeValue } from './time';
+import { getReferences } from './utils';
 
 /**
  * Parsing the number and (optionally) the accuracy
@@ -234,6 +235,11 @@ export async function prepareQuantity( $content: JQuery, propertyId: string ): P
 	let statement: Statement | void = parseQuantity( text, propertyId, forceInteger );
 	if ( !statement ) {
 		return [];
+	}
+
+	const references: Reference[] = getReferences( $content );
+	if ( references.length ) {
+		statement.references = references;
 	}
 
 	statement = await addQualifiers( $content, statement );
