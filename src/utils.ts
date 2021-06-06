@@ -126,6 +126,6 @@ export function guessDateAndPrecision( timestamp: string ): TimeGuess {
 	}
 
 	return {
-		type: 'empty'
+		type: 'novalue'
 	};
 }

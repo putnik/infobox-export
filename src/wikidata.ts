@@ -2,37 +2,29 @@ import { getRandomHex, guessDateAndPrecision, unique } from './utils';
 import { getConfig } from './config';
 import { getWdApi, wdApiRequest } from './api';
 import { getI18n } from './i18n';
-import { errorDialog } from './ui';
 import { allLanguages, userLanguage } from './languages';
-import {
-	DataType,
-	DataValueType,
-	WikidataClaim,
-	WikidataMainSnak,
-	WikidataSnak,
-	WikidataSource
-} from './types/wikidata';
 import { TimeGuess, Title } from './types/main';
-import { TimeValue } from './types/wikidata/values';
+import { ItemValue, TimeValue } from './types/wikidata/values';
 import { ApiResponse } from './types/api';
+import { Entity } from './types/wikidata/types';
+import { Statement, Snak, Reference, ClaimsObject } from './types/wikidata/main';
+import { ItemDataValue } from './types/wikidata/datavalues';
+import { errorDialog } from './ui';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
 
-export const typesMapping: { [key in DataType]?: DataValueType } = {
-	commonsMedia: 'string',
-	'external-id': 'string',
-	url: 'string',
-	'wikibase-item': 'wikibase-entityid'
-};
+const grigorianCalendar: Entity = 'http://www.wikidata.org/entity/Q1985727';
+const julianCalendar: Entity = 'http://www.wikidata.org/entity/Q1985786';
 
 let baseRevId: string;
+const entityId: string = mw.config.get( 'wgWikibaseItemId' );
 
 export function setBaseRevId( value: string ): void {
 	baseRevId = value;
 }
 
-export function claimGuid( entityId: string ): string {
+export function randomEntityGuid(): string {
 	const template: string = 'xx-x-x-x-xxx';
 	let guid: string = '';
 	for ( let i = 0; i < template.length; i++ ) {
@@ -63,7 +55,7 @@ export function claimGuid( entityId: string ): string {
 /**
  * Format dates as datavalue for Wikidata
  */
-export function createTimeSnak( timestamp: string, forceJulian: boolean | void ): TimeValue | null {
+export function createTimeValue( timestamp: string, forceJulian: boolean | void ): TimeValue | void {
 	if ( !timestamp ) {
 		return;
 	}
@@ -72,7 +64,8 @@ export function createTimeSnak( timestamp: string, forceJulian: boolean | void )
 		precision: 0,
 		timezone: 0,
 		before: 0,
-		after: 0
+		after: 0,
+		calendarmodel: grigorianCalendar
 	};
 
 	if ( timestamp.match( /\s\([^)]*\)\s/ ) ) {
@@ -114,19 +107,49 @@ export function createTimeSnak( timestamp: string, forceJulian: boolean | void )
 		result.time = result.time.replace( /-\d\d-/, '-00-' );
 	}
 
-	result.calendarmodel = 'http://www.wikidata.org/entity/Q' +
-		( forceJulian || guess.isoDate < new Date( Date.UTC( 1582, 9, 15 ) ) ? '1985786' : '1985727' );
+	if ( forceJulian || guess.isoDate < new Date( Date.UTC( 1582, 9, 15 ) ) ) {
+		result.calendarmodel = julianCalendar;
+	}
+
 	return result;
 }
 
-export async function getWikidataIds( propertyId: string, titles: Title[] ): Promise<{ [ key: string ]: WikidataSnak }> {
-	let languages = titles.map( function ( item: Title ) {
+export function generateItemSnak( propertyId: string, entityId: string ): Snak {
+	const value: ItemValue = {
+		'entity-type': 'item',
+		'numeric-id': parseInt( entityId.replace( 'Q', '' ), 10 ),
+		id: entityId
+	};
+	const dataValue: ItemDataValue = {
+		type: 'wikibase-entityid',
+		value: value
+	};
+	return {
+		snaktype: 'value',
+		property: propertyId,
+		datavalue: dataValue,
+		datatype: 'wikibase-item'
+	};
+}
+
+export function convertSnakToStatement( snak: Snak, references: Reference[] ): Statement {
+	return {
+		mainsnak: snak,
+		type: 'statement',
+		id: randomEntityGuid(),
+		rank: 'normal',
+		references: references
+	};
+}
+
+export async function getWikidataIds( propertyId: string, titles: Title[], references: Reference[] ): Promise<Statement[]> {
+	let languages: string[] = titles.map( function ( item: Title ) {
 		return item.language;
 	} );
 	languages = $.merge( languages, allLanguages );
 	languages = unique( languages );
 
-	const sites = titles.map( function ( item: Title ) {
+	const sites: string[] = titles.map( function ( item: Title ) {
 		return item.project;
 	} );
 
@@ -134,7 +157,7 @@ export async function getWikidataIds( propertyId: string, titles: Title[] ): Pro
 		action: 'wbgetentities',
 		sites: sites,
 		languages: languages,
-		props: [ 'labels', 'descriptions', 'claims' ],
+		props: [ 'labels', 'claims' ],
 		titles: titles.map( function ( item: Title ) {
 			return item.label;
 		} )
@@ -143,9 +166,7 @@ export async function getWikidataIds( propertyId: string, titles: Title[] ): Pro
 		return;
 	}
 
-	const valuesObj: { [ key: string ]: WikidataSnak } = {};
-	let value: WikidataSnak | undefined;
-
+	const statements: Statement[] = [];
 	for ( const entityId in data.entities ) {
 		if ( !data.entities.hasOwnProperty( entityId ) || !entityId.match( /^Q/ ) ) {
 			continue;
@@ -153,7 +174,6 @@ export async function getWikidataIds( propertyId: string, titles: Title[] ): Pro
 
 		const entity = data.entities[ entityId ];
 		const label: { value: string } = entity.labels[ userLanguage ] || entity.labels.en || entity.labels[ Object.keys( entity.labels )[ 0 ] ] || { value: '' };
-		const description = entity.descriptions[ userLanguage ] || entity.descriptions.en || entity.descriptions[ Object.keys( entity.descriptions )[ 0 ] ] || '';
 
 		if ( ( ( ( ( ( ( ( entity || {} ).claims || {} ).P31 || [] )[ 0 ] || {} ).mainsnak || {} ).datavalue || {} ).value || {} ).id === 'Q4167410' ) {
 			continue; // skip disambigs
@@ -169,7 +189,7 @@ export async function getWikidataIds( propertyId: string, titles: Title[] ): Pro
 
 			subclassFound = subclassPropertyIds.find( function ( propertyId: string ) {
 				const values = ( ( ( data.entities[ candidateId ] || {} ).claims || {} )[ propertyId ] || [] );
-				return values.find( function ( statement: WikidataClaim ) {
+				return values.find( function ( statement: Statement ) {
 					// @ts-ignore
 					const result = ( ( ( statement.mainsnak || {} ).datavalue || {} ).value || {} ).id === entityId;
 					if ( result ) {
@@ -200,117 +220,62 @@ export async function getWikidataIds( propertyId: string, titles: Title[] ): Pro
 			continue; // skip values for which there are more accurate values
 		}
 
-		value = {
-			type: 'wikibase-item',
-			value: {
-				id: entityId,
-				label: $( '<span>' ).text( label ? label.value : label ),
-				description: description ? description.value : description
-			}
-		};
-		if ( label ) {
-			const results: Title[] = titles.filter( function ( item: Title ) {
-				return item.label.toLowerCase() === label.value.toLowerCase();
-			} );
-			if ( results.length === 1 ) {
-				value.qualifiers = results[ 0 ].qualifiers;
-			}
-		}
-		// @ts-ignore
-		if ( 'label' in value.value ) {
-			delete value.value.label;
-		}
-		// @ts-ignore
-		if ( 'description' in value.value ) {
-			delete value.value.description;
-		}
-		valuesObj[ entityId ] = value;
+		const snak: Snak = generateItemSnak( propertyId, entityId );
+		const statement: Statement = convertSnakToStatement( snak, references );
+		statements.push( statement );
 	}
 
-	return valuesObj;
+	return statements;
 }
 
 /**
  * Create all statements in Wikidata and mark properties exported
  */
-export function createClaims( propertyId: string, values: string[], refUrl: WikidataSource[], revIds?: string[] ) {
-	let value: any = values.shift();
-	revIds = revIds || [];
-	if ( !value ) {
-		// All statements are added
-		$( '.no-wikidata[data-wikidata-property-id=' + propertyId + ']' )
-			.removeClass( 'no-wikidata' );
-		// .off( 'dblclick', clickEvent ); // FIXME
-		return;
-	} else {
-		value = JSON.parse( value );
-	}
-	if ( getConfig( 'properties' )[ propertyId ] === undefined ) {
-		mw.notify( getI18n( 'no-property-data' ).replace( '$1', propertyId ), {
-			type: 'error',
-			tag: 'wikidataInfoboxExport-property-error'
+export function createClaims( statements: Statement[] ): void {
+	let propertyIds: string[] = [];
+	while ( statements.length ) {
+		const statement: Statement = statements.shift();
+		const propertyId: string = statement.mainsnak.property;
+		propertyIds.push( propertyId );
+		const claimData: ApiResponse = getWdApi().postWithToken( 'csrf', {
+			action: 'wbsetclaim',
+			claim: JSON.stringify( statement ),
+			baserevid: baseRevId,
+			tags: 'InfoboxExport gadget'
 		} );
-		return;
-	}
-	const datatype: DataType = getConfig( 'properties' )[ propertyId ].datatype;
-	// @ts-ignore
-	const mainsnak: WikidataMainSnak = value.value.toString().match( /^(novalue|somevalue)$/ ) ? {
-		snaktype: value.value,
-		property: propertyId
-	} : {
-		snaktype: 'value',
-		property: propertyId,
-		datavalue: {
-			type: typesMapping[ datatype ] ? typesMapping[ datatype ] : datatype,
-			value: value.value
-		}
-	};
-	const claim: WikidataClaim = {
-		type: 'statement',
-		mainsnak: mainsnak,
-		id: claimGuid( mw.config.get( 'wgWikibaseItemId' ) ),
-		references: refUrl,
-		rank: 'normal'
-	};
-	if ( value.qualifiers ) {
-		claim.qualifiers = value.qualifiers;
-	}
 
-	getWdApi().postWithToken( 'csrf', {
-		action: 'wbsetclaim',
-		claim: JSON.stringify( claim ),
-		baserevid: baseRevId,
-		tags: 'InfoboxExport gadget'
-	} ).done( function ( claimData: ApiResponse ) {
 		if ( claimData.success ) {
-			const valuesLeftStr = values.length ? getI18n( 'values-left' ).replace( '$1', values.length.toString() ) : '';
+			const valuesLeftStr = statements.length ? getI18n( 'values-left' ).replace( '$1', statements.length.toString() ) : '';
 			mw.notify( getI18n( 'value-saved' ).replace( '$1', propertyId ) + valuesLeftStr, {
 				tag: 'wikidataInfoboxExport-success'
 			} );
 
 			baseRevId = claimData.pageinfo.lastrevid;
-			revIds.push( baseRevId );
-			createClaims( propertyId, values, refUrl, revIds );
 		} else {
+			// mw.notify( getI18n( 'value-failed' ), {
+			// type: 'error',
+			// tag: 'wikidataInfoboxExport-error'
+			// } );
 			errorDialog( getI18n( 'value-failed' ), JSON.stringify( claimData ) );
+			break;
 		}
-	} ).fail( function () {
-		mw.notify( getI18n( 'value-failed' ), {
-			type: 'error',
-			tag: 'wikidataInfoboxExport-error'
-		} );
-	} );
+	}
+
+	propertyIds = unique( propertyIds );
+	for ( const i in propertyIds ) {
+		const propertyId: string = propertyIds[ i ];
+		$( `.no-wikidata[data-wikidata-property-id=${propertyId}]` )
+			.removeClass( 'no-wikidata' )
+			.off( 'dblclick' ); // FIXME: disable only clickEvent
+	}
 }
 
-export async function wbFormatValue( snak: WikidataSnak ): Promise<JQuery> {
+export async function wbFormatValue( snak: Snak ): Promise<JQuery> {
 	const response: ApiResponse = await wdApiRequest( {
 		action: 'wbformatvalue',
 		generate: 'text/html; disposition=verbose',
-		datavalue: JSON.stringify( {
-			type: typesMapping[ snak.type ] ? typesMapping[ snak.type ] : snak.type,
-			value: snak.value
-		} ),
-		datatype: snak.type,
+		datavalue: JSON.stringify( snak.datavalue ),
+		datatype: snak.datatype,
 		options: JSON.stringify( {
 			lang: userLanguage
 		} )
@@ -320,4 +285,17 @@ export async function wbFormatValue( snak: WikidataSnak ): Promise<JQuery> {
 		return $( '<span>' ).addClass( 'error' ).text( firstError );
 	}
 	return $( '<span>' ).html( response.result );
+}
+
+export function convertStatementsToClaimsObject( statements: Statement[] ): ClaimsObject {
+	const claimObject: ClaimsObject = {};
+	for ( const i in statements ) {
+		const statement: Statement = statements[ i ];
+		const propertyId: string = statement.mainsnak.property;
+		if ( claimObject[ propertyId ] === undefined ) {
+			claimObject[ propertyId ] = [];
+		}
+		claimObject[ propertyId ].push( statement );
+	}
+	return claimObject;
 }

@@ -1,4 +1,4 @@
-import { SnakType } from './wikidata';
+import { ItemId, PropertyId, SnakType } from './wikidata/types';
 
 export interface KeyValue {
 	[ key: string ]: any;
@@ -19,5 +19,12 @@ export interface Title {
 }
 
 export interface Translations {
-	[ key: string ]: KeyValue
+	[ key: string ]: KeyValue;
+}
+
+export interface FixedValue {
+	property: PropertyId;
+	search: string;
+	item: ItemId;
+	label: string;
 }

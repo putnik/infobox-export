@@ -1,3 +1,5 @@
+import { Entity, Unit } from './types';
+
 export interface CommonsMediaValue {
 	value: string;
 }
@@ -8,7 +10,11 @@ export interface EntityIdValue {
 	description?: string;
 }
 
+export type ExternalIdValue = string;
+
 export interface ItemValue {
+	'entity-type': 'item';
+	'numeric-id': number;
 	id: string;
 }
 
@@ -22,11 +28,11 @@ export type StringValue = string;
 // https://www.mediawiki.org/wiki/Wikibase/DataModel#Dates_and_times
 export interface TimeValue {
 	time: string;
-	precision: number;
-	after?: number;
-	before?: number;
 	timezone?: number;
-	calendarmodel?: string;
+	before?: number;
+	after?: number;
+	precision: number;
+	calendarmodel: Entity;
 }
 
 // https://www.mediawiki.org/wiki/Wikibase/DataModel#Quantities
@@ -34,10 +40,17 @@ export interface QuantityValue {
 	amount: string;
 	lowerBound?: string;
 	upperBound?: string;
-	unit?: string;
-
-	/** @deprecated */
-	bound?: string;
+	unit: Unit;
 }
 
 export type UrlValue = string;
+
+export type Value =
+	CommonsMediaValue
+	| EntityIdValue
+	| ItemValue
+	| MonolingualTextValue
+	| StringValue
+	| TimeValue
+	| QuantityValue
+	| UrlValue;

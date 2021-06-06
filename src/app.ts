@@ -1,9 +1,10 @@
 import { sparqlRequest, wdApiRequest } from './api';
-import { createTimeSnak, setBaseRevId } from './wikidata';
+import { setBaseRevId } from './wikidata';
 import {
 	canExportValue,
 	parseItems,
-	prepareCommonsMedia, prepareExternalId,
+	prepareCommonsMedia,
+	prepareExternalId,
 	prepareMonolingualText,
 	prepareString,
 	prepareTime,
@@ -12,13 +13,14 @@ import {
 import { getI18n } from './i18n';
 import { getConfig, loadConfig, saveConfig, setConfig } from './config';
 import { unique, uppercaseFirst } from './utils';
-import { dialog } from './ui';
+import { showDialog } from './ui';
 import { loadMonths } from './months';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
-import { DataType, WikidataClaim, WikidataSnak, WikidataSource } from './types/wikidata';
 import { KeyValue } from './types/main';
 import { ApiResponse, SparqlResponse } from './types/api';
 import { prepareQuantity } from './parser/quantity';
+import { Statement } from './types/wikidata/main';
+import { DataType } from './types/wikidata/types';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
@@ -26,92 +28,6 @@ const ooui = require( 'ooui' );
 
 const propertyIds = [ 'P2076', 'P2077' ]; // Temperature and pressure for qualifiers
 let windowManager;
-
-/**
- * Extract reference URL
- */
-function getReference( $field: JQuery ): WikidataSource[] {
-	const references: WikidataSource[] = [];
-	const $notes: JQuery = $field.find( 'sup.reference a' );
-	for ( let i = 0; i < $notes.length; i++ ) {
-		// @ts-ignore
-		const $externalLinks: JQuery = $( decodeURIComponent( $notes[ i ].hash ).replace( /[!"$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, '\\$&' ) + ' a[rel="nofollow"]' );
-		for ( let j = 0; j < $externalLinks.length; j++ ) {
-			const $externalLink: JQuery = $( $externalLinks.get( j ) );
-			if ( !$externalLink.attr( 'href' ).match( /(wikipedia.org|webcitation.org|archive.is)/ ) ) {
-				const source: WikidataSource = {
-					snaks: {
-						P854: [ {
-							property: 'P854',
-							datatype: 'url',
-							snaktype: 'value',
-							datavalue: {
-								type: 'string',
-								value: $externalLink.attr( 'href' ).replace( /^\/\//, 'https://' )
-							}
-						} ]
-					}
-				};
-
-				// P813
-				if ( getConfig( 'mark-checked' ) !== '' ) {
-					const $accessed = $externalLinks.parent().find( 'small:contains("' + getConfig( 'mark-checked' ) + '")' );
-					if ( $accessed.length ) {
-						const accessDate = createTimeSnak( $accessed.first().text() );
-						if ( accessDate ) {
-							source.snaks.P813 = [ {
-								property: 'P813',
-								datatype: 'time',
-								snaktype: 'value',
-								datavalue: {
-									type: 'time',
-									value: accessDate
-								}
-							} ];
-						}
-					}
-				}
-
-				// P1065 + P2960
-				if ( getConfig( 'mark-archived' ) !== '' ) {
-					const $archiveLinks = $externalLinks.filter( 'a:contains("' + getConfig( 'mark-archived' ) + '")' );
-					if ( $archiveLinks.length ) {
-						const $archiveLink = $archiveLinks.first();
-						source.snaks.P1065 = [ {
-							property: 'P1065',
-							datatype: 'url',
-							snaktype: 'value',
-							datavalue: {
-								type: 'string',
-								value: {
-									value: $archiveLink.attr( 'href' ).replace( /^\/\//, 'https://' )
-								}
-							}
-						} ];
-
-						const archiveDate = createTimeSnak( $archiveLink.parent().text().replace( getConfig( 'mark-archived' ), '' ).trim() );
-						if ( archiveDate ) {
-							source.snaks.P2960 = [ {
-								property: 'P2960',
-								datatype: 'time',
-								snaktype: 'value',
-								datavalue: {
-									type: 'time',
-									value: archiveDate
-								}
-							} ];
-						}
-					}
-				}
-
-				references.push( source );
-				break;
-			}
-		}
-	}
-	references.push( { snaks: getConfig( 'references' ) } );
-	return references;
-}
 
 /**
  * Preload information on all properties
@@ -140,14 +56,14 @@ async function realLoadProperties( propertyIds: string[] ): Promise<void> {
 		const label: string = entity.labels[ contentLanguage ] ?
 			entity.labels[ contentLanguage ].value :
 			entity.labels.en.value;
-		setConfig( 'properties.' + propertyId, {
+		setConfig( `properties.${propertyId}`, {
 			datatype: entity.datatype,
 			label: uppercaseFirst( label ),
 			constraints: { qualifier: [] },
 			units: []
 		} );
 		if ( propertyId === 'P1128' || propertyId === 'P2196' ) {
-			setConfig( 'properties.' + propertyId + '.constraints.integer', 1 );
+			setConfig( `properties.${propertyId}.constraints.integer`, 1 );
 			if ( entity.claims ) {
 				// Property restrictions
 				if ( entity.claims.P2302 ) {
@@ -157,14 +73,16 @@ async function realLoadProperties( propertyIds: string[] ): Promise<void> {
 						switch ( type ) {
 							case 'Q19474404':
 							case 'Q21502410':
-								setConfig( 'properties.' + propertyId + '.constraints.unique', 1 );
+								setConfig( `properties.${propertyId}.constraints.unique`, 1 );
 								break;
 							case 'Q21510856': // Required
 								qualifiers = ( ( ( entity.claims.P2302[ i ] || {} ).qualifiers || {} ).P2306 || [] );
 								for ( let idx = 0; idx < qualifiers.length; idx++ ) {
 									const qualifierId = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
 									if ( qualifierId ) {
-										getConfig( 'properties' )[ propertyId ].constraints.qualifier.push( qualifierId.toString() );
+										const qualifiers: string[] = getConfig( `properties.${propertyId}.constraints.qualifier` );
+										qualifiers.push( qualifierId.toString() );
+										setConfig( `properties.${propertyId}.constraints.qualifier`, qualifiers );
 									}
 								}
 								break;
@@ -173,9 +91,9 @@ async function realLoadProperties( propertyIds: string[] ): Promise<void> {
 								for ( let idx = 0; idx < qualifiers.length; idx++ ) {
 									const unitId = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
 									if ( unitId ) {
-										const configUnits = getConfig( 'properties.' + propertyId + '.units' );
+										const configUnits = getConfig( `properties.${propertyId}.units` );
 										configUnits.push( unitId );
-										setConfig( 'properties.' + propertyId + '.units', configUnits );
+										setConfig( `properties.${propertyId}.units`, configUnits );
 										units.push( unitId );
 									}
 								}
@@ -199,14 +117,14 @@ async function realLoadProperties( propertyIds: string[] ): Promise<void> {
 
 			for ( const unitId in unitData.entities ) {
 				const unit = unitData.entities[ unitId ];
-				const unitSearch = getConfig( 'units.' + unitId + '.search' ) || [];
-				if ( !getConfig( 'units.' + unitId ) ) {
-					setConfig( 'units.' + unitId, {} );
+				const unitSearch = getConfig( `units.${unitId}.search` ) || [];
+				if ( !getConfig( `units.${unitId}` ) ) {
+					setConfig( `units.${unitId}`, {} );
 				}
 
 				// Label
 				if ( unit.labels ) {
-					setConfig( 'units.' + unitId + '.label',
+					setConfig( `units.${unitId}.label`,
 						unit.labels[ userLanguage ] ||
 						unit.labels.en ||
 						unit.labels[ Object.keys( unit.labels )[ 0 ] ]
@@ -219,7 +137,7 @@ async function realLoadProperties( propertyIds: string[] ): Promise<void> {
 
 				// Description
 				if ( unit.descriptions ) {
-					setConfig( 'units.' + unitId + '.description',
+					setConfig( `units.${unitId}.description`,
 						unit.descriptions[ userLanguage ] ||
 						unit.descriptions.en ||
 						unit.descriptions[ Object.keys( unit.labels )[ 0 ] ]
@@ -245,7 +163,7 @@ async function realLoadProperties( propertyIds: string[] ): Promise<void> {
 						}
 					}
 				}
-				setConfig( 'units.' + unitId + '.search', unique( unitSearch ) );
+				setConfig( `units.${unitId}.search`, unique( unitSearch ) );
 
 				saveConfig();
 			}
@@ -264,7 +182,7 @@ async function loadProperties( propertyIds: string[] ): Promise<void> {
 	const realPropertyIds = [];
 	for ( const i in propertyIds ) {
 		const propertyId = propertyIds[ i ];
-		if ( propertyId && getConfig( 'properties' )[ propertyId ] === undefined ) {
+		if ( propertyId && getConfig( `properties.${propertyId}` ) === undefined ) {
 			realPropertyIds.push( propertyId );
 		}
 	}
@@ -277,62 +195,52 @@ async function loadProperties( propertyIds: string[] ): Promise<void> {
 /**
  * Parsing values from parameters before displaying a dialog
  */
-async function prepareDialog( $field: JQuery, propertyId: string ): Promise<WikidataSnak[]> {
-	let snaks: WikidataSnak[] = [];
-	const datatype: DataType = getConfig( 'properties.' + propertyId + '.datatype' );
+async function parseField( $field: JQuery, propertyId: string ): Promise<Statement[]> {
+	const datatype: DataType = getConfig( `properties.${propertyId}.datatype` );
 
 	const $content: JQuery = $field.clone();
 	$content.find( 'sup.reference' ).remove();
 	$content.find( '.printonly' ).remove();
 	$content.find( '[style*="display:none"]' ).remove();
 
-	let $wrapper: JQuery = $content;
-	const $row = $field.closest( 'tr' );
-	if ( $row.length === 1 && $row.find( '[data-wikidata-property-id]' ).length === 1 ) {
-		$wrapper = $row.clone();
-	}
+	// let $wrapper: JQuery = $content;
+	// const $row = $field.closest( 'tr' );
+	// if ( $row.length === 1 && $row.find( '[data-wikidata-property-id]' ).length === 1 ) {
+	// $wrapper = $row.clone();
+	// }
 
 	switch ( datatype ) {
 		case 'commonsMedia':
-			snaks = await prepareCommonsMedia( $content, $wrapper );
-			break;
+			return prepareCommonsMedia( $content, propertyId );
 
 		case 'external-id':
-			snaks = await prepareExternalId( $content, propertyId );
-			break;
+			return prepareExternalId( $content, propertyId );
 
 		case 'monolingualtext':
-			snaks = prepareMonolingualText( $content );
-			break;
+			return prepareMonolingualText( $content, propertyId );
 
 		case 'quantity':
-			snaks = await prepareQuantity( $content, propertyId );
-			break;
+			return prepareQuantity( $content, propertyId );
 
 		case 'string':
-			snaks = prepareString( $content, propertyId );
-			break;
+			return prepareString( $content, propertyId );
 
 		case 'time':
-			snaks = prepareTime( $content );
-			break;
+			return prepareTime( $content, propertyId );
 
 		case 'wikibase-item':
-			snaks = await parseItems( $content, $wrapper, propertyId );
-			break;
+			return parseItems( $content, propertyId );
 
 		case 'url':
-			snaks = prepareUrl( $content );
-			break;
-
-		default:
-			mw.notify( getI18n( 'unknown-datatype' ).replace( '$1', datatype ), {
-				type: 'error',
-				tag: 'wikidataInfoboxExport-error'
-			} );
+			return prepareUrl( $content, propertyId );
 	}
 
-	return unique( snaks );
+	mw.notify( getI18n( 'unknown-datatype' ).replace( '$1', datatype ), {
+		type: 'error',
+		tag: 'wikidataInfoboxExport-error'
+	} );
+
+	return [];
 }
 
 /**
@@ -341,13 +249,12 @@ async function prepareDialog( $field: JQuery, propertyId: string ): Promise<Wiki
 async function clickEvent(): Promise<void> {
 	const $field = $( this );
 	const propertyId = $field.attr( 'data-wikidata-property-id' );
-	const snaks: WikidataSnak[] = await prepareDialog( $field, propertyId );
-	const reference = getReference( $field );
-	await dialog( $field, propertyId, snaks, reference );
+	const statements: Statement[] = await parseField( $field, propertyId );
+	await showDialog( $field, statements );
 }
 
 async function loadDefaultReference(): Promise<void> {
-	const sparql = 'SELECT ?wiki WHERE { ?wiki wdt:P31/wdt:P279* wd:Q33120876 . ?wiki wdt:P856 ?site . FILTER REGEX(STR(?site), "https://' + location.host + '/") }';
+	const sparql = `SELECT ?wiki WHERE { ?wiki wdt:P31/wdt:P279* wd:Q33120876 . ?wiki wdt:P856 ?site . FILTER REGEX(STR(?site), "https://${location.host}/") }`;
 	const data: SparqlResponse = await sparqlRequest( sparql );
 	if ( data.results.bindings.length === 0 ) {
 		return;
@@ -410,7 +317,7 @@ export async function init(): Promise<any> {
 	if ( !data.success ) {
 		return;
 	}
-	let claims: { [ key: string ]: WikidataClaim[] };
+	let claims: { [ key: string ]: Statement[] };
 	for ( const i in data.entities ) {
 		// @ts-ignore
 		if ( i == -1 ) {

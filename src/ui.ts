@@ -20,16 +20,16 @@ import {
 import { getI18n } from './i18n';
 import { getConfig } from './config';
 import { alreadyExistingItems } from './parser';
-import { createClaims } from './wikidata';
-import { WikidataSnak, WikidataSource } from './types/wikidata';
-import { formatSnak } from './formatter';
+import { convertStatementsToClaimsObject, createClaims } from './wikidata';
+import { formatStatement } from './formatter';
+import { ClaimsObject, Reference, Statement } from './types/wikidata/main';
 
 let _windowManager: any;
 
 /**
  * Format sources for display
  */
-function formatDomains( references: WikidataSource[] ): JQuery {
+function formatDomains( references: Reference[] ): JQuery {
 	const $result: JQuery = $( '<sup>' );
 	for ( let i = 0; i < references.length; i++ ) {
 		const p854 = references[ i ].snaks.P854;
@@ -58,11 +58,100 @@ export function errorDialog( title: string, message: string ): void {
 	} );
 }
 
+async function getPropertyFieldset( statements: Statement[] ): Promise<any> {
+	const fieldset: any = new FieldsetLayout();
+	let firstSelected: boolean = false;
+	for ( let i = 0; i < statements.length; i++ ) {
+		const statement: Statement = statements[ i ];
+
+		const $label: JQuery = await formatStatement( statement );
+		const propertyId: string = statement.mainsnak.property;
+		const isAlreadyInWikidata: boolean = ( alreadyExistingItems[ propertyId ] || [] ).includes( statement.id );
+
+		const checkbox = new CheckboxInputWidget( {
+			value: JSON.stringify( statement ),
+			selected: isAlreadyInWikidata,
+			disabled: isAlreadyInWikidata
+		} );
+		if ( !checkbox.isDisabled() ) {
+			if ( !firstSelected || !getConfig( `properties.${propertyId}.constraints.unique` ) ) {
+				firstSelected = true;
+				checkbox.setSelected( true );
+			}
+
+			if ( $label[ 0 ].innerText.match( new RegExp( getI18n( 'already-used-in' ) ) ) &&
+				getConfig( `properties.${propertyId}.constraints.unique` ) &&
+				getConfig( `properties.${propertyId}.datatype` ) === 'external-id' ) {
+				checkbox.setSelected( false );
+			}
+		}
+		if ( statement.references ) {
+			$label.append( formatDomains( statement.references ) );
+		}
+
+		const field: any = new FieldLayout( checkbox, {
+			label: $label,
+			align: 'inline'
+		} );
+		fieldset.addItems( [ field ] );
+	}
+
+	return fieldset;
+}
+
+async function getPropertyPanel( propertyId: string, statements: Statement[] ): Promise<any> {
+	const panel = new PanelLayout( { padded: true, expanded: false } );
+	const fieldset = await getPropertyFieldset( statements );
+
+	panel.$element
+		.append( $( '<p>' ).append( $( '<strong>' )
+			.append( $( '<a>' )
+				.attr( 'href', 'https://wikidata.org/wiki/Property:' + propertyId )
+				.attr( 'target', '_blank' )
+				.attr( 'rel', 'noopener noreferrer' )
+				.text( getConfig( `properties.${propertyId}.label` ) )
+			)
+			.append( $( '<span>' ).text( ':' ) )
+		) )
+		.append( fieldset.$element )
+		.append( $( '<hr>' ).css( 'margin-top', '1.5em' ) )
+		.append( $( '<p>' ).text( getI18n( 'export-confirmation' ) ) )
+		.append( $( '<p>' ).css( 'font-size', 'smaller' ).html( getI18n( 'license-cc0' ) ) );
+
+	return panel;
+}
+
+async function getFormPanel( statements: Statement[] ): Promise<any> {
+	const formPanel = new PanelLayout( { padded: true, expanded: false } );
+
+	const claimsObject: ClaimsObject = convertStatementsToClaimsObject( statements );
+	const propertyIds: string[] = Object.keys( claimsObject );
+	for ( const i in propertyIds ) {
+		const propertyId: string = propertyIds[ i ];
+		const propertyPanel = await getPropertyPanel( propertyId, claimsObject[ propertyId ] );
+		formPanel.$element.append( propertyPanel.$element );
+	}
+	return formPanel;
+}
+
+function collectFormData( formPanel: any ): Statement[] {
+	const $checkboxes: JQuery = formPanel.$element.find( 'input[type=checkbox]:checked' );
+	const statements: Statement[] = [];
+	$checkboxes.each( function ( index, checkbox ) {
+		const $checkbox: JQuery = $( checkbox );
+		const jsonStatement: string = $checkbox.attr( 'value' );
+		const statement: Statement = JSON.parse( jsonStatement );
+		statements.push( statement );
+	} );
+
+	return statements;
+}
+
 /**
  * Display a dialog to confirm export
  */
-export async function dialog( $field: JQuery, propertyId: string, snaks: WikidataSnak[], refUrl: WikidataSource[] ) {
-	if ( !snaks || !snaks.length ) {
+export async function showDialog( $field: JQuery, statements: Statement[] ) {
+	if ( !statements || !statements.length ) {
 		mw.notify( getI18n( 'parsing-error' ), {
 			type: 'error',
 			tag: 'wikidataInfoboxExport-error'
@@ -86,59 +175,11 @@ export async function dialog( $field: JQuery, propertyId: string, snaks: Wikidat
 		{ label: getI18n( 'cancel-button-label' ), flags: [ 'safe' ] }
 	];
 
-	const fieldset: any = new FieldsetLayout();
-	let firstSelected = false;
-	for ( let i = 0; i < snaks.length; i++ ) {
-		const $label: JQuery = await formatSnak( snaks[ i ] );
-		// @ts-ignore
-		const alreadyInWikidata: boolean = ( alreadyExistingItems[ propertyId ] || [] ).includes( ( ( snaks[ i ].wd || {} ).value || {} ).id );
-		const checkbox = new CheckboxInputWidget( {
-			value: JSON.stringify( snaks[ i ] ),
-			selected: alreadyInWikidata,
-			disabled: alreadyInWikidata
-		} );
-		if ( !checkbox.isDisabled() ) {
-			if ( !firstSelected || !getConfig( 'properties.' + propertyId + '.constraints.unique' ) ) {
-				firstSelected = true;
-				checkbox.setSelected( true );
-			}
-
-			if ( $label[ 0 ].innerText.match( new RegExp( getI18n( 'already-used-in' ) ) ) &&
-				getConfig( 'properties' )[ propertyId ].constraints.unique &&
-				getConfig( 'properties' )[ propertyId ].datatype === 'external-id' ) {
-				checkbox.setSelected( false );
-			}
-		}
-		if ( refUrl ) {
-			$label.append( formatDomains( refUrl ) );
-		}
-		fieldset.addItems( [
-			new FieldLayout( checkbox, {
-				label: $label,
-				align: 'inline'
-			} )
-		] );
-	}
+	const formPanel = await getFormPanel( statements );
 
 	ExtProcessDialog.prototype.initialize = function () {
 		ExtProcessDialog.super.prototype.initialize.apply( this, arguments );
-		this.content = new PanelLayout( { padded: true, expanded: false } );
-
-		this.content.$element
-			.append( $( '<p>' ).append( $( '<strong>' )
-				.append( $( '<a>' )
-					.attr( 'href', 'https://wikidata.org/wiki/Property:' + propertyId )
-					.attr( 'target', '_blank' )
-					.attr( 'rel', 'noopener noreferrer' )
-					.text( getConfig( 'properties' )[ propertyId ].label )
-				)
-				.append( $( '<span>' ).text( ':' ) )
-			) )
-			.append( fieldset.$element )
-			.append( $( '<hr>' ).css( 'margin-top', '1.5em' ) )
-			.append( $( '<p>' ).text( getI18n( 'export-confirmation' ) ) )
-			.append( $( '<p>' ).css( 'font-size', 'smaller' ).html( getI18n( 'license-cc0' ) ) );
-
+		this.content = formPanel;
 		this.$body.append( this.content.$element );
 	};
 
@@ -146,16 +187,8 @@ export async function dialog( $field: JQuery, propertyId: string, snaks: Wikidat
 		const dialog = this;
 		if ( action === 'export' ) {
 			return new Process( function () {
-				const values = [];
-				const fields = fieldset.getItems();
-				for ( const i in fields ) {
-					const checkbox = fields[ i ].getField();
-					if ( checkbox.isSelected() && !checkbox.isDisabled() ) {
-						values.push( checkbox.getValue() );
-					}
-				}
-
-				createClaims( propertyId, values, refUrl );
+				const statements: Statement[] = collectFormData( formPanel );
+				createClaims( statements );
 				dialog.close( { action: action } );
 			}, this );
 		}

@@ -1,327 +1,164 @@
 import { getConfig } from './config';
 import { checkForMissedLanguage, contentLanguage } from './languages';
-import { createTimeSnak, getWikidataIds } from './wikidata';
+import {
+	convertSnakToStatement,
+	createTimeValue,
+	generateItemSnak,
+	getWikidataIds
+} from './wikidata';
 import { lowercaseFirst, unique, uppercaseFirst } from './utils';
 import { apiRequest, sparqlRequest } from './api';
+import { FixedValue, KeyValue, Title } from './types/main';
 import {
-	DataType,
-	WikidataClaim,
-	WikidataSnak
-} from './types/wikidata';
-import { KeyValue, Title } from './types/main';
-import { CommonsMediaValue, ItemValue, TimeValue } from './types/wikidata/values';
+	CommonsMediaValue,
+	ItemValue,
+	MonolingualTextValue,
+	TimeValue,
+	Value
+} from './types/wikidata/values';
 import { ApiResponse, SparqlResponse } from './types/api';
 import { canExportQuantity } from './parser/quantity';
+import { Reference, Snak, Statement } from './types/wikidata/main';
+import { DataType, PropertyId, typesMapping } from './types/wikidata/types';
+import {
+	CommonsMediaDataValue,
+	ExternalIdDataValue,
+	MonolingualTextDataValue, StringDataValue, TimeDataValue,
+	UrlDataValue
+} from './types/wikidata/datavalues';
 
 export const alreadyExistingItems: KeyValue = {};
 
-function addQualifierValue( snak: WikidataSnak, qualifierId: string, qualifierSnak: WikidataSnak ): WikidataSnak {
-	if ( snak.qualifiers === undefined ) {
-		snak.qualifiers = {};
+function addQualifierValue(
+	statement: Statement,
+	qualifierId: string,
+	qualifierDataType: DataType,
+	qualifierValue: Value | void
+): Statement {
+	if ( !qualifierValue ) {
+		return statement;
 	}
-	if ( snak.qualifiers[ qualifierId ] === undefined ) {
-		snak.qualifiers[ qualifierId ] = [];
+	if ( statement.qualifiers === undefined ) {
+		statement.qualifiers = {};
 	}
-	const datatype = getConfig( 'properties.' + qualifierId + '.datatype' );
-	snak.qualifiers[ qualifierId ].push( {
+	if ( statement.qualifiers[ qualifierId ] === undefined ) {
+		statement.qualifiers[ qualifierId ] = [];
+	}
+	statement.qualifiers[ qualifierId ].push( {
 		snaktype: 'value',
 		property: qualifierId,
+		datatype: qualifierDataType,
 		datavalue: {
-			type: datatype,
-			value: qualifierSnak
+			type: typesMapping[ qualifierDataType ],
+			value: qualifierValue
 		}
 	} );
-	return snak;
+
+	return statement;
 }
 
-async function processItemTitles( itemTitles: KeyValue ): Promise<WikidataSnak[]> {
-	const snaks: WikidataSnak[] = [];
-
-	for ( const qualifierId in itemTitles ) {
-		const qualifierItemTitles = itemTitles[ qualifierId ];
-		const valuesObj: { [ key: string ]: WikidataSnak } = await getWikidataIds( qualifierId, qualifierItemTitles );
-		for ( const entityId in valuesObj ) {
-			const snak: WikidataSnak = addQualifierValue( {} as WikidataSnak, qualifierId, valuesObj[ entityId ] );
-			snaks.push( snak );
-		}
-	}
-
-	return snaks;
-}
-
-export async function addQualifiers( $field: JQuery, snak: WikidataSnak ): Promise<WikidataSnak[]> {
-	const $ = require( 'jquery' );
-	const $qualifiers = $field.find( '[data-wikidata-qualifier-id]' );
-
-	const qualifierTitles: KeyValue = {};
-	for ( let q = 0; q < $qualifiers.length; q++ ) {
-		const $qualifier = $( $qualifiers[ q ] );
-		const qualifierId = $qualifier.data( 'wikidata-qualifier-id' );
-		let qualifierValue = $qualifier.text().replace( /\n/g, ' ' ).trim();
-		const datatype: DataType = getConfig( 'properties.' + qualifierId + '.datatype' );
-		switch ( datatype ) {
-			case 'monolingualtext':
-				qualifierValue = {
-					text: $qualifier.text().replace( /\n/g, ' ' ).trim(),
-					language: $qualifier.attr( 'lang' ) || contentLanguage
-				};
-				snak = addQualifierValue( snak, qualifierId, qualifierValue );
-				break;
-
-			case 'string':
-				qualifierValue = $qualifier.text().replace( /\n/g, ' ' ).trim();
-				snak = addQualifierValue( snak, qualifierId, qualifierValue );
-				break;
-
-			case 'time':
-				qualifierValue = createTimeSnak( qualifierValue );
-				snak = addQualifierValue( snak, qualifierId, qualifierValue );
-				break;
-
-			case 'wikibase-item':
-				if ( qualifierTitles[ qualifierId ] === undefined ) {
-					qualifierTitles[ qualifierId ] = [];
-				}
-
-				const $links = $qualifier.find( 'a[title][class!=image][class!=new]' );
-				if ( $links.length ) {
-					for ( let l = 0; l < $links.length; l++ ) {
-						const $link = $( $links[ l ] );
-						let extractedUrl = decodeURIComponent( $link.attr( 'href' ) ).replace( /^.*\/wiki\//, '' );
-						if ( extractedUrl ) {
-							extractedUrl = extractedUrl.replace( /_/g, ' ' ).trim();
-							const title = {
-								label: extractedUrl.charAt( 0 ).toUpperCase() + extractedUrl.substr( 1, extractedUrl.length - 1 ),
-								language: contentLanguage,
-								project: getConfig( 'project' ),
-								qualifiers: {}
-							};
-							if ( $link.hasClass( 'extiw' ) ) {
-								const m = $link.attr( 'href' ).match( /^https:\/\/([a-z-]+)\.(wik[^.]+)\./ );
-								if ( m && m[ 2 ] !== 'wikimedia' ) {
-									title.language = m[ 1 ];
-									title.project = m[ 1 ] + m[ 2 ].replace( 'wikipedia', 'wiki' );
-								}
+/**
+ * Extract reference URL
+ */
+function getReferences( $field: JQuery ): Reference[] {
+	const references: Reference[] = [];
+	const $notes: JQuery = $field.find( 'sup.reference a' );
+	for ( let i = 0; i < $notes.length; i++ ) {
+		// @ts-ignore
+		const $externalLinks: JQuery = $( decodeURIComponent( $notes[ i ].hash ).replace( /[!"$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, '\\$&' ) + ' a[rel="nofollow"]' );
+		for ( let j = 0; j < $externalLinks.length; j++ ) {
+			const $externalLink: JQuery = $( $externalLinks.get( j ) );
+			if ( !$externalLink.attr( 'href' ).match( /(wikipedia.org|webcitation.org|archive.is)/ ) ) {
+				const source: Reference = {
+					snaks: {
+						P854: [ {
+							property: 'P854',
+							datatype: 'url',
+							snaktype: 'value',
+							datavalue: {
+								type: 'string',
+								value: $externalLink.attr( 'href' ).replace( /^\/\//, 'https://' )
 							}
-							qualifierTitles[ qualifierId ].push( title );
+						} ]
+					}
+				};
+
+				// P813
+				if ( getConfig( 'mark-checked' ) !== '' ) {
+					const $accessed = $externalLinks.parent().find( 'small:contains("' + getConfig( 'mark-checked' ) + '")' );
+					if ( $accessed.length ) {
+						const accessDate = createTimeValue( $accessed.first().text() );
+						if ( accessDate ) {
+							source.snaks.P813 = [ {
+								property: 'P813',
+								datatype: 'time',
+								snaktype: 'value',
+								datavalue: {
+									type: 'time',
+									value: accessDate
+								}
+							} ];
 						}
 					}
-				} else {
-					qualifierTitles[ qualifierId ].push( {
-						label: uppercaseFirst( qualifierValue ),
-						language: contentLanguage,
-						project: getConfig( 'project' ),
-						qualifiers: {}
-					} );
 				}
+
+				// P1065 + P2960
+				if ( getConfig( 'mark-archived' ) !== '' ) {
+					const $archiveLinks = $externalLinks.filter( 'a:contains("' + getConfig( 'mark-archived' ) + '")' );
+					if ( $archiveLinks.length ) {
+						const $archiveLink = $archiveLinks.first();
+						source.snaks.P1065 = [ {
+							property: 'P1065',
+							datatype: 'url',
+							snaktype: 'value',
+							datavalue: {
+								type: 'string',
+								value: {
+									value: $archiveLink.attr( 'href' ).replace( /^\/\//, 'https://' )
+								}
+							}
+						} ];
+
+						const archiveDate = createTimeValue( $archiveLink.parent().text().replace( getConfig( 'mark-archived' ), '' ).trim() );
+						if ( archiveDate ) {
+							source.snaks.P2960 = [ {
+								property: 'P2960',
+								datatype: 'time',
+								snaktype: 'value',
+								datavalue: {
+									type: 'time',
+									value: archiveDate
+								}
+							} ];
+						}
+					}
+				}
+
+				references.push( source );
 				break;
-		}
-	}
-
-	return processItemTitles( qualifierTitles );
-}
-
-export async function prepareCommonsMedia( $content: JQuery, $wrapper: JQuery ): Promise<WikidataSnak[]> {
-	let snaks: WikidataSnak[] = [];
-	const $imgs: JQuery = $content.find( 'img' );
-	const imgs: JQuery[] = [];
-	$imgs.each( function () {
-		imgs.push( $( this ) );
-	} );
-	for ( const pos in imgs ) {
-		const $img: JQuery = imgs[ pos ];
-		const src: string = $img.attr( 'src' );
-		if ( !src.match( /upload\.wikimedia\.org\/wikipedia\/commons/ ) ) {
-			return;
-		}
-		const srcParts: string[] = src.split( '/' );
-		let fileName = srcParts.pop();
-		if ( fileName.match( /(?:^|-)\d+px-/ ) ) {
-			fileName = srcParts.pop();
-		}
-		fileName = decodeURIComponent( fileName );
-		fileName = fileName.replace( /_/g, ' ' );
-		const value: CommonsMediaValue = {
-			value: fileName
-		};
-		const snak: WikidataSnak = {
-			type: 'commonsMedia',
-			value: value
-		};
-
-		snaks = await addQualifiers( $wrapper, snak );
-	}
-
-	return snaks;
-}
-
-export async function prepareExternalId( $content: JQuery, propertyId: string ): Promise<WikidataSnak[]> {
-	let externalId = $content.data( 'wikidata-external-id' ) || $content.text();
-	const snaks: WikidataSnak[] = [];
-
-	if ( propertyId === 'P345' ) { // IMDb
-		externalId = $content.find( 'a' ).first().attr( 'href' );
-		externalId = externalId.substr( externalId.lastIndexOf( '/', externalId.length - 2 ) ).replace( /\//g, '' );
-	} else {
-		externalId = externalId.toString().replace( /^ID\s/, '' ).replace( /\s/g, '' );
-	}
-
-	const sparql = 'SELECT * WHERE { ?item wdt:' + propertyId + ' "' + externalId + '" }';
-	const data: SparqlResponse = await sparqlRequest( sparql );
-	if ( data.results.bindings.length ) {
-		snaks.push( {
-			type: 'external-id',
-			value: externalId.toString()
-		} );
-	}
-
-	return snaks;
-}
-
-export function prepareMonolingualText( $content: JQuery ): WikidataSnak[] {
-	const $: JQueryStatic = require( 'jquery' );
-	const mw = require( 'mw' );
-	const snaks: WikidataSnak[] = [];
-	let $items: JQuery = $content.find( 'span[lang]' );
-	$items.each( function () {
-		const $item: JQuery = $( this );
-		snaks.push( checkForMissedLanguage( {
-			type: 'monolingualtext',
-			value: {
-				text: $item.text().trim(),
-				language: $item.attr( 'lang' ).trim()
 			}
-		} ) );
-	} );
-	if ( !snaks.length ) {
-		const text = $content.text().trim();
-		if ( text ) {
-			$items = mw.util.$content.find( 'span[lang]' );
-			$items.each( function () {
-				const $item = $( this );
-				if ( $item.text().trim().startsWith( text ) ) {
-					snaks.push( checkForMissedLanguage( {
-						value: {
-							text: text,
-							language: $item.attr( 'lang' ).trim()
-						},
-						type: 'monolingualtext'
-					} ) );
-				}
-			} );
 		}
 	}
-
-	return snaks;
+	references.push( { snaks: getConfig( 'references' ) } );
+	return references;
 }
 
-export function prepareTime( $content: JQuery ): WikidataSnak[] {
-	const snaks: WikidataSnak[] = [];
-	const value: TimeValue = createTimeSnak( $content.text().toLowerCase().trim().replace( getConfig( 're-year-postfix' ), '' ),
-		$content[ 0 ].outerHTML.includes( getConfig( 'mark-julian' ) ) );
-	if ( value ) {
-		snaks.push( {
-			type: 'time',
-			value: value
-		} );
-	}
-
-	return snaks;
-}
-
-export function prepareString( $content: JQuery, propertyId: string ): WikidataSnak[] {
-	const snaks: WikidataSnak[] = [];
-	let text: string = $content.data( 'wikidata-external-id' );
-	if ( !text ) {
-		text = $content.text();
-	}
-	let strings: string[] = text.toString().trim().split( /[\n,;]+/ );
-
-	// Commons category
-	if ( propertyId === 'P373' ) {
-		const $link: JQuery = $content.find( 'a[class="extiw"]' ).first();
-		if ( $link.length ) {
-			const url: string = $link.attr( 'href' );
-			let value = url.substr( url.indexOf( '/wiki/' ) + 6 )
-				.replace( /_/g, ' ' )
-				.replace( /^[Cc]ategory:/, '' )
-				.replace( /\?.*$/, '' );
-			value = decodeURIComponent( value );
-			strings = [ value ];
-		}
-	}
-
-	for ( const i in strings ) {
-		const s: string = strings[ i ].replace( /\n/g, ' ' ).trim();
-		if ( s ) {
-			snaks.push( {
-				type: 'string',
-				value: s
-			} );
-		}
-	}
-
-	return snaks;
-}
-
-export function prepareUrl( $content: JQuery ): WikidataSnak[] {
-	const snaks: WikidataSnak[] = [];
-	const $links: JQuery = $content.find( 'a' );
-	$links.each( function () {
-		const $link: JQuery = $( this );
-		const url: string = $link.attr( 'href' ).replace( /^\/\//, 'https://' );
-		snaks.push( {
-			type: 'url',
-			value: url
-		} );
-	} );
-
-	return snaks;
-}
-
-async function processWbGetItems( valuesObj: { [ key: string ]: WikidataSnak }, $wrapper: JQuery ): Promise<WikidataSnak[]> {
-	const $: JQueryStatic = require( 'jquery' );
-	let snaks: WikidataSnak[] = $.map( valuesObj, function ( snak: WikidataSnak ) {
-		return [ snak ];
-	} );
-	if ( snaks.length === 1 ) {
-		const snak: WikidataSnak = snaks.pop();
-		snaks = await addQualifiers( $wrapper, snak );
-	}
-	return snaks;
-}
-
-export async function parseItems( $content: JQuery, $wrapper: JQuery, propertyId: string ): Promise<WikidataSnak[]> {
+export async function parseItems( $content: JQuery, propertyId: string ): Promise<Statement[]> {
 	const $: JQueryStatic = require( 'jquery' );
 	let titles: Title[] = [];
 
-	for ( let k = 0; k < getConfig( 'fixed-values' ).length; k++ ) {
-		const fixedValue = getConfig( 'fixed-values' )[ k ];
+	const fixedValues: FixedValue[] = getConfig( 'fixed-values' );
+	const references: Reference[] = getReferences( $content );
+	for ( let k = 0; k < fixedValues.length; k++ ) {
+		const fixedValue: FixedValue = fixedValues[ k ];
 		const regexp: RegExp = new RegExp( fixedValue.search );
-		if ( $content.attr( 'data-wikidata-property-id' ) === fixedValue.property &&
+		if (
+			$content.attr( 'data-wikidata-property-id' ) === fixedValue.property &&
 			$content.text().match( regexp )
 		) {
-			const valuesObj: { [ key: string ]: WikidataSnak } = {};
-			const snak: WikidataSnak = {
-				type: 'wikibase-item',
-				value: {
-					id: fixedValue.item,
-					label: fixedValue.label,
-					description: ''
-				}
-			};
-			// @ts-ignore
-			if ( 'label' in snak.value ) {
-				delete snak.value.label;
-			}
-			// @ts-ignore
-			if ( 'description' in snak.value ) {
-				delete snak.value.description;
-			}
-			valuesObj[ fixedValue.item ] = snak;
-			// processWbGetItems( valuesObj, $wrapper, callback );
-			// @ts-ignore
-			return valuesObj.values();
+			const snak: Snak = generateItemSnak( propertyId, fixedValue.item );
+			const statement: Statement = convertSnakToStatement( snak, references );
+			return [ statement ];
 		}
 	}
 
@@ -347,16 +184,16 @@ export async function parseItems( $content: JQuery, $wrapper: JQuery, propertyId
 				if ( !match ) {
 					match = $links[ j ].innerHTML.match( getConfig( 're-until-year' ) );
 				}
-				const extractedYear: TimeValue = match ? createTimeSnak( match[ 1 ] ) : createTimeSnak( ( $links[ j ].nextSibling || {} ).textContent );
+				const extractedYear: TimeValue | void = match ? createTimeValue( match[ 1 ] ) : createTimeValue( ( $links[ j ].nextSibling || {} ).textContent );
 				if ( extractedYear ) {
 					value.qualifiers.P585 = [ {
-						property: 'P585',
-						datatype: 'time',
 						snaktype: 'value',
+						property: 'P585',
 						datavalue: {
 							type: 'time',
 							value: extractedYear
-						}
+						},
+						datatype: 'time'
 					} ];
 				}
 				if ( $link.hasClass( 'extiw' ) ) {
@@ -391,15 +228,15 @@ export async function parseItems( $content: JQuery, $wrapper: JQuery, propertyId
 					project: getConfig( 'project' ),
 					qualifiers: {}
 				};
-				if ( createTimeSnak( year ) ) {
+				if ( createTimeValue( year ) ) {
 					title.qualifiers.P585 = [ {
-						property: 'P585',
-						datatype: 'time',
 						snaktype: 'value',
+						property: 'P585',
 						datavalue: {
 							type: 'time',
-							value: createTimeSnak( year )
-						}
+							value: createTimeValue( year )
+						},
+						datatype: 'time'
 					} ];
 				}
 				titles.push( title );
@@ -432,53 +269,320 @@ export async function parseItems( $content: JQuery, $wrapper: JQuery, propertyId
 		}
 	}
 
-	const valuesObj: { [ key: string ]: WikidataSnak } = await getWikidataIds( propertyId, titles );
-	return processWbGetItems( valuesObj, $wrapper );
+	return getWikidataIds( propertyId, titles, references );
+}
+
+export async function addQualifiers( $field: JQuery, statement: Statement ): Promise<Statement> {
+	const $: JQueryStatic = require( 'jquery' );
+	const $qualifiers: JQuery = $field.find( '[data-wikidata-qualifier-id]' );
+
+	const qualifierTitles: KeyValue = {};
+	for ( let q = 0; q < $qualifiers.length; q++ ) {
+		const $qualifier: JQuery = $( $qualifiers[ q ] );
+		const qualifierId: PropertyId = $qualifier.data( 'wikidata-qualifier-id' );
+		let qualifierValue: Value | void = $qualifier.text().replace( /\n/g, ' ' ).trim();
+		const datatype: DataType = getConfig( `properties.${qualifierId}.datatype` );
+		switch ( datatype ) {
+			case 'monolingualtext':
+				qualifierValue = {
+					text: $qualifier.text().replace( /\n/g, ' ' ).trim(),
+					language: $qualifier.attr( 'lang' ) || contentLanguage
+				};
+				statement = addQualifierValue( statement, qualifierId, datatype, qualifierValue );
+				break;
+
+			case 'string':
+				qualifierValue = $qualifier.text().replace( /\n/g, ' ' ).trim();
+				statement = addQualifierValue( statement, qualifierId, datatype, qualifierValue );
+				break;
+
+			case 'time':
+				qualifierValue = createTimeValue( qualifierValue );
+				statement = addQualifierValue( statement, qualifierId, datatype, qualifierValue );
+				break;
+
+			case 'wikibase-item':
+				if ( qualifierTitles[ qualifierId ] === undefined ) {
+					qualifierTitles[ qualifierId ] = [];
+				}
+				const qualifierFakeStatements: Statement[] = await parseItems( $qualifier, qualifierId );
+				for ( const i in qualifierFakeStatements ) {
+					const qualifierValue: Value = qualifierFakeStatements[ i ].mainsnak.datavalue.value;
+					statement = addQualifierValue( statement, qualifierId, datatype, qualifierValue );
+				}
+				break;
+		}
+	}
+
+	return statement;
+}
+
+export async function prepareCommonsMedia( $content: JQuery, propertyId: string ): Promise<Statement[]> {
+	const statements: Statement[] = [];
+	const $imgs: JQuery = $content.find( 'img' );
+	const imgs: JQuery[] = [];
+	$imgs.each( function () {
+		imgs.push( $( this ) );
+	} );
+	const references: Reference[] = getReferences( $content );
+	for ( const pos in imgs ) {
+		const $img: JQuery = imgs[ pos ];
+		const src: string = $img.attr( 'src' );
+		if ( !src.match( /upload\.wikimedia\.org\/wikipedia\/commons/ ) ) {
+			return;
+		}
+		const srcParts: string[] = src.split( '/' );
+		let fileName = srcParts.pop();
+		if ( fileName.match( /(?:^|-)\d+px-/ ) ) {
+			fileName = srcParts.pop();
+		}
+		fileName = decodeURIComponent( fileName );
+		fileName = fileName.replace( /_/g, ' ' );
+		const value: CommonsMediaValue = {
+			value: fileName
+		};
+		const dataValue: CommonsMediaDataValue = {
+			type: 'string',
+			value: value
+		};
+		const snak: Snak = {
+			snaktype: 'value',
+			property: propertyId,
+			datavalue: dataValue,
+			datatype: 'commonsMedia'
+		};
+		let statement: Statement = convertSnakToStatement( snak, references );
+		statement = await addQualifiers( $content, statement );
+		statements.push( statement );
+	}
+
+	return statements;
+}
+
+export async function prepareExternalId( $content: JQuery, propertyId: string ): Promise<Statement[]> {
+	let externalId = $content.data( 'wikidata-external-id' ) || $content.text();
+	const statements: Statement[] = [];
+
+	if ( propertyId === 'P345' ) { // IMDb
+		externalId = $content.find( 'a' ).first().attr( 'href' );
+		externalId = externalId.substr( externalId.lastIndexOf( '/', externalId.length - 2 ) ).replace( /\//g, '' );
+	} else {
+		externalId = externalId.toString().replace( /^ID\s/, '' ).replace( /\s/g, '' );
+	}
+
+	const sparql = `SELECT ?item WHERE { ?item wdt:${propertyId} "${externalId}" } LIMIT 1`;
+	const data: SparqlResponse = await sparqlRequest( sparql );
+	if ( data.results.bindings.length ) {
+		const dataValue: ExternalIdDataValue = {
+			value: externalId.toString(),
+			type: 'string'
+		};
+		const snak: Snak = {
+			snaktype: 'value',
+			property: propertyId,
+			datavalue: dataValue,
+			datatype: 'external-id'
+		};
+		const references: Reference[] = getReferences( $content );
+		const statement: Statement = convertSnakToStatement( snak, references );
+		statements.push( statement );
+	}
+
+	return statements;
+}
+
+export function prepareMonolingualText( $content: JQuery, propertyId: string ): Statement[] {
+	const $: JQueryStatic = require( 'jquery' );
+	const mw = require( 'mw' );
+	const values: MonolingualTextValue[] = [];
+	const statements: Statement[] = [];
+	let $items: JQuery = $content.find( 'span[lang]' );
+	$items.each( function () {
+		const $item: JQuery = $( this );
+		const value: MonolingualTextValue = {
+			text: $item.text().trim(),
+			language: $item.attr( 'lang' ).trim()
+		};
+		values.push( value );
+	} );
+	if ( !values.length ) {
+		const text = $content.text().trim();
+		if ( text ) {
+			$items = mw.util.$content.find( 'span[lang]' );
+			$items.each( function () {
+				const $item = $( this );
+				if ( $item.text().trim().startsWith( text ) ) {
+					const value: MonolingualTextValue = {
+						text: text,
+						language: $item.attr( 'lang' ).trim()
+					};
+					values.push( value );
+				}
+			} );
+		}
+	}
+
+	const references: Reference[] = getReferences( $content );
+	for ( const i in values ) {
+		const dataValue: MonolingualTextDataValue = {
+			value: values[ i ],
+			type: 'monolingualtext'
+		};
+		const snak: Snak = {
+			snaktype: 'value',
+			property: propertyId,
+			datavalue: dataValue,
+			datatype: 'monolingualtext'
+		};
+		let statement: Statement = convertSnakToStatement( snak, references );
+		statement = checkForMissedLanguage( statement );
+		statements.push( statement );
+	}
+
+	return statements;
+}
+
+export function prepareTime( $content: JQuery, propertyId: string ): Statement[] {
+	const statements: Statement[] = [];
+
+	const timeText: string = $content.text().toLowerCase().trim().replace( getConfig( 're-year-postfix' ), '' );
+	const isJulian: boolean = $content[ 0 ].outerHTML.includes( getConfig( 'mark-julian' ) );
+	const value: TimeValue | void = createTimeValue( timeText, isJulian );
+
+	if ( value ) {
+		const dataValue: TimeDataValue = {
+			value: value,
+			type: 'time'
+		};
+		const snak: Snak = {
+			snaktype: 'value',
+			property: propertyId,
+			datavalue: dataValue,
+			datatype: 'time'
+		};
+		const references: Reference[] = getReferences( $content );
+		const statement: Statement = convertSnakToStatement( snak, references );
+		statements.push( statement );
+	}
+
+	return statements;
+}
+
+export function prepareString( $content: JQuery, propertyId: string ): Statement[] {
+	const statements: Statement[] = [];
+	let text: string = $content.data( 'wikidata-external-id' );
+	if ( !text ) {
+		text = $content.text();
+	}
+	let strings: string[] = text.toString().trim().split( /[\n,;]+/ );
+
+	// Commons category
+	if ( propertyId === 'P373' ) {
+		const $link: JQuery = $content.find( 'a[class="extiw"]' ).first();
+		if ( $link.length ) {
+			const url: string = $link.attr( 'href' );
+			let value = url.substr( url.indexOf( '/wiki/' ) + 6 )
+				.replace( /_/g, ' ' )
+				.replace( /^[Cc]ategory:/, '' )
+				.replace( /\?.*$/, '' );
+			value = decodeURIComponent( value );
+			strings = [ value ];
+		}
+	}
+
+	const references: Reference[] = getReferences( $content );
+	for ( const i in strings ) {
+		const s: string = strings[ i ].replace( /\n/g, ' ' ).trim();
+		if ( s ) {
+			const dataValue: StringDataValue = {
+				value: s,
+				type: 'string'
+			};
+			const snak: Snak = {
+				snaktype: 'value',
+				property: propertyId,
+				datavalue: dataValue,
+				datatype: 'string'
+			};
+			const statement: Statement = convertSnakToStatement( snak, references );
+			statements.push( statement );
+		}
+	}
+
+	return statements;
+}
+
+export function prepareUrl( $content: JQuery, propertyId: string ): Statement[] {
+	const statements: Statement[] = [];
+	const $links: JQuery = $content.find( 'a' );
+	const references: Reference[] = getReferences( $content );
+	$links.each( function () {
+		const $link: JQuery = $( this );
+		const url: string = $link.attr( 'href' ).replace( /^\/\//, 'https://' );
+
+		const dataValue: UrlDataValue = {
+			type: 'string',
+			value: url
+		};
+		const snak: Snak = {
+			snaktype: 'value',
+			property: propertyId,
+			datavalue: dataValue,
+			datatype: 'url'
+		};
+		const statement: Statement = convertSnakToStatement( snak, references );
+		statements.push( statement );
+	} );
+
+	return statements;
+}
+
+export async function canExportItem( propertyId: string, wikidataStatements: Statement[], $field: JQuery ): Promise<boolean> {
+	const localStatements: Statement[] = await parseItems( $field, propertyId );
+	const duplicates: string[] = [];
+	for ( let i = 0; i < localStatements.length; i++ ) {
+		for ( let j = 0; j < wikidataStatements.length; j++ ) {
+			const localValue: ItemValue = localStatements[ i ].mainsnak.datavalue.value as ItemValue;
+			const wikidataValue: ItemValue = wikidataStatements[ j ].mainsnak.datavalue.value as ItemValue;
+			if ( localValue.id === wikidataValue.id ) {
+				duplicates.push( localValue.id );
+			}
+		}
+	}
+	if ( duplicates.length < localStatements.length ) {
+		if ( duplicates.length > 0 ) {
+			const propertyId: string = wikidataStatements[ 0 ].mainsnak.property;
+			alreadyExistingItems[ propertyId ] = duplicates;
+			if ( propertyId === 'P166' && localStatements.length === wikidataStatements.length ) {
+				return false;
+			}
+		}
+		if ( Object.keys( wikidataStatements ).length > 0 ) {
+			if ( wikidataStatements[ 0 ].mainsnak.property === 'P19' || wikidataStatements[ 0 ].mainsnak.property === 'P20' ) {
+				return false;
+			}
+		}
+		return true;
+	}
 }
 
 /**
  * Compares the values of the infobox and Wikidata
  */
-export async function canExportValue( propertyId: string, $field: JQuery, claims: WikidataClaim[] ): Promise<boolean> {
-	if ( !claims || !( claims.length ) ) {
+export async function canExportValue( propertyId: string, $field: JQuery, statements: Statement[] ): Promise<boolean> {
+	if ( !statements || !( statements.length ) ) {
 		// Can't export only if image is local and large
 		const $localImg: JQuery = $field.find( '.image img[src*="/wikipedia/' + contentLanguage + '/"]' );
 		return !$localImg.length || $localImg.width() < 80;
 	}
 
-	switch ( claims[ 0 ].mainsnak.datatype ) {
+	switch ( statements[ 0 ].mainsnak.datatype ) {
 		case 'quantity':
-			return canExportQuantity( claims );
+			return canExportQuantity( statements, $field );
 
 		case 'wikibase-item':
-			const snaks: WikidataSnak[] = await parseItems( $field, $field, propertyId );
-			const duplicates: string[] = [];
-			for ( let i = 0; i < snaks.length; i++ ) {
-				for ( let j = 0; j < Object.keys( claims ).length; j++ ) {
-					// @ts-ignore
-					const valuesValue: ItemValue = snaks[ i ].wd.value;
-					// @ts-ignore
-					const claimsValue: ItemValue = claims[ j ].mainsnak.datavalue.value;
-					if ( valuesValue.id === claimsValue.id ) {
-						duplicates.push( valuesValue.id );
-					}
-				}
-			}
-			if ( duplicates.length < snaks.length ) {
-				if ( duplicates.length > 0 ) {
-					const propertyId: string = claims[ 0 ].mainsnak.property;
-					alreadyExistingItems[ propertyId ] = duplicates;
-					if ( propertyId === 'P166' && snaks.length === claims.length ) {
-						return false;
-					}
-				}
-				if ( Object.keys( claims ).length > 0 ) {
-					if ( claims[ 0 ].mainsnak.property === 'P19' || claims[ 0 ].mainsnak.property === 'P20' ) {
-						return false;
-					}
-				}
-				return true;
-			}
+			return canExportItem( propertyId, statements, $field );
+
 	}
 
 	return false;

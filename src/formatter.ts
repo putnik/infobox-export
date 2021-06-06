@@ -1,5 +1,4 @@
 import { getI18n } from './i18n';
-import { WikidataSnak } from './types/wikidata';
 import { wbFormatValue } from './wikidata';
 import { ItemValue, TimeValue } from './types/wikidata/values';
 import { ApiResponse } from './types/api';
@@ -7,6 +6,7 @@ import { wdApiRequest } from './api';
 import { KeyValue } from './types/main';
 import { userLanguage } from './languages';
 import { getConfig } from './config';
+import { Snak, Statement } from './types/wikidata/main';
 
 export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
 	const data: ApiResponse = await wdApiRequest( {
@@ -33,7 +33,7 @@ function formatTimeValue( value: TimeValue ): JQuery {
 	let dateString: string;
 	if ( value.precision === 7 ) {
 		const century: number = Math.floor( ( parseInt( value.time.substr( 1, 4 ), 10 ) - 1 ) / 100 );
-		dateString = getConfig( 'centuries' )[ century ] + getI18n( 'age-postfix' ) + bceMark;
+		dateString = getConfig( `centuries.${century}` ) + getI18n( 'age-postfix' ) + bceMark;
 	} else {
 		const options: KeyValue = {
 			timeZone: 'UTC'
@@ -62,39 +62,53 @@ function formatTimeValue( value: TimeValue ): JQuery {
 /**
  * Formatting wikidata values for display to the user
  */
-export async function formatSnak( snak: WikidataSnak ): Promise<JQuery> {
-	if ( snak.qualifiers && JSON.stringify( snak.qualifiers ) === '{}' ) {
-		snak.qualifiers = undefined;
-	}
-
+export async function formatSnak( snak: Snak ): Promise<JQuery> {
 	let $label: JQuery;
-	switch ( snak.type ) {
+	switch ( snak.datatype ) {
 		case 'time':
 			// '''XIV century''' (Julian)
-			$label = await formatTimeValue( snak.value as TimeValue );
+			$label = await formatTimeValue( snak.datavalue.value as TimeValue );
 			break;
 
 		case 'wikibase-item':
 			// '''Label''': description
-			$label = await formatItemValue( snak.value as ItemValue );
+			$label = await formatItemValue( snak.datavalue.value as ItemValue );
 			break;
 
 		default:
 			$label = await wbFormatValue( snak );
 	}
 
+	return $label;
+}
+
+export async function formatStatement( statement: Statement ): Promise<JQuery> {
 	const $: JQueryStatic = require( 'jquery' );
-	for ( const qualifierPropertyId in snak.qualifiers ) {
-		if ( !snak.qualifiers.hasOwnProperty( qualifierPropertyId ) ) {
+	const $label: JQuery = await formatSnak( statement.mainsnak );
+
+	for ( const qualifierPropertyId in statement.qualifiers ) {
+		if ( !statement.qualifiers.hasOwnProperty( qualifierPropertyId ) ) {
 			continue;
 		}
-		if ( qualifierPropertyId === 'P1480' && snak.qualifiers[ qualifierPropertyId ][ 0 ].datavalue.value.id === 'Q5727902' ) {
-			$label.prepend( $( '<abbr>' ).attr( 'title', getI18n( 'circa-title' ) ).text( getI18n( 'circa-prefix' ) ), ' ' );
-		} else {
-			const $formatted: JQuery = await formatSnak( snak.qualifiers[ qualifierPropertyId ][ 0 ].datavalue );
-			if ( $formatted && $( '<span>' ).append( $formatted ).text() ) {
-				$label.append( $( '<span>' ).text( ' (' ).append( $formatted ).append( ')' ) );
+
+		const qualifierSnak: Snak = statement.qualifiers[ qualifierPropertyId ][ 0 ];
+
+		if ( qualifierPropertyId === 'P1480' ) {
+			const value: ItemValue = qualifierSnak.datavalue.value as ItemValue;
+			if ( value.id === 'Q5727902' ) {
+				$label.prepend(
+					$( '<abbr>' )
+						.attr( 'title', getI18n( 'circa-title' ) )
+						.text( getI18n( 'circa-prefix' ) ),
+					' '
+				);
+				continue;
 			}
+		}
+
+		const $formatted: JQuery = await formatSnak( qualifierSnak );
+		if ( $formatted && $( '<span>' ).append( $formatted ).text() ) {
+			$label.append( $( '<span>' ).append( ' (', $formatted, ')' ) );
 		}
 	}
 

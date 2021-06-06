@@ -1,6 +1,7 @@
 import { unique } from './utils';
-import { WikidataSnak } from './types/wikidata';
 import { MonolingualTextValue } from './types/wikidata/values';
+import { Statement } from './types/wikidata/main';
+import { generateItemSnak } from './wikidata';
 
 const mw = require( 'mw' );
 
@@ -29,22 +30,15 @@ export const missedLanguages: {[key: string]: string} = {
 	yrk: 'Q36452'
 };
 
-export function checkForMissedLanguage( snak: WikidataSnak ): WikidataSnak {
-	const value: MonolingualTextValue = snak.value as MonolingualTextValue;
+export function checkForMissedLanguage( statement: Statement ): Statement {
+	const value: MonolingualTextValue = statement.mainsnak.datavalue.value as MonolingualTextValue;
 	if ( value.language in missedLanguages ) {
-		( snak.value as MonolingualTextValue ).language = 'mis';
-		if ( !( 'qualifiers' in snak ) ) {
-			snak.qualifiers = {};
+		( statement.mainsnak.datavalue.value as MonolingualTextValue ).language = 'mis';
+		if ( !( 'qualifiers' in statement ) ) {
+			statement.qualifiers = {};
 		}
-		snak.qualifiers.P585 = [ {
-			property: 'P407',
-			snaktype: 'value',
-			datavalue: {
-				type: 'wikibase-entityid',
-				value: { id: missedLanguages[ value.language ] }
-			}
-		} ];
+		statement.qualifiers.P407 = [ generateItemSnak( 'P407', missedLanguages[ value.language ] ) ];
 	}
 
-	return snak;
+	return statement;
 }
