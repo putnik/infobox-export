@@ -19,3 +19,7 @@ export function lowercaseFirst( value: string ): string {
 export function uppercaseFirst( value: string ): string {
 	return value.substr( 0, 1 ).toUpperCase() + value.substr( 1 );
 }
+
+export function clone( value: any ): any {
+	return JSON.parse( JSON.stringify( value ) );
+}

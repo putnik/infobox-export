@@ -198,11 +198,11 @@ export function prepareTime( $content: JQuery, propertyId: string ): Statement[]
 	const timeText: string = $content.text().toLowerCase().trim().replace( getConfig( 're-year-postfix' ), '' );
 	const isJulian: boolean = $content[ 0 ].outerHTML.includes( getConfig( 'mark-julian' ) );
 
-	if ( timeText.match( /.{4,}[−–—].{4,}/ ) && startEndPropertyMapping[ propertyId ] ) {
-		const parts: string[] = timeText.split( /[−–—]/ );
+	if ( timeText.match( /.{4,}[-−–—].{4,}/ ) && startEndPropertyMapping[ propertyId ] ) {
+		const parts: string[] = timeText.split( /[-−–—]/ );
 		if ( parts.length === 2 ) {
 			const startDateValue: Value | void = createTimeValue( parts[ 0 ], isJulian );
-			const endDateValue: Value | void = createTimeValue( parts[ 0 ], isJulian );
+			const endDateValue: Value | void = createTimeValue( parts[ 1 ], isJulian );
 			if ( startDateValue && endDateValue ) {
 				const references: Reference[] = getReferences( $content );
 
@@ -210,7 +210,7 @@ export function prepareTime( $content: JQuery, propertyId: string ): Statement[]
 				const startDateStatement: Statement = convertSnakToStatement( startDateSnak, references );
 				statements.push( startDateStatement );
 
-				const endDateSnak: Snak = createTimeSnak( startDateValue, startEndPropertyMapping[ propertyId ] );
+				const endDateSnak: Snak = createTimeSnak( endDateValue, startEndPropertyMapping[ propertyId ] );
 				const endDateStatement: Statement = convertSnakToStatement( endDateSnak, references );
 				statements.push( endDateStatement );
 

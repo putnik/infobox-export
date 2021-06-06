@@ -9,6 +9,7 @@ import { Reference, Snak, Statement } from '../types/wikidata/main';
 import { Entity, Unit } from '../types/wikidata/types';
 import { createTimeValue } from './time';
 import { getReferences } from './utils';
+import { clone } from '../utils';
 
 /**
  * Parsing the number and (optionally) the accuracy
@@ -192,16 +193,17 @@ function recognizeUnits( text: string, units: KeyValue, label?: string ): Unit[]
 		for ( let j = 0; j < search.length; j++ ) {
 			let expr = search[ j ];
 			if ( search[ j ].charAt( 0 ) !== '^' ) {
-				expr = '[\\d\\s\\.]' + expr;
 				if ( search[ j ].length < 5 ) {
-					expr = expr + '\\.?$';
+					expr = `^${expr}|[\\d\\s\\.]${expr}\\.?$`;
+				} else {
+					expr = `[\\d\\s\\.]${expr}`;
 				}
 			}
 			if ( text.match( new RegExp( expr ) ) ) {
 				result.push( `http://www.wikidata.org/entity/${item}` as Entity );
 				break;
 			}
-			if ( search[ j ].charAt( 0 ) !== '^' && label && label.match( new RegExp( '\\s' + search[ j ] + ':?$' ) ) ) {
+			if ( search[ j ].charAt( 0 ) !== '^' && label && label.match( new RegExp( `\\s${search[ j ]}:?$` ) ) ) {
 				result.push( `http://www.wikidata.org/entity/${item}` as Entity );
 				break;
 			}
@@ -297,8 +299,9 @@ export async function prepareQuantity( $content: JQuery, propertyId: string ): P
 
 	const foundUnits: Unit[] = recognizeUnits( text, getConfig( `properties.${propertyId}.units` ), $content.closest( 'tr' ).find( 'th' ).first().text() );
 	for ( let u = 0; u < foundUnits.length; u++ ) {
-		( statement.mainsnak.datavalue.value as QuantityValue ).unit = foundUnits[ u ];
-		statements.push( statement );
+		const newStatement: Statement = clone( statement );
+		( newStatement.mainsnak.datavalue.value as QuantityValue ).unit = foundUnits[ u ];
+		statements.push( newStatement );
 	}
 
 	return statements;

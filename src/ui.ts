@@ -18,7 +18,7 @@ import {
 } from 'ooui';
 
 import { getI18n } from './i18n';
-import { getConfig } from './config';
+import { getConfig, getPropertyLabel } from './config';
 import { alreadyExistingItems } from './parser';
 import { convertStatementsToClaimsObject, createClaims } from './wikidata';
 import { formatSnak } from './formatter';
@@ -66,7 +66,8 @@ async function getQualifierFields( qualifiers: SnaksObject ): Promise<any> {
 
 		for ( const i in qualifiers[ qualifierPropertyId ] ) {
 			const qualifierSnak: Snak = qualifiers[ qualifierPropertyId ][ i ];
-			const $qualifierPropertyLabel = $( '<span>' ).text( getConfig( `properties.${qualifierPropertyId}.label` ) );
+			const qualifierPropertyLabel: string = await getPropertyLabel( qualifierPropertyId );
+			const $qualifierPropertyLabel = $( '<span>' ).text( qualifierPropertyLabel );
 			const $qualifierLabel: JQuery = await formatSnak( qualifierSnak );
 
 			const qualifierCheckbox = new CheckboxInputWidget( {
@@ -88,11 +89,12 @@ async function getQualifierFields( qualifiers: SnaksObject ): Promise<any> {
 }
 
 async function getPropertyFieldset( propertyId: string, statements: Statement[] ): Promise<any> {
+	const label: string = await getPropertyLabel( propertyId );
 	const $labelLink: JQuery = $( '<a>' )
 		.attr( 'href', `https://wikidata.org/wiki/Property:${propertyId}` )
 		.attr( 'rel', 'noopener noreferrer' )
 		.attr( 'target', '_blank' )
-		.text( getConfig( `properties.${propertyId}.label` ) );
+		.text( label );
 
 	const fieldset: any = new FieldsetLayout( {
 		label: $( '<span>' ).append( $labelLink, ': ' )
