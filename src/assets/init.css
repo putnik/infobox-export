@@ -42,6 +42,10 @@
     font-weight: bold;
 }
 
+.wikidata-infobox-export-statement .wikidata-infobox-export-main-label .commons-media-caption {
+    font-weight: normal;
+}
+
 .wikidata-infobox-export-qualifier {
     margin-left: 2em;
 }

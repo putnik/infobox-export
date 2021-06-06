@@ -1,8 +1,6 @@
 import { Entity, Unit } from './types';
 
-export interface CommonsMediaValue {
-	value: string;
-}
+export type CommonsMediaValue = string;
 
 export interface EntityIdValue {
 	id: string;

@@ -9,7 +9,6 @@ import { lowercaseFirst, unique, uppercaseFirst } from './utils';
 import { apiRequest, sparqlRequest } from './api';
 import { FixedValue, KeyValue, Title } from './types/main';
 import {
-	CommonsMediaValue,
 	ItemValue,
 	MonolingualTextValue,
 	TimeValue,
@@ -254,12 +253,9 @@ export async function prepareCommonsMedia( $content: JQuery, propertyId: string 
 		}
 		fileName = decodeURIComponent( fileName );
 		fileName = fileName.replace( /_/g, ' ' );
-		const value: CommonsMediaValue = {
-			value: fileName
-		};
 		const dataValue: CommonsMediaDataValue = {
 			type: 'string',
-			value: value
+			value: fileName
 		};
 		const snak: Snak = {
 			snaktype: 'value',

@@ -58,9 +58,7 @@ export function getReferences( $field: JQuery ): Reference[] {
 							snaktype: 'value',
 							datavalue: {
 								type: 'string',
-								value: {
-									value: $archiveLink.attr( 'href' ).replace( /^\/\//, 'https://' )
-								}
+								value: $archiveLink.attr( 'href' ).replace( /^\/\//, 'https://' )
 							}
 						} ];
 
