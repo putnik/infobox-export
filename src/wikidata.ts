@@ -231,13 +231,13 @@ export async function getWikidataIds( propertyId: string, titles: Title[], refer
 /**
  * Create all statements in Wikidata and mark properties exported
  */
-export function createClaims( statements: Statement[] ): void {
+export async function createClaims( statements: Statement[] ): Promise<void> {
 	let propertyIds: string[] = [];
 	while ( statements.length ) {
 		const statement: Statement = statements.shift();
 		const propertyId: string = statement.mainsnak.property;
 		propertyIds.push( propertyId );
-		const claimData: ApiResponse = getWdApi().postWithToken( 'csrf', {
+		const claimData: ApiResponse = await getWdApi().postWithToken( 'csrf', {
 			action: 'wbsetclaim',
 			claim: JSON.stringify( statement ),
 			baserevid: baseRevId,

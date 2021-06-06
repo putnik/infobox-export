@@ -248,8 +248,21 @@ async function parseField( $field: JQuery, propertyId: string ): Promise<Stateme
  */
 async function clickEvent(): Promise<void> {
 	const $field = $( this );
-	const propertyId = $field.attr( 'data-wikidata-property-id' );
+	if ( $field.parents( '.no-wikidata[data-wikidata-property-id]' ).length ) {
+		return;
+	}
+
+	const propertyId = $field.data( 'wikidata-property-id' );
 	const statements: Statement[] = await parseField( $field, propertyId );
+
+	const subFields: JQuery[] = $field.find( '.no-wikidata[data-wikidata-property-id]' ).toArray();
+	for ( const i in subFields ) {
+		const $subField: JQuery = $( subFields[ i ] );
+		const subPropertyId: string = $subField.data( 'wikidata-property-id' );
+		const subStatements: Statement[] = await parseField( $field, subPropertyId );
+		statements.push( ...subStatements );
+	}
+
 	await showDialog( $field, statements );
 }
 
