@@ -1,4 +1,4 @@
-import { UrlValue } from './types/wikidata/values';
+import { ItemValue, UrlValue } from './types/wikidata/values';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
@@ -104,7 +104,14 @@ async function getPropertyFieldset( propertyId: string, statements: Statement[] 
 
 		const $label: JQuery = await formatSnak( statement.mainsnak );
 		const propertyId: string = statement.mainsnak.property;
-		const isAlreadyInWikidata: boolean = ( alreadyExistingItems[ propertyId ] || [] ).includes( statement.id );
+		let isAlreadyInWikidata: boolean = false;
+		if (
+			statement.mainsnak.datavalue.type === 'wikibase-entityid' &&
+			alreadyExistingItems[ propertyId ] &&
+			alreadyExistingItems[ propertyId ].includes( ( statement.mainsnak.datavalue.value as ItemValue ).id )
+		) {
+			isAlreadyInWikidata = true;
+		}
 
 		const checkbox = new CheckboxInputWidget( {
 			value: JSON.stringify( statement ),
@@ -168,7 +175,7 @@ async function getFormPanel( statements: Statement[] ): Promise<any> {
 }
 
 function collectFormData( formPanel: any ): Statement[] {
-	const $checkboxes: JQuery = formPanel.$element.find( 'input[type=checkbox]:checked' );
+	const $checkboxes: JQuery = formPanel.$element.find( 'input[type=checkbox]:checked:enabled' );
 	const statements: Statement[] = [];
 	$checkboxes.each( function ( index, checkbox ) {
 		const $checkbox: JQuery = $( checkbox );

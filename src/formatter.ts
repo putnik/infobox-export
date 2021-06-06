@@ -16,8 +16,8 @@ export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
 		props: [ 'labels', 'descriptions' ]
 	} );
 	const itemData: KeyValue = data.entities[ value.id ];
-	const label = itemData.labels[ userLanguage ].value; // FIXME
-	const description = itemData.descriptions[ userLanguage ].value; // FIXME
+	const label: string | undefined = ( itemData.labels[ userLanguage ] || {} ).value; // FIXME
+	const description: string | undefined = ( itemData.descriptions[ userLanguage ] || {} ).value; // FIXME
 
 	const $mainLabel: JQuery = $( '<span>' )
 		.addClass( 'wikidata-infobox-export-main-label' )
