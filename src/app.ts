@@ -102,6 +102,9 @@ async function clickEvent(): Promise<void> {
 }
 
 async function exportAll(): Promise<void> {
+	const $link = $( this );
+	$link.addClass( 'loader' );
+
 	const fields: JQuery[] = mw.util.$content.find( '.infobox .no-wikidata[data-wikidata-property-id]' ).toArray();
 	const allStatements: Statement[] = [];
 
@@ -113,6 +116,7 @@ async function exportAll(): Promise<void> {
 	}
 
 	await showDialog( allStatements );
+	$link.removeClass( 'loader' );
 }
 
 async function loadDefaultReference(): Promise<void> {
@@ -220,14 +224,9 @@ export async function init(): Promise<any> {
 	const css = require( './assets/init.css' ).toString();
 	mw.util.addCSS( css );
 
-	const $exportAllImage: JQuery = $( '<img>' )
-		.attr( 'title', getI18n( 'export-all' ) )
-		.width( '14' )
-		.height( '14' )
-		.attr( 'src', '//upload.wikimedia.org/wikipedia/commons/6/6b/OOjs_UI_icon_upload.svg' );
 	const $exportAll: JQuery = $( '<div>' )
 		.addClass( 'wikidata-infobox-export-all' )
-		.append( $exportAllImage )
+		.attr( 'title', getI18n( 'export-all' ) )
 		.on( 'click', exportAll );
 	const $container: JQuery = $( '.infobox' ).find( 'caption:visible, th:visible, td:visible' ).first();
 	$container.prepend( $exportAll );
