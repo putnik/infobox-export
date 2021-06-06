@@ -24,5 +24,6 @@
 	"unknown-value": "неизвестно",
 	"grigorian-calendar": "Григорианский",
 	"julian-calendar": "Юлианский",
-	"unit-sec": " сек."
+	"unit-sec": " сек.",
+	"export-all": "Экспортировать все значения в Викиданные"
 }

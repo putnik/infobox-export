@@ -42,7 +42,8 @@
     font-weight: bold;
 }
 
-.wikidata-infobox-export-statement .wikidata-infobox-export-main-label .commons-media-caption {
+.wikidata-infobox-export-statement .wikidata-infobox-export-main-label .commons-media-caption,
+.wikidata-infobox-export-statement .wikidata-infobox-export-main-label .wb-unit {
     font-weight: normal;
 }
 

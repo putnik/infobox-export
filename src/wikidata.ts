@@ -127,8 +127,8 @@ export async function getWikidataIds( propertyId: string, titles: Title[], refer
 			subclassFound = subclassPropertyIds.find( function ( propertyId: string ) {
 				const values = ( ( ( data.entities[ candidateId ] || {} ).claims || {} )[ propertyId ] || [] );
 				return values.find( function ( statement: Statement ) {
-					// @ts-ignore
-					const result = ( ( ( statement.mainsnak || {} ).datavalue || {} ).value || {} ).id === entityId;
+					const value: ItemValue = ( ( ( statement.mainsnak || {} ).datavalue || {} ).value || {} ) as ItemValue;
+					const result: boolean = value.id === entityId;
 					if ( result ) {
 						subclassEntity = data.entities[ candidateId ];
 					}

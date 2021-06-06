@@ -34,13 +34,12 @@ function formatDomains( references: Reference[] ): JQuery {
 	for ( let i = 0; i < references.length; i++ ) {
 		const p854 = references[ i ].snaks.P854;
 		if ( p854 ) {
-			// @ts-ignore
-			const value: UrlValue = p854[ 0 ].datavalue.value;
-			let domain: string = value.replace( 'http://', '' ).replace( 'https://', '' ).replace( 'www.', '' );
+			const url: UrlValue = p854[ 0 ].datavalue.value as UrlValue;
+			let domain: string = url.replace( 'http://', '' ).replace( 'https://', '' ).replace( 'www.', '' );
 			if ( domain.indexOf( '/' ) > 0 ) {
 				domain = domain.substr( 0, domain.indexOf( '/' ) );
 			}
-			$result.append( $( '<a>' ).attr( 'href', p854[ 0 ].datavalue.value ).text( '[' + domain + ']' ) );
+			$result.append( $( '<a>' ).attr( 'href', url ).text( '[' + domain + ']' ) );
 		}
 	}
 	return $result;

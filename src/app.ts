@@ -1,6 +1,7 @@
 import { sparqlRequest, wdApiRequest } from './api';
 import { setBaseRevId } from './wikidata';
 import {
+	alreadyExistingItems,
 	canExportValue,
 	parseItems,
 	prepareCommonsMedia,
@@ -64,42 +65,40 @@ async function realLoadProperties( propertyIds: string[] ): Promise<void> {
 		} );
 		if ( propertyId === 'P1128' || propertyId === 'P2196' ) {
 			setConfig( `properties.${propertyId}.constraints.integer`, 1 );
-			if ( entity.claims ) {
-				// Property restrictions
-				if ( entity.claims.P2302 ) {
-					for ( const i in entity.claims.P2302 ) {
-						const type = ( ( ( ( entity.claims.P2302[ i ] || {} ).mainsnak || {} ).datavalue || {} ).value || {} ).id;
-						let qualifiers;
-						switch ( type ) {
-							case 'Q19474404':
-							case 'Q21502410':
-								setConfig( `properties.${propertyId}.constraints.unique`, 1 );
-								break;
-							case 'Q21510856': // Required
-								qualifiers = ( ( ( entity.claims.P2302[ i ] || {} ).qualifiers || {} ).P2306 || [] );
-								for ( let idx = 0; idx < qualifiers.length; idx++ ) {
-									const qualifierId = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
-									if ( qualifierId ) {
-										const qualifiers: string[] = getConfig( `properties.${propertyId}.constraints.qualifier` );
-										qualifiers.push( qualifierId.toString() );
-										setConfig( `properties.${propertyId}.constraints.qualifier`, qualifiers );
-									}
-								}
-								break;
-							case 'Q21514353': // Units
-								qualifiers = ( ( ( entity.claims.P2302[ i ] || {} ).qualifiers || {} ).P2305 || [] );
-								for ( let idx = 0; idx < qualifiers.length; idx++ ) {
-									const unitId = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
-									if ( unitId ) {
-										const configUnits = getConfig( `properties.${propertyId}.units` );
-										configUnits.push( unitId );
-										setConfig( `properties.${propertyId}.units`, configUnits );
-										units.push( unitId );
-									}
-								}
-								break;
+		}
+		// Property restrictions
+		if ( entity.claims && entity.claims.P2302 ) {
+			for ( const i in entity.claims.P2302 ) {
+				const type = ( ( ( ( entity.claims.P2302[ i ] || {} ).mainsnak || {} ).datavalue || {} ).value || {} ).id;
+				let qualifiers;
+				switch ( type ) {
+					case 'Q19474404':
+					case 'Q21502410':
+						setConfig( `properties.${propertyId}.constraints.unique`, 1 );
+						break;
+					case 'Q21510856': // Required
+						qualifiers = ( ( ( entity.claims.P2302[ i ] || {} ).qualifiers || {} ).P2306 || [] );
+						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
+							const qualifierId = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
+							if ( qualifierId ) {
+								const qualifiers: string[] = getConfig( `properties.${propertyId}.constraints.qualifier` );
+								qualifiers.push( qualifierId.toString() );
+								setConfig( `properties.${propertyId}.constraints.qualifier`, qualifiers );
+							}
 						}
-					}
+						break;
+					case 'Q21514353': // Units
+						qualifiers = ( ( ( entity.claims.P2302[ i ] || {} ).qualifiers || {} ).P2305 || [] );
+						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
+							const unitId: string = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
+							if ( unitId ) {
+								const configUnits: string[] = getConfig( `properties.${propertyId}.units` ) || [];
+								configUnits.push( unitId );
+								setConfig( `properties.${propertyId}.units`, configUnits );
+								units.push( unitId );
+							}
+						}
+						break;
 				}
 			}
 		}
@@ -371,9 +370,9 @@ export async function init(): Promise<any> {
 		const canExport: boolean = await canExportValue( propertyId, $field, claims[ propertyId ] );
 		if ( canExport ) {
 			$field.addClass( 'no-wikidata' );
-			// if ( hasClaims === true ) {
-			// $field.addClass( 'partial-wikidata' );
-			// }
+			if ( alreadyExistingItems[ propertyId ] && alreadyExistingItems[ propertyId ].length ) {
+				$field.addClass( 'partial-wikidata' );
+			}
 			$field.on( 'dblclick', clickEvent );
 		}
 
@@ -386,6 +385,7 @@ export async function init(): Promise<any> {
 	mw.util.addCSS( css );
 
 	const $exportAllImage: JQuery = $( '<img>' )
+		.attr( 'title', getI18n( 'export-all' ) )
 		.width( '14' )
 		.height( '14' )
 		.attr( 'src', '//upload.wikimedia.org/wikipedia/commons/6/6b/OOjs_UI_icon_upload.svg' );
