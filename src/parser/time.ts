@@ -4,7 +4,7 @@ import { TimeValue, Value } from '../types/wikidata/values';
 import { convertSnakToStatement, grigorianCalendar, julianCalendar } from '../wikidata';
 import { TimeDataValue } from '../types/wikidata/datavalues';
 import { getReferences } from './utils';
-import { KeyValue, TimeGuess } from '../types/main';
+import { Context, KeyValue, TimeGuess } from '../types/main';
 import { getMonths, getMonthsGen } from '../months';
 
 const startEndPropertyMapping: KeyValue = {
@@ -192,25 +192,25 @@ function createTimeSnak( value: TimeValue, propertyId: string ): Snak {
 	};
 }
 
-export function prepareTime( $content: JQuery, propertyId: string ): Statement[] {
+export function prepareTime( context: Context ): Statement[] {
 	const statements: Statement[] = [];
 
-	const timeText: string = $content.text().toLowerCase().trim().replace( getConfig( 're-year-postfix' ), '' );
-	const isJulian: boolean = $content[ 0 ].outerHTML.includes( getConfig( 'mark-julian' ) );
+	const timeText: string = context.text.toLowerCase().trim().replace( getConfig( 're-year-postfix' ), '' );
+	const isJulian: boolean = context.text.includes( getConfig( 'mark-julian' ) );
 
-	if ( timeText.match( /.{4,}[-−–—].{4,}/ ) && startEndPropertyMapping[ propertyId ] ) {
+	if ( timeText.match( /.{4,}[-−–—].{4,}/ ) && startEndPropertyMapping[ context.propertyId ] ) {
 		const parts: string[] = timeText.split( /[-−–—]/ );
 		if ( parts.length === 2 ) {
 			const startDateValue: Value | void = createTimeValue( parts[ 0 ], isJulian );
 			const endDateValue: Value | void = createTimeValue( parts[ 1 ], isJulian );
 			if ( startDateValue && endDateValue ) {
-				const references: Reference[] = getReferences( $content );
+				const references: Reference[] = getReferences( context.$wrapper );
 
-				const startDateSnak: Snak = createTimeSnak( startDateValue, propertyId );
+				const startDateSnak: Snak = createTimeSnak( startDateValue, context.propertyId );
 				const startDateStatement: Statement = convertSnakToStatement( startDateSnak, references );
 				statements.push( startDateStatement );
 
-				const endDateSnak: Snak = createTimeSnak( endDateValue, startEndPropertyMapping[ propertyId ] );
+				const endDateSnak: Snak = createTimeSnak( endDateValue, startEndPropertyMapping[ context.propertyId ] );
 				const endDateStatement: Statement = convertSnakToStatement( endDateSnak, references );
 				statements.push( endDateStatement );
 
@@ -221,8 +221,8 @@ export function prepareTime( $content: JQuery, propertyId: string ): Statement[]
 
 	const value: TimeValue | void = createTimeValue( timeText, isJulian );
 	if ( value ) {
-		const snak: Snak = createTimeSnak( value, propertyId );
-		const references: Reference[] = getReferences( $content );
+		const snak: Snak = createTimeSnak( value, context.propertyId );
+		const references: Reference[] = getReferences( context.$wrapper );
 		const statement: Statement = convertSnakToStatement( snak, references );
 		statements.push( statement );
 	}

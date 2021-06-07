@@ -1,4 +1,4 @@
-import { KeyValue } from '../types/main';
+import { Context, KeyValue } from '../types/main';
 import { getConfig } from '../config';
 import { QuantityValue, TimeValue } from '../types/wikidata/values';
 import { getI18n } from '../i18n';
@@ -212,9 +212,10 @@ function recognizeUnits( text: string, units: KeyValue, label?: string ): Unit[]
 	return result;
 }
 
-export async function prepareQuantity( $content: JQuery, propertyId: string ): Promise<Statement[]> {
+export async function prepareQuantity( context: Context ): Promise<Statement[]> {
 	const statements: Statement[] = [];
-	let text: string = $content.text()
+	const thText: string = context.$field.closest( 'tr' ).find( 'th' ).first().text().trim();
+	let text: string = context.text
 		.replace( /[\u00a0\u25bc\u25b2]/g, ' ' )
 		.replace( /\s*\(([^)]*\))/g, '' )
 		.trim();
@@ -233,23 +234,23 @@ export async function prepareQuantity( $content: JQuery, propertyId: string ): P
 		text = amount + getI18n( 'unit-sec' );
 	}
 
-	const forceInteger: boolean = getConfig( `properties.${propertyId}.constraints.integer` );
-	let statement: Statement | void = parseQuantity( text, propertyId, forceInteger );
+	const forceInteger: boolean = getConfig( `properties.${context.propertyId}.constraints.integer` );
+	let statement: Statement | void = parseQuantity( text, context.propertyId, forceInteger );
 	if ( !statement ) {
 		return [];
 	}
 
-	const references: Reference[] = getReferences( $content );
+	const references: Reference[] = getReferences( context.$wrapper );
 	if ( references.length ) {
 		statement.references = references;
 	}
 
-	statement = await addQualifiers( $content, statement );
+	statement = await addQualifiers( context.$field, statement );
 
-	if ( getConfig( `properties.${propertyId}.constraints.qualifier` ).indexOf( 'P585' ) !== -1 ) {
-		let yearMatch: string[] = $content.text().match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
+	if ( getConfig( `properties.${context.propertyId}.constraints.qualifier` ).indexOf( 'P585' ) !== -1 ) {
+		let yearMatch: string[] = context.text.match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
 		if ( !yearMatch ) {
-			yearMatch = $content.closest( 'tr' ).find( 'th' ).first().text().match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
+			yearMatch = thText.match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
 		}
 		if ( yearMatch ) {
 			const extractedDate: TimeValue | void = createTimeValue( yearMatch[ 1 ].replace( /(\d)\s(\d)/, '$1$2' ) );
@@ -269,7 +270,7 @@ export async function prepareQuantity( $content: JQuery, propertyId: string ): P
 		}
 	}
 
-	const qualifierMatch: RegExpMatchArray = $content.text().match( /\(([^)]*)/ );
+	const qualifierMatch: RegExpMatchArray = context.text.match( /\(([^)]*)/ );
 	if ( qualifierMatch ) {
 		const qualifierTempStatement: Statement | void = parseQuantity( qualifierMatch[ 1 ], 'P0' );
 		if ( qualifierTempStatement ) {
@@ -297,7 +298,7 @@ export async function prepareQuantity( $content: JQuery, propertyId: string ): P
 		}
 	}
 
-	const foundUnits: Unit[] = recognizeUnits( text, getConfig( `properties.${propertyId}.units` ), $content.closest( 'tr' ).find( 'th' ).first().text() );
+	const foundUnits: Unit[] = recognizeUnits( text, getConfig( `properties.${context.propertyId}.units` ), thText );
 	for ( let u = 0; u < foundUnits.length; u++ ) {
 		const newStatement: Statement = clone( statement );
 		( newStatement.mainsnak.datavalue.value as QuantityValue ).unit = foundUnits[ u ];

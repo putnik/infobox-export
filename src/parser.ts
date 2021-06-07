@@ -7,7 +7,7 @@ import {
 } from './wikidata';
 import { lowercaseFirst, unique, uppercaseFirst } from './utils';
 import { apiRequest, sparqlRequest } from './api';
-import { FixedValue, KeyValue, Title } from './types/main';
+import { Context, FixedValue, KeyValue, Title } from './types/main';
 import {
 	ItemValue,
 	MonolingualTextValue,
@@ -58,26 +58,26 @@ function addQualifierValue(
 	return statement;
 }
 
-export async function parseItems( $content: JQuery, propertyId: string ): Promise<Statement[]> {
+export async function parseItems( context: Context ): Promise<Statement[]> {
 	const $: JQueryStatic = require( 'jquery' );
 	let titles: Title[] = [];
 
 	const fixedValues: FixedValue[] = getConfig( 'fixed-values' );
-	const references: Reference[] = getReferences( $content );
+	const references: Reference[] = getReferences( context.$wrapper );
 	for ( let k = 0; k < fixedValues.length; k++ ) {
 		const fixedValue: FixedValue = fixedValues[ k ];
 		const regexp: RegExp = new RegExp( fixedValue.search );
 		if (
-			$content.attr( 'data-wikidata-property-id' ) === fixedValue.property &&
-			$content.text().match( regexp )
+			context.$field.attr( 'data-wikidata-property-id' ) === fixedValue.property &&
+			context.$field.text().match( regexp )
 		) {
-			const snak: Snak = generateItemSnak( propertyId, fixedValue.item );
+			const snak: Snak = generateItemSnak( context.propertyId, fixedValue.item );
 			const statement: Statement = convertSnakToStatement( snak, references );
 			return [ statement ];
 		}
 	}
 
-	const $links: JQuery = $content.find( 'a[title][class!=image][class!=new]' );
+	const $links: JQuery = context.$field.find( 'a[title][class!=image][class!=new]' );
 	const redirects: string[] = [];
 
 	if ( $links.length ) {
@@ -127,9 +127,9 @@ export async function parseItems( $content: JQuery, propertyId: string ): Promis
 				}
 			}
 		}
-	} else if ( $content.text().trim() ) {
+	} else if ( context.$field.text().trim() ) {
 		// If no links found try to search for articles by text value
-		const parts: string[] = $content.text().split( /[\n,;]+/ );
+		const parts: string[] = context.$field.text().split( /[\n,;]+/ );
 		for ( const i in parts ) {
 			let year: string = '';
 			const articleTitle: string = parts[ i ].replace( /\([^)]*\)/, function ( match: string ) {
@@ -184,7 +184,7 @@ export async function parseItems( $content: JQuery, propertyId: string ): Promis
 		}
 	}
 
-	return getWikidataIds( propertyId, titles, references );
+	return getWikidataIds( context.propertyId, titles, references );
 }
 
 export async function addQualifiers( $field: JQuery, statement: Statement ): Promise<Statement> {
@@ -220,7 +220,13 @@ export async function addQualifiers( $field: JQuery, statement: Statement ): Pro
 				if ( qualifierTitles[ qualifierId ] === undefined ) {
 					qualifierTitles[ qualifierId ] = [];
 				}
-				const qualifierFakeStatements: Statement[] = await parseItems( $qualifier, qualifierId );
+				const qualifierContext: Context = {
+					propertyId: qualifierId,
+					text: $qualifier.text().trim(),
+					$field: $qualifier.clone(),
+					$wrapper: $qualifier.clone()
+				};
+				const qualifierFakeStatements: Statement[] = await parseItems( qualifierContext );
 				for ( const i in qualifierFakeStatements ) {
 					const qualifierValue: Value = qualifierFakeStatements[ i ].mainsnak.datavalue.value;
 					statement = addQualifierValue( statement, qualifierId, datatype, qualifierValue );
@@ -232,14 +238,14 @@ export async function addQualifiers( $field: JQuery, statement: Statement ): Pro
 	return statement;
 }
 
-export async function prepareCommonsMedia( $content: JQuery, propertyId: string ): Promise<Statement[]> {
+export async function prepareCommonsMedia( context: Context ): Promise<Statement[]> {
 	const statements: Statement[] = [];
-	const $imgs: JQuery = $content.find( 'img' );
+	const $imgs: JQuery = context.$field.find( 'img' );
 	const imgs: JQuery[] = [];
 	$imgs.each( function () {
 		imgs.push( $( this ) );
 	} );
-	const references: Reference[] = getReferences( $content );
+	const references: Reference[] = getReferences( context.$wrapper );
 	for ( const pos in imgs ) {
 		const $img: JQuery = imgs[ pos ];
 		const src: string = $img.attr( 'src' );
@@ -259,30 +265,30 @@ export async function prepareCommonsMedia( $content: JQuery, propertyId: string 
 		};
 		const snak: Snak = {
 			snaktype: 'value',
-			property: propertyId,
+			property: context.propertyId,
 			datavalue: dataValue,
 			datatype: 'commonsMedia'
 		};
 		let statement: Statement = convertSnakToStatement( snak, references );
-		statement = await addQualifiers( $content, statement );
+		statement = await addQualifiers( context.$field, statement );
 		statements.push( statement );
 	}
 
 	return statements;
 }
 
-export async function prepareExternalId( $content: JQuery, propertyId: string ): Promise<Statement[]> {
-	let externalId = $content.data( 'wikidata-external-id' ) || $content.text();
+export async function prepareExternalId( context: Context ): Promise<Statement[]> {
+	let externalId = context.$field.data( 'wikidata-external-id' ) || context.text;
 	const statements: Statement[] = [];
 
-	if ( propertyId === 'P345' ) { // IMDb
-		externalId = $content.find( 'a' ).first().attr( 'href' );
+	if ( context.propertyId === 'P345' ) { // IMDb
+		externalId = context.$field.find( 'a' ).first().attr( 'href' );
 		externalId = externalId.substr( externalId.lastIndexOf( '/', externalId.length - 2 ) ).replace( /\//g, '' );
 	} else {
 		externalId = externalId.toString().replace( /^ID\s/, '' ).replace( /\s/g, '' );
 	}
 
-	const sparql = `SELECT ?item WHERE { ?item wdt:${propertyId} "${externalId}" } LIMIT 1`;
+	const sparql = `SELECT ?item WHERE { ?item wdt:${context.propertyId} "${externalId}" } LIMIT 1`;
 	const data: SparqlResponse = await sparqlRequest( sparql );
 	if ( data.results.bindings.length ) {
 		const dataValue: ExternalIdDataValue = {
@@ -291,11 +297,11 @@ export async function prepareExternalId( $content: JQuery, propertyId: string ):
 		};
 		const snak: Snak = {
 			snaktype: 'value',
-			property: propertyId,
+			property: context.propertyId,
 			datavalue: dataValue,
 			datatype: 'external-id'
 		};
-		const references: Reference[] = getReferences( $content );
+		const references: Reference[] = getReferences( context.$wrapper );
 		const statement: Statement = convertSnakToStatement( snak, references );
 		statements.push( statement );
 	}
@@ -303,12 +309,12 @@ export async function prepareExternalId( $content: JQuery, propertyId: string ):
 	return statements;
 }
 
-export function prepareMonolingualText( $content: JQuery, propertyId: string ): Statement[] {
+export function prepareMonolingualText( context: Context ): Statement[] {
 	const $: JQueryStatic = require( 'jquery' );
 	const mw = require( 'mw' );
 	const values: MonolingualTextValue[] = [];
 	const statements: Statement[] = [];
-	let $items: JQuery = $content.find( 'span[lang]' );
+	let $items: JQuery = context.$field.find( 'span[lang]' );
 	$items.each( function () {
 		const $item: JQuery = $( this );
 		const value: MonolingualTextValue = {
@@ -318,7 +324,7 @@ export function prepareMonolingualText( $content: JQuery, propertyId: string ): 
 		values.push( value );
 	} );
 	if ( !values.length ) {
-		const text = $content.text().trim();
+		const text = context.$field.text().trim();
 		if ( text ) {
 			$items = mw.util.$content.find( 'span[lang]' );
 			$items.each( function () {
@@ -334,7 +340,7 @@ export function prepareMonolingualText( $content: JQuery, propertyId: string ): 
 		}
 	}
 
-	const references: Reference[] = getReferences( $content );
+	const references: Reference[] = getReferences( context.$wrapper );
 	for ( const i in values ) {
 		const dataValue: MonolingualTextDataValue = {
 			value: values[ i ],
@@ -342,7 +348,7 @@ export function prepareMonolingualText( $content: JQuery, propertyId: string ): 
 		};
 		const snak: Snak = {
 			snaktype: 'value',
-			property: propertyId,
+			property: context.propertyId,
 			datavalue: dataValue,
 			datatype: 'monolingualtext'
 		};
@@ -354,17 +360,17 @@ export function prepareMonolingualText( $content: JQuery, propertyId: string ): 
 	return statements;
 }
 
-export function prepareString( $content: JQuery, propertyId: string ): Statement[] {
+export function prepareString( context: Context ): Statement[] {
 	const statements: Statement[] = [];
-	let text: string = $content.data( 'wikidata-external-id' );
+	let text: string = context.$field.data( 'wikidata-external-id' );
 	if ( !text ) {
-		text = $content.text();
+		text = context.text;
 	}
 	let strings: string[] = text.toString().trim().split( /[\n,;]+/ );
 
 	// Commons category
-	if ( propertyId === 'P373' ) {
-		const $link: JQuery = $content.find( 'a[class="extiw"]' ).first();
+	if ( context.propertyId === 'P373' ) {
+		const $link: JQuery = context.$field.find( 'a[class="extiw"]' ).first();
 		if ( $link.length ) {
 			const url: string = $link.attr( 'href' );
 			let value = url.substr( url.indexOf( '/wiki/' ) + 6 )
@@ -376,7 +382,7 @@ export function prepareString( $content: JQuery, propertyId: string ): Statement
 		}
 	}
 
-	const references: Reference[] = getReferences( $content );
+	const references: Reference[] = getReferences( context.$wrapper );
 	for ( const i in strings ) {
 		const s: string = strings[ i ].replace( /\n/g, ' ' ).trim();
 		if ( s ) {
@@ -386,7 +392,7 @@ export function prepareString( $content: JQuery, propertyId: string ): Statement
 			};
 			const snak: Snak = {
 				snaktype: 'value',
-				property: propertyId,
+				property: context.propertyId,
 				datavalue: dataValue,
 				datatype: 'string'
 			};
@@ -398,10 +404,10 @@ export function prepareString( $content: JQuery, propertyId: string ): Statement
 	return statements;
 }
 
-export function prepareUrl( $content: JQuery, propertyId: string ): Statement[] {
+export function prepareUrl( context: Context ): Statement[] {
 	const statements: Statement[] = [];
-	const $links: JQuery = $content.find( 'a' );
-	const references: Reference[] = getReferences( $content );
+	const $links: JQuery = context.$field.find( 'a' );
+	const references: Reference[] = getReferences( context.$wrapper );
 	$links.each( function () {
 		const $link: JQuery = $( this );
 		const url: string = $link.attr( 'href' ).replace( /^\/\//, 'https://' );
@@ -412,7 +418,7 @@ export function prepareUrl( $content: JQuery, propertyId: string ): Statement[] 
 		};
 		const snak: Snak = {
 			snaktype: 'value',
-			property: propertyId,
+			property: context.propertyId,
 			datavalue: dataValue,
 			datatype: 'url'
 		};
@@ -423,8 +429,14 @@ export function prepareUrl( $content: JQuery, propertyId: string ): Statement[] 
 	return statements;
 }
 
-export async function canExportItem( propertyId: string, wikidataStatements: Statement[], $field: JQuery ): Promise<boolean> {
-	const localStatements: Statement[] = await parseItems( $field, propertyId );
+export async function canExportItem( propertyId: PropertyId, wikidataStatements: Statement[], $field: JQuery ): Promise<boolean> {
+	const context: Context = {
+		propertyId: propertyId,
+		text: $field.text().trim(),
+		$field: $field.clone(),
+		$wrapper: $field.clone()
+	};
+	const localStatements: Statement[] = await parseItems( context );
 	const duplicates: string[] = [];
 	for ( let i = 0; i < localStatements.length; i++ ) {
 		for ( let j = 0; j < wikidataStatements.length; j++ ) {
@@ -455,7 +467,7 @@ export async function canExportItem( propertyId: string, wikidataStatements: Sta
 /**
  * Compares the values of the infobox and Wikidata
  */
-export async function canExportValue( propertyId: string, $field: JQuery, statements: Statement[] ): Promise<boolean> {
+export async function canExportValue( propertyId: PropertyId, $field: JQuery, statements: Statement[] ): Promise<boolean> {
 	if ( !statements || !( statements.length ) ) {
 		// Can't export only if image is local and large
 		const $localImg: JQuery = $field.find( '.image img[src*="/wikipedia/' + contentLanguage + '/"]' );

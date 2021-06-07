@@ -28,3 +28,10 @@ export interface FixedValue {
 	item: ItemId;
 	label: string;
 }
+
+export interface Context {
+	propertyId: PropertyId;
+	text: string;
+	$field: JQuery;
+	$wrapper: JQuery;
+}

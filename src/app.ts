@@ -17,8 +17,9 @@ import { loadMonths } from './months';
 import { ApiResponse, SparqlResponse } from './types/api';
 import { prepareQuantity } from './parser/quantity';
 import { Statement } from './types/wikidata/main';
-import { DataType } from './types/wikidata/types';
+import { DataType, PropertyId } from './types/wikidata/types';
 import { prepareTime } from './parser/time';
+import { Context } from './types/main';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
@@ -30,44 +31,50 @@ let windowManager;
 /**
  * Parsing values from parameters before displaying a dialog
  */
-async function parseField( $field: JQuery, propertyId: string ): Promise<Statement[]> {
+async function parseField( $field: JQuery ): Promise<Statement[]> {
+	const propertyId = $field.data( 'wikidata-property-id' );
 	const datatype: DataType = getConfig( `properties.${propertyId}.datatype` );
 
-	const $content: JQuery = $field.clone();
-	$content.find( 'sup.reference' ).remove();
-	$content.find( '.printonly' ).remove();
-	$content.find( '[style*="display:none"]' ).remove();
+	const context: Context = {
+		propertyId: propertyId,
+		text: $field.text().trim(),
+		$field: $field.clone(),
+		$wrapper: $field.clone()
+	};
 
-	// let $wrapper: JQuery = $content;
-	// const $row = $field.closest( 'tr' );
-	// if ( $row.length === 1 && $row.find( '[data-wikidata-property-id]' ).length === 1 ) {
-	// $wrapper = $row.clone();
-	// }
+	context.$field.find( 'sup.reference' ).remove();
+	context.$field.find( '.printonly' ).remove();
+	context.$field.find( '[style*="display:none"]' ).remove();
+
+	const $row: JQuery = $field.closest( 'tr' );
+	if ( $row.length === 1 && $row.find( '[data-wikidata-property-id]' ).length === 1 ) {
+		context.$wrapper = $row.clone();
+	}
 
 	switch ( datatype ) {
 		case 'commonsMedia':
-			return prepareCommonsMedia( $content, propertyId );
+			return prepareCommonsMedia( context );
 
 		case 'external-id':
-			return prepareExternalId( $content, propertyId );
+			return prepareExternalId( context );
 
 		case 'monolingualtext':
-			return prepareMonolingualText( $content, propertyId );
+			return prepareMonolingualText( context );
 
 		case 'quantity':
-			return prepareQuantity( $content, propertyId );
+			return prepareQuantity( context );
 
 		case 'string':
-			return prepareString( $content, propertyId );
+			return prepareString( context );
 
 		case 'time':
-			return prepareTime( $content, propertyId );
+			return prepareTime( context );
 
 		case 'wikibase-item':
-			return parseItems( $content, propertyId );
+			return parseItems( context );
 
 		case 'url':
-			return prepareUrl( $content, propertyId );
+			return prepareUrl( context );
 	}
 
 	mw.notify( getI18n( 'unknown-datatype' ).replace( '$1', datatype ), {
@@ -86,15 +93,12 @@ async function clickEvent(): Promise<void> {
 	if ( $field.parents( '.no-wikidata[data-wikidata-property-id]' ).length ) {
 		return;
 	}
-
-	const propertyId = $field.data( 'wikidata-property-id' );
-	const statements: Statement[] = await parseField( $field, propertyId );
+	const statements: Statement[] = await parseField( $field );
 
 	const subFields: JQuery[] = $field.find( '.no-wikidata[data-wikidata-property-id]' ).toArray();
 	for ( const i in subFields ) {
 		const $subField: JQuery = $( subFields[ i ] );
-		const subPropertyId: string = $subField.data( 'wikidata-property-id' );
-		const subStatements: Statement[] = await parseField( $field, subPropertyId );
+		const subStatements: Statement[] = await parseField( $subField );
 		statements.push( ...subStatements );
 	}
 
@@ -110,8 +114,7 @@ async function exportAll(): Promise<void> {
 
 	for ( const i in fields ) {
 		const $field: JQuery = $( fields[ i ] );
-		const propertyId: string = $field.data( 'wikidata-property-id' );
-		const statements: Statement[] = await parseField( $field, propertyId );
+		const statements: Statement[] = await parseField( $field );
 		allStatements.push( ...statements );
 	}
 
@@ -201,7 +204,7 @@ export async function init(): Promise<any> {
 	const $fields = $( '.infobox .no-wikidata' );
 	$fields.each( async function () {
 		const $field: JQuery = $( this );
-		const propertyId: string = $field.attr( 'data-wikidata-property-id' );
+		const propertyId: PropertyId = $field.attr( 'data-wikidata-property-id' ) as PropertyId;
 
 		$field
 			.removeClass( 'no-wikidata' )
