@@ -1,12 +1,13 @@
 {
   "name": "infobox-export",
-  "version": "3.0.0-alpha1",
+  "version": "3.0.0-beta",
   "description": "",
   "private": true,
   "scripts": {
     "build": "webpack --mode production",
     "dev": "webpack --mode development",
     "lint": "eslint src --ext=\".js,.ts\"",
+    "lint-fix": "eslint src --ext=\".js,.ts\" --fix",
     "serve": "webpack serve --mode development",
     "test": "mocha --require @babel/register --extensions \".js, .ts, .tsx\"",
     "watch": "webpack --watch"

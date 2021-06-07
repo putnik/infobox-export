@@ -9,7 +9,7 @@ const mw = require( 'mw' );
 
 // Main config
 let config: KeyValue = {
-	version: '3.0.0-alpha1',
+	version: '3.0.0-beta',
 	project: mw.config.get( 'wgDBname' ),
 	'storage-key': 'infoboxExportConfig',
 	references: {},
