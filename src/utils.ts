@@ -23,3 +23,30 @@ export function uppercaseFirst( value: string ): string {
 export function clone( value: any ): any {
 	return JSON.parse( JSON.stringify( value ) );
 }
+
+export function get( object: object, path: string ): any {
+	return path
+		.split( '.' )
+		.reduce(
+			( obj: object | any, key: string ) => ( obj || {} )[ key ],
+			object
+		);
+}
+
+export function set( object: object, path: string, value: any ): void {
+	const keys: string[] = path.split( '.' );
+	return keys.reduce(
+		function ( obj: object | any, key: string, index: number ) {
+			if ( index < keys.length - 1 ) {
+				if ( typeof obj[ key ] !== 'object' || obj[ key ] === null ) {
+					obj[ key ] = {};
+				}
+			} else {
+				obj[ key ] = value;
+			}
+			return obj[ key ];
+		},
+		object
+	);
+
+}

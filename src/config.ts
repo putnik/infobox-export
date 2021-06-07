@@ -1,11 +1,9 @@
-import * as _ from 'lodash';
-
 import { getMonths, getMonthsGen } from './months';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
 import { KeyValue, Translations } from './types/main';
 import { ApiResponse } from './types/api';
 import { wdApiRequest } from './api';
-import { unique, uppercaseFirst } from './utils';
+import { get, set, unique, uppercaseFirst } from './utils';
 
 const mw = require( 'mw' );
 
@@ -62,7 +60,7 @@ function getI18nConfig( key: string ): any {
  * Returns localized config value
  */
 export function getConfig( path: string ): any {
-	const result: any = _.get( config, path );
+	const result: any = get( config, path );
 	if ( result ) {
 		return result;
 	}
@@ -71,7 +69,7 @@ export function getConfig( path: string ): any {
 }
 
 export function setConfig( path: string, value: any ): void {
-	_.set( config, path, value );
+	set( config, path, value );
 }
 
 /**
