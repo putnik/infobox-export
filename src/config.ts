@@ -43,15 +43,15 @@ function getI18nConfig( key: string ): any {
 		return undefined;
 	}
 
+	result = result.replace( '%months%', getMonths().join( '|' ) );
+	result = result.replace( '%months-gen%', getMonthsGen().join( '|' ) );
+
 	if ( key.match( /^re-/ ) ) {
 		if ( result === '' ) {
 			result = '^@{999}$'; // impossible regexp
 		}
 		return new RegExp( result );
 	}
-
-	result = result.replace( '%months%', getMonths().join( '|' ) );
-	result = result.replace( '%months-gen%', getMonthsGen().join( '|' ) );
 
 	return result;
 }

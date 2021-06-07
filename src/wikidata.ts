@@ -80,6 +80,10 @@ export function convertSnakToStatement( snak: Snak, references: Reference[] ): S
 }
 
 export async function getWikidataIds( propertyId: string, titles: Title[], references: Reference[] ): Promise<Statement[]> {
+	if ( !titles.length ) {
+		return [];
+	}
+
 	let languages: string[] = titles.map( function ( item: Title ) {
 		return item.language;
 	} );
@@ -100,7 +104,7 @@ export async function getWikidataIds( propertyId: string, titles: Title[], refer
 		} )
 	} );
 	if ( !data.success ) {
-		return;
+		return [];
 	}
 
 	const statements: Statement[] = [];
