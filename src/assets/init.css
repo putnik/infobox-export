@@ -61,6 +61,8 @@
     background-image: url( '//upload.wikimedia.org/wikipedia/commons/6/6b/OOjs_UI_icon_upload.svg' );
     background-size: cover;
     cursor: pointer;
+    position: relative;
+    z-index: 1;
 }
 
 .wikidata-infobox-export-all.loader {
