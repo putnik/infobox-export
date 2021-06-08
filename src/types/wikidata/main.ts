@@ -1,9 +1,9 @@
-import { DataType, Rank, SnakType } from './types';
+import { DataType, PropertyId, Rank, SnakType } from './types';
 import { DataValue } from './datavalues';
 
 export interface Snak {
 	snaktype: SnakType;
-	property: string;
+	property: PropertyId;
 	hash?: string;
 	datavalue: DataValue;
 	datatype: DataType;

@@ -5,7 +5,7 @@ import { allLanguages, userLanguage } from './languages';
 import { Title } from './types/main';
 import { ItemValue } from './types/wikidata/values';
 import { ApiResponse } from './types/api';
-import { Entity } from './types/wikidata/types';
+import { Entity, PropertyId } from './types/wikidata/types';
 import { Statement, Snak, Reference, ClaimsObject } from './types/wikidata/main';
 import { ItemDataValue } from './types/wikidata/datavalues';
 import { errorDialog } from './ui';
@@ -51,7 +51,7 @@ export function randomEntityGuid(): string {
 	return entityId + '$' + guid;
 }
 
-export function generateItemSnak( propertyId: string, entityId: string ): Snak {
+export function generateItemSnak( propertyId: PropertyId, entityId: string ): Snak {
 	const value: ItemValue = {
 		'entity-type': 'item',
 		'numeric-id': parseInt( entityId.replace( 'Q', '' ), 10 ),
@@ -79,7 +79,7 @@ export function convertSnakToStatement( snak: Snak, references: Reference[] ): S
 	};
 }
 
-export async function getWikidataIds( propertyId: string, titles: Title[], references: Reference[] ): Promise<Statement[]> {
+export async function getWikidataIds( propertyId: PropertyId, titles: Title[], references: Reference[] ): Promise<Statement[]> {
 	if ( !titles.length ) {
 		return [];
 	}
@@ -128,7 +128,7 @@ export async function getWikidataIds( propertyId: string, titles: Title[], refer
 				continue;
 			}
 
-			subclassFound = subclassPropertyIds.find( function ( propertyId: string ) {
+			subclassFound = subclassPropertyIds.find( function ( propertyId: PropertyId ) {
 				const values = ( ( ( data.entities[ candidateId ] || {} ).claims || {} )[ propertyId ] || [] );
 				return values.find( function ( statement: Statement ) {
 					const value: ItemValue = ( ( ( statement.mainsnak || {} ).datavalue || {} ).value || {} ) as ItemValue;
@@ -173,10 +173,10 @@ export async function getWikidataIds( propertyId: string, titles: Title[], refer
  * Create all statements in Wikidata and mark properties exported
  */
 export async function createClaims( statements: Statement[] ): Promise<void> {
-	let propertyIds: string[] = [];
+	let propertyIds: PropertyId[] = [];
 	while ( statements.length ) {
 		const statement: Statement = statements.shift();
-		const propertyId: string = statement.mainsnak.property;
+		const propertyId: PropertyId = statement.mainsnak.property;
 		propertyIds.push( propertyId );
 		const claimData: ApiResponse = await getWdApi().postWithToken( 'csrf', {
 			action: 'wbsetclaim',
@@ -204,7 +204,7 @@ export async function createClaims( statements: Statement[] ): Promise<void> {
 
 	propertyIds = unique( propertyIds );
 	for ( const i in propertyIds ) {
-		const propertyId: string = propertyIds[ i ];
+		const propertyId: PropertyId = propertyIds[ i ];
 		$( `.no-wikidata[data-wikidata-property-id=${propertyId}]` )
 			.removeClass( 'no-wikidata' )
 			.off( 'dblclick' ); // FIXME: disable only clickEvent
@@ -234,7 +234,7 @@ export function convertStatementsToClaimsObject( statements: Statement[] ): Clai
 	const claimObject: ClaimsObject = {};
 	for ( const i in statements ) {
 		const statement: Statement = statements[ i ];
-		const propertyId: string = statement.mainsnak.property;
+		const propertyId: PropertyId = statement.mainsnak.property;
 		if ( claimObject[ propertyId ] === undefined ) {
 			claimObject[ propertyId ] = [];
 		}

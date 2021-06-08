@@ -4,6 +4,7 @@ import { KeyValue, Translations } from './types/main';
 import { ApiResponse } from './types/api';
 import { wdApiRequest } from './api';
 import { get, set, unique, uppercaseFirst } from './utils';
+import { PropertyId } from './types/wikidata/types';
 
 const mw = require( 'mw' );
 
@@ -273,7 +274,7 @@ export async function loadProperties( propertyIds: string[] ): Promise<void> {
 	}
 }
 
-export async function getPropertyLabel( propertyId: string ): Promise<string> {
+export async function getPropertyLabel( propertyId: PropertyId ): Promise<string> {
 	await loadProperties( [ propertyId ] );
 	return getConfig( `properties.${propertyId}.label` );
 }

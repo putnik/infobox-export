@@ -6,7 +6,7 @@ import { randomEntityGuid, generateItemSnak } from '../wikidata';
 import { addQualifiers } from '../parser';
 import { DataValue } from '../types/wikidata/datavalues';
 import { Reference, Snak, Statement } from '../types/wikidata/main';
-import { Entity, Unit } from '../types/wikidata/types';
+import { ItemId, PropertyId, Unit } from '../types/wikidata/types';
 import { createTimeValue } from './time';
 import { getReferences } from './utils';
 import { clone } from '../utils';
@@ -133,7 +133,7 @@ export function parseRawQuantity( config: any, text: string, forceInteger?: bool
 /**
  * Parsing the number and (optionally) the accuracy
  */
-export function parseQuantity( text: string, propertyId: string, forceInteger?: boolean ): ( Statement | void ) {
+export function parseQuantity( text: string, propertyId: PropertyId, forceInteger?: boolean ): ( Statement | void ) {
 	text = text.replace( /,/g, '.' ).replace( /[−–—]/g, '-' ).trim();
 	const config: KeyValue = {
 		're-10_3': getConfig( 're-10_3' ),
@@ -188,8 +188,8 @@ function recognizeUnits( text: string, units: KeyValue, label?: string ): Unit[]
 		if ( !units.hasOwnProperty( idx ) ) {
 			continue;
 		}
-		const item: string = parseInt( idx, 10 ) >= 0 ? units[ idx ] : idx;
-		const search: string = getConfig( `units.${item}.search` );
+		const itemId: ItemId = parseInt( idx, 10 ) >= 0 ? units[ idx ] : idx;
+		const search: string = getConfig( `units.${itemId}.search` );
 		for ( let j = 0; j < search.length; j++ ) {
 			let expr = search[ j ];
 			if ( search[ j ].charAt( 0 ) !== '^' ) {
@@ -200,11 +200,11 @@ function recognizeUnits( text: string, units: KeyValue, label?: string ): Unit[]
 				}
 			}
 			if ( text.match( new RegExp( expr ) ) ) {
-				result.push( `http://www.wikidata.org/entity/${item}` as Entity );
+				result.push( `http://www.wikidata.org/entity/${itemId}` );
 				break;
 			}
 			if ( search[ j ].charAt( 0 ) !== '^' && label && label.match( new RegExp( `\\s${search[ j ]}:?$` ) ) ) {
-				result.push( `http://www.wikidata.org/entity/${item}` as Entity );
+				result.push( `http://www.wikidata.org/entity/${itemId}` );
 				break;
 			}
 		}
@@ -276,7 +276,7 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 		if ( qualifierTempStatement ) {
 			const qualifierQuantitySnak: Snak = qualifierTempStatement.mainsnak;
 			const qualifierQuantity: QuantityValue = qualifierQuantitySnak.datavalue.value as QuantityValue;
-			const supportedProperties: string[] = [ 'P2076', 'P2077' ];
+			const supportedProperties: PropertyId[] = [ 'P2076', 'P2077' ];
 			for ( let j = 0; j < supportedProperties.length; j++ ) {
 				const units: Unit[] = recognizeUnits( qualifierMatch[ 1 ], getConfig( `properties.${supportedProperties[ j ]}.units` ) );
 				if ( units.length === 1 ) {

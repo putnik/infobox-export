@@ -32,7 +32,7 @@ export const alreadyExistingItems: KeyValue = {};
 
 function addQualifierValue(
 	statement: Statement,
-	qualifierId: string,
+	qualifierId: PropertyId,
 	qualifierDataType: DataType,
 	qualifierValue: Value | void
 ): Statement {
@@ -449,7 +449,7 @@ export async function canExportItem( propertyId: PropertyId, wikidataStatements:
 	}
 	if ( duplicates.length < localStatements.length ) {
 		if ( duplicates.length > 0 ) {
-			const propertyId: string = wikidataStatements[ 0 ].mainsnak.property;
+			const propertyId: PropertyId = wikidataStatements[ 0 ].mainsnak.property;
 			alreadyExistingItems[ propertyId ] = duplicates;
 			if ( propertyId === 'P166' && localStatements.length === wikidataStatements.length ) {
 				return false;

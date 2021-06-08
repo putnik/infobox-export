@@ -6,6 +6,7 @@ import { TimeDataValue } from '../types/wikidata/datavalues';
 import { getReferences } from './utils';
 import { Context, KeyValue, TimeGuess } from '../types/main';
 import { getMonths, getMonthsGen } from '../months';
+import { PropertyId } from '../types/wikidata/types';
 
 const startEndPropertyMapping: KeyValue = {
 	P2031: 'P2032'
@@ -179,7 +180,7 @@ export function createTimeValue( timestamp: string, forceJulian: boolean | void 
 	return result;
 }
 
-function createTimeSnak( value: TimeValue, propertyId: string ): Snak {
+function createTimeSnak( value: TimeValue, propertyId: PropertyId ): Snak {
 	const dataValue: TimeDataValue = {
 		value: value,
 		type: 'time'

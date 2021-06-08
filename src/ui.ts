@@ -23,6 +23,7 @@ import { alreadyExistingItems } from './parser';
 import { convertStatementsToClaimsObject, createClaims } from './wikidata';
 import { formatSnak } from './formatter';
 import { ClaimsObject, Reference, Snak, SnaksObject, Statement } from './types/wikidata/main';
+import { PropertyId } from './types/wikidata/types';
 
 let _windowManager: any;
 
@@ -58,7 +59,7 @@ export function errorDialog( title: string, message: string ): void {
 }
 
 async function getQualifierFields( qualifiers: SnaksObject ): Promise<any> {
-	const qualifierFields = [];
+	const qualifierFields: any[] = [];
 	for ( const qualifierPropertyId in qualifiers ) {
 		if ( !qualifiers.hasOwnProperty( qualifierPropertyId ) ) {
 			continue;
@@ -66,7 +67,7 @@ async function getQualifierFields( qualifiers: SnaksObject ): Promise<any> {
 
 		for ( const i in qualifiers[ qualifierPropertyId ] ) {
 			const qualifierSnak: Snak = qualifiers[ qualifierPropertyId ][ i ];
-			const qualifierPropertyLabel: string = await getPropertyLabel( qualifierPropertyId );
+			const qualifierPropertyLabel: string = await getPropertyLabel( qualifierPropertyId as PropertyId );
 			const $qualifierPropertyLabel = $( '<span>' ).text( qualifierPropertyLabel );
 			const $qualifierLabel: JQuery = await formatSnak( qualifierSnak );
 
@@ -88,7 +89,7 @@ async function getQualifierFields( qualifiers: SnaksObject ): Promise<any> {
 	return qualifierFields;
 }
 
-async function getPropertyFieldset( propertyId: string, statements: Statement[] ): Promise<any> {
+async function getPropertyFieldset( propertyId: PropertyId, statements: Statement[] ): Promise<any> {
 	const label: string = await getPropertyLabel( propertyId );
 	const $labelLink: JQuery = $( '<a>' )
 		.attr( 'href', `https://wikidata.org/wiki/Property:${propertyId}` )
@@ -104,7 +105,7 @@ async function getPropertyFieldset( propertyId: string, statements: Statement[] 
 		const statement: Statement = statements[ i ];
 
 		const $label: JQuery = await formatSnak( statement.mainsnak );
-		const propertyId: string = statement.mainsnak.property;
+		const propertyId: PropertyId = statement.mainsnak.property;
 		let isAlreadyInWikidata: boolean = false;
 		if (
 			statement.mainsnak.datavalue.type === 'wikibase-entityid' &&
@@ -155,10 +156,10 @@ async function getPropertyFieldset( propertyId: string, statements: Statement[] 
 
 async function getFormPanel( statements: Statement[] ): Promise<any> {
 	const claimsObject: ClaimsObject = convertStatementsToClaimsObject( statements );
-	const propertyIds: string[] = Object.keys( claimsObject );
+	const propertyIds: PropertyId[] = Object.keys( claimsObject ) as PropertyId[];
 	const propertyFieldsets: JQuery[] = [];
 	for ( const i in propertyIds ) {
-		const propertyId: string = propertyIds[ i ];
+		const propertyId: PropertyId = propertyIds[ i ];
 		const propertyFieldset = await getPropertyFieldset( propertyId, claimsObject[ propertyId ] );
 		propertyFieldsets.push( propertyFieldset );
 	}
