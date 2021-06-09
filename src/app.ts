@@ -37,7 +37,7 @@ async function parseField( $field: JQuery ): Promise<Statement[]> {
 
 	const context: Context = {
 		propertyId: propertyId,
-		text: $field.text().trim(),
+		text: '',
 		$field: $field.clone(),
 		$wrapper: $field.clone()
 	};
@@ -45,6 +45,8 @@ async function parseField( $field: JQuery ): Promise<Statement[]> {
 	context.$field.find( 'sup.reference' ).remove();
 	context.$field.find( '.printonly' ).remove();
 	context.$field.find( '[style*="display:none"]' ).remove();
+
+	context.text = context.$field.text().trim();
 
 	const $row: JQuery = $field.closest( 'tr' );
 	if ( $row.length === 1 && $row.find( '[data-wikidata-property-id]' ).length === 1 ) {
