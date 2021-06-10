@@ -274,7 +274,7 @@ export async function loadProperties( propertyIds: string[] ): Promise<void> {
 	}
 }
 
-export async function getPropertyLabel( propertyId: PropertyId ): Promise<string> {
+export async function getPropertyField( propertyId: PropertyId, field: string ): Promise<string> {
 	await loadProperties( [ propertyId ] );
-	return getConfig( `properties.${propertyId}.label` );
+	return getConfig( `properties.${propertyId}.${field}` );
 }

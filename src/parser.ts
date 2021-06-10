@@ -1,4 +1,4 @@
-import { getConfig } from './config';
+import { getConfig, getPropertyField } from './config';
 import { checkForMissedLanguage, contentLanguage } from './languages';
 import {
 	convertSnakToStatement,
@@ -196,7 +196,7 @@ export async function addQualifiers( $field: JQuery, statement: Statement ): Pro
 		const $qualifier: JQuery = $( $qualifiers[ q ] );
 		const qualifierId: PropertyId = $qualifier.data( 'wikidata-qualifier-id' );
 		let qualifierValue: Value | void = $qualifier.text().replace( /\n/g, ' ' ).trim();
-		const datatype: DataType = getConfig( `properties.${qualifierId}.datatype` );
+		const datatype: DataType = await getPropertyField( qualifierId, 'datatype' ) as DataType;
 		switch ( datatype ) {
 			case 'monolingualtext':
 				qualifierValue = {

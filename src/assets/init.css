@@ -57,6 +57,8 @@
     list-style: none;
 }
 
+.wikidata-infobox-export-dialog .commons-media-caption,
+.wikidata-infobox-export-qualifiers .wb-monolingualtext-language-name,
 .wikidata-infobox-export-qualifiers .wikidata-infobox-export-calendar {
     display: none;
 }

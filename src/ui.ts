@@ -18,7 +18,7 @@ import {
 } from 'ooui';
 
 import { getI18n } from './i18n';
-import { getConfig, getPropertyLabel } from './config';
+import { getConfig, getPropertyField } from './config';
 import { alreadyExistingItems } from './parser';
 import { convertStatementsToClaimsObject, createClaims } from './wikidata';
 import { formatReferences, formatSnak } from './formatter';
@@ -49,7 +49,7 @@ async function getQualifierFields( qualifiers: SnaksObject ): Promise<JQuery> {
 
 		for ( const i in qualifiers[ qualifierPropertyId ] ) {
 			const qualifierSnak: Snak = qualifiers[ qualifierPropertyId ][ i ];
-			const qualifierPropertyLabel: string = await getPropertyLabel( qualifierPropertyId as PropertyId );
+			const qualifierPropertyLabel: string = await getPropertyField( qualifierPropertyId as PropertyId, 'label' );
 			const $qualifierPropertyLabel = $( '<span>' ).text( qualifierPropertyLabel );
 			const $qualifierLabel: JQuery = await formatSnak( qualifierSnak );
 
@@ -60,7 +60,7 @@ async function getQualifierFields( qualifiers: SnaksObject ): Promise<JQuery> {
 }
 
 async function getPropertyFieldset( propertyId: PropertyId, statements: Statement[] ): Promise<any> {
-	const label: string = await getPropertyLabel( propertyId );
+	const label: string = await getPropertyField( propertyId, 'label' );
 	const $labelLink: JQuery = $( '<a>' )
 		.attr( 'href', `https://wikidata.org/wiki/Property:${propertyId}` )
 		.attr( 'rel', 'noopener noreferrer' )
