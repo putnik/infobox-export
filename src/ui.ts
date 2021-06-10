@@ -24,6 +24,7 @@ import { convertStatementsToClaimsObject, createClaims } from './wikidata';
 import { formatSnak } from './formatter';
 import { ClaimsObject, Reference, Snak, SnaksObject, Statement } from './types/wikidata/main';
 import { PropertyId } from './types/wikidata/types';
+import { KeyValue } from './types/main';
 
 let _windowManager: any;
 
@@ -58,8 +59,8 @@ export function errorDialog( title: string, message: string ): void {
 	} );
 }
 
-async function getQualifierFields( qualifiers: SnaksObject ): Promise<any> {
-	const qualifierFields: any[] = [];
+async function getQualifierFields( qualifiers: SnaksObject ): Promise<JQuery> {
+	const $qualifierFields: JQuery = $( '<ul>' ).addClass( 'wikidata-infobox-export-qualifiers' );
 	for ( const qualifierPropertyId in qualifiers ) {
 		if ( !qualifiers.hasOwnProperty( qualifierPropertyId ) ) {
 			continue;
@@ -71,22 +72,10 @@ async function getQualifierFields( qualifiers: SnaksObject ): Promise<any> {
 			const $qualifierPropertyLabel = $( '<span>' ).text( qualifierPropertyLabel );
 			const $qualifierLabel: JQuery = await formatSnak( qualifierSnak );
 
-			const qualifierCheckbox = new CheckboxInputWidget( {
-				value: JSON.stringify( qualifierSnak ),
-				selected: true,
-				disabled: true
-			} );
-			const qualifierField: any = new FieldLayout( qualifierCheckbox, {
-				label: $( '<span>' ).append( $qualifierPropertyLabel, ': ', $qualifierLabel ),
-				align: 'inline',
-				classes: [
-					'wikidata-infobox-export-qualifier'
-				]
-			} );
-			qualifierFields.push( qualifierField );
+			$qualifierFields.append( $( '<li>' ).append( $qualifierPropertyLabel, ': ', $qualifierLabel ) );
 		}
 	}
-	return qualifierFields;
+	return $qualifierFields;
 }
 
 async function getPropertyFieldset( propertyId: PropertyId, statements: Statement[] ): Promise<any> {
@@ -118,7 +107,8 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 		const checkbox = new CheckboxInputWidget( {
 			value: JSON.stringify( statement ),
 			selected: isAlreadyInWikidata,
-			disabled: isAlreadyInWikidata
+			disabled: isAlreadyInWikidata,
+			indeterminate: isAlreadyInWikidata
 		} );
 		if ( !checkbox.isDisabled() ) {
 			if ( !firstSelected || !getConfig( `properties.${propertyId}.constraints.unique` ) ) {
@@ -136,19 +126,21 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 			$label.append( formatDomains( statement.references ) );
 		}
 
-		const field: any = new FieldLayout( checkbox, {
+		const fieldData: KeyValue = {
 			label: $label,
 			align: 'inline',
 			classes: [
 				'wikidata-infobox-export-statement'
-			]
-		} );
-		fieldset.addItems( [ field ] );
+			],
+			helpInline: true
+		};
 
 		if ( statement.qualifiers ) {
-			const qualifierFields = await getQualifierFields( statement.qualifiers );
-			fieldset.addItems( qualifierFields );
+			fieldData.help = await getQualifierFields( statement.qualifiers );
 		}
+
+		const field: any = new FieldLayout( checkbox, fieldData );
+		fieldset.addItems( [ field ] );
 	}
 
 	return fieldset;

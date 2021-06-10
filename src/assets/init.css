@@ -47,8 +47,9 @@
     font-weight: normal;
 }
 
-.wikidata-infobox-export-qualifier {
-    margin-left: 2em;
+.wikidata-infobox-export-qualifiers {
+    margin-left: 0;
+    list-style: none;
 }
 
 .wikidata-infobox-export-all {
