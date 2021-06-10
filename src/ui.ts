@@ -1,4 +1,4 @@
-import { ItemValue, UrlValue } from './types/wikidata/values';
+import { ItemValue } from './types/wikidata/values';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
@@ -21,31 +21,12 @@ import { getI18n } from './i18n';
 import { getConfig, getPropertyLabel } from './config';
 import { alreadyExistingItems } from './parser';
 import { convertStatementsToClaimsObject, createClaims } from './wikidata';
-import { formatSnak } from './formatter';
-import { ClaimsObject, Reference, Snak, SnaksObject, Statement } from './types/wikidata/main';
+import { formatReferences, formatSnak } from './formatter';
+import { ClaimsObject, Snak, SnaksObject, Statement } from './types/wikidata/main';
 import { PropertyId } from './types/wikidata/types';
 import { KeyValue } from './types/main';
 
 let _windowManager: any;
-
-/**
- * Format sources for display
- */
-function formatDomains( references: Reference[] ): JQuery {
-	const $result: JQuery = $( '<sup>' );
-	for ( let i = 0; i < references.length; i++ ) {
-		const p854 = references[ i ].snaks.P854;
-		if ( p854 ) {
-			const url: UrlValue = p854[ 0 ].datavalue.value as UrlValue;
-			let domain: string = url.replace( 'http://', '' ).replace( 'https://', '' ).replace( 'www.', '' );
-			if ( domain.indexOf( '/' ) > 0 ) {
-				domain = domain.substr( 0, domain.indexOf( '/' ) );
-			}
-			$result.append( $( '<a>' ).attr( 'href', url ).text( '[' + domain + ']' ) );
-		}
-	}
-	return $result;
-}
 
 /**
  * Error display
@@ -123,7 +104,7 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 			}
 		}
 		if ( statement.references ) {
-			$label.append( formatDomains( statement.references ) );
+			$label.append( formatReferences( statement.references ) );
 		}
 
 		const fieldData: KeyValue = {

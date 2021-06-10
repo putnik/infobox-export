@@ -1,12 +1,52 @@
 import { getI18n } from './i18n';
 import { wbFormatValue } from './wikidata';
-import { ItemValue, TimeValue } from './types/wikidata/values';
+import { ItemValue, TimeValue, UrlValue } from './types/wikidata/values';
 import { ApiResponse } from './types/api';
 import { wdApiRequest } from './api';
 import { KeyValue } from './types/main';
 import { userLanguage } from './languages';
 import { getConfig } from './config';
-import { Snak, Statement } from './types/wikidata/main';
+import { Reference, Snak, Statement } from './types/wikidata/main';
+
+function getRefSup( url: string, text: string ): JQuery {
+	const $link: JQuery = $( '<a>' )
+		.attr( 'href', url )
+		.attr( 'rel', 'noopener noreferrer' )
+		.attr( 'target', '_blank' )
+		.text( `[${text}]` );
+	return $( '<sup>' )
+		.addClass( 'wikidata-infobox-export-sup' )
+		.append( $link );
+}
+
+function formatReference( reference: Reference ): JQuery | void {
+	const p854: Snak[] = reference.snaks.P854;
+	if ( !p854 || !p854.length ) {
+		return;
+	}
+
+	const url: UrlValue = p854[ 0 ].datavalue.value as UrlValue;
+	let domain: string = url
+		.replace( 'http://', '' )
+		.replace( 'https://', '' )
+		.replace( 'www.', '' );
+	if ( domain.indexOf( '/' ) > 0 ) {
+		domain = domain.substr( 0, domain.indexOf( '/' ) );
+	}
+
+	return getRefSup( url, domain );
+}
+
+export function formatReferences( references: Reference[] ): JQuery {
+	const $result: JQuery = $( '<span>' );
+	for ( let i = 0; i < references.length; i++ ) {
+		const $refSup: JQuery | void = formatReference( references[ i ] );
+		if ( $refSup ) {
+			$result.append( $refSup );
+		}
+	}
+	return $result;
+}
 
 export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
 	const data: ApiResponse = await wdApiRequest( {
@@ -22,13 +62,7 @@ export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
 	const $mainLabel: JQuery = $( '<span>' )
 		.addClass( 'wikidata-infobox-export-main-label' )
 		.html( label );
-	const $wdLink: JQuery = $( '<sup>' ).append(
-		$( '<a>' )
-			.attr( 'href', `https://wikidata.org/wiki/${value.id}` )
-			.attr( 'rel', 'noopener noreferrer' )
-			.attr( 'target', '_blank' )
-			.text( '[d]' )
-	);
+	const $wdLink: JQuery = getRefSup( `https://wikidata.org/wiki/${value.id}`, 'd' );
 	const $label: JQuery = $( '<span>' ).append( $mainLabel, $wdLink );
 	if ( description ) {
 		$label.append( $( '<span>' ).html( ' — ' + description ) );
