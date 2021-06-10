@@ -22,7 +22,14 @@ export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
 	const $mainLabel: JQuery = $( '<span>' )
 		.addClass( 'wikidata-infobox-export-main-label' )
 		.html( label );
-	const $label: JQuery = $( '<span>' ).append( $mainLabel );
+	const $wdLink: JQuery = $( '<sup>' ).append(
+		$( '<a>' )
+			.attr( 'href', `https://wikidata.org/wiki/${value.id}` )
+			.attr( 'rel', 'noopener noreferrer' )
+			.attr( 'target', '_blank' )
+			.text( '[d]' )
+	);
+	const $label: JQuery = $( '<span>' ).append( $mainLabel, $wdLink );
 	if ( description ) {
 		$label.append( $( '<span>' ).html( ' — ' + description ) );
 	}
