@@ -233,7 +233,7 @@ export async function init(): Promise<any> {
 		.addClass( 'wikidata-infobox-export-all' )
 		.attr( 'title', getI18n( 'export-all' ) )
 		.on( 'click', exportAll );
-	const $container: JQuery = $( '.infobox' ).find( 'caption:visible, th:visible, td:visible' ).first();
+	const $container: JQuery = $( '.infobox:not(.vertical-navbox)' ).find( 'caption:visible, th:visible, td:visible' ).first();
 	$container.prepend( $exportAll );
 
 	// TODO: Do not load properties until the window is opened for the first time
