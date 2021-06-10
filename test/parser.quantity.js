@@ -18,6 +18,13 @@ describe("parseRawQuantity()", function() {
 				"unit": "1"
 			} );
 		} );
+		it( "should return amount for integer value with space", function () {
+			const result = parseRawQuantity( config, "28 300", true );
+			assert.deepStrictEqual( result, {
+				"amount": "28300",
+				"unit": "1"
+			} );
+		} );
 		it( "should return integer amount for float value (comma)", function () {
 			const result = parseRawQuantity( config, "28300,15", true );
 			assert.deepStrictEqual( result, {

@@ -8,7 +8,7 @@
 	"re-ce": "b\\.\\s\\e\\.?\\s*$",
 	"re-present": "^(hazırkı\\.|hazırkı|indiki)\\s+vaxt$",
 	"re-unknown": "^(\\?|bilinmir)$",
-	"re-min-sec": "^(\\d+)\\s*(?:d|dəq|dəqiqə)?\\.?\\s*(\\d+)\\s*(?:s|san|saniyə?)?\\.?$",
+	"re-min-sec": "^(\\d+)\\s*(?:d|dəq|dəqiqə)\\.?\\s*(\\d+)\\s*(?:s|san|saniyə?)\\.?$",
 	"re-10_3": "min",
 	"re-10_6": "mln|\\dM(?:\\s|$)|milyon|million",
 	"re-10_9": "mlrd|milyard",

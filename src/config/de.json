@@ -7,7 +7,7 @@
 	"re-ce": "n\\.\\Chr\\.\\s*$",
 	"re-present": "^heute$",
 	"re-unknown": "^unbekannt$",
-	"re-min-sec": "^(\\d+)\\s*(?:m|min|Minuten?)?\\.?\\s*(\\d+)\\s*(?:s|sek|Sekunden?)?\\.?$",
+	"re-min-sec": "^(\\d+)\\s*(?:m|min|Minuten?)\\.?\\s*(\\d+)\\s*(?:s|sek|Sekunden?)\\.?$",
 	"re-10_3": "Tausend",
 	"re-10_6": "Millionen",
 	"re-10_9": "Milliarden",

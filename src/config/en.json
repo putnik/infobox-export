@@ -14,7 +14,7 @@
 	"re-ce": "CE\\s*$",
 	"re-present": "^present$",
 	"re-unknown": "^unknown$",
-	"re-min-sec": "^(\\d+)\\s*(?:m|min|minutes?)?\\.?\\s*(\\d+)\\s*(?:s|sec|seconds?)?\\.?$",
+	"re-min-sec": "^(\\d+)\\s*(?:m|min|minutes?)\\.?\\s*(\\d+)\\s*(?:s|sec|seconds?)\\.?$",
 	"re-10_3": "thousand",
 	"re-10_6": "million",
 	"re-10_9": "billion",
