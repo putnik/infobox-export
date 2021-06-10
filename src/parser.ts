@@ -312,32 +312,35 @@ export async function prepareExternalId( context: Context ): Promise<Statement[]
 export function prepareMonolingualText( context: Context ): Statement[] {
 	const $: JQueryStatic = require( 'jquery' );
 	const mw = require( 'mw' );
-	const values: MonolingualTextValue[] = [];
+	const values: { [ key: string ]: MonolingualTextValue } = {};
 	const statements: Statement[] = [];
 	let $items: JQuery = context.$field.find( 'span[lang]' );
 	$items.each( function () {
 		const $item: JQuery = $( this );
-		const value: MonolingualTextValue = {
+		const language: string = $item.attr( 'lang' ).trim();
+		values[ language ] = {
 			text: $item.text().trim(),
-			language: $item.attr( 'lang' ).trim()
+			language: language
 		};
-		values.push( value );
 	} );
-	if ( !values.length ) {
+	if ( !Object.values( values ).length ) {
 		const text = context.$field.text().trim();
 		if ( text ) {
 			$items = mw.util.$content.find( 'span[lang]' );
 			$items.each( function () {
 				const $item = $( this );
 				if ( $item.text().trim().startsWith( text ) ) {
-					const value: MonolingualTextValue = {
+					const language: string = $item.attr( 'lang' ).trim();
+					values[ language ] = {
 						text: text,
-						language: $item.attr( 'lang' ).trim()
+						language: language
 					};
-					values.push( value );
 				}
 			} );
 		}
+	}
+	if ( Object.values( values ).length > 1 && values.und ) {
+		delete values.und;
 	}
 
 	const references: Reference[] = getReferences( context.$wrapper );
