@@ -17,7 +17,7 @@ import {
 import { ApiResponse, SparqlResponse } from './types/api';
 import { canExportQuantity } from './parser/quantity';
 import { Reference, Snak, Statement } from './types/wikidata/main';
-import { DataType, PropertyId, typesMapping } from './types/wikidata/types';
+import { DataType, ItemId, PropertyId, typesMapping } from './types/wikidata/types';
 import {
 	CommonsMediaDataValue,
 	ExternalIdDataValue,
@@ -27,6 +27,7 @@ import {
 } from './types/wikidata/datavalues';
 import { getReferences } from './parser/utils';
 import { createTimeValue } from './parser/time';
+import { getI18n } from './i18n';
 
 export const alreadyExistingItems: KeyValue = {};
 
@@ -291,20 +292,30 @@ export async function prepareExternalId( context: Context ): Promise<Statement[]
 	const sparql = `SELECT ?item WHERE { ?item wdt:${context.propertyId} "${externalId}" } LIMIT 1`;
 	const data: SparqlResponse = await sparqlRequest( sparql );
 	if ( data.results.bindings.length ) {
-		const dataValue: ExternalIdDataValue = {
-			value: externalId.toString(),
-			type: 'string'
-		};
-		const snak: Snak = {
-			snaktype: 'value',
-			property: context.propertyId,
-			datavalue: dataValue,
-			datatype: 'external-id'
-		};
-		const references: Reference[] = getReferences( context.$wrapper );
-		const statement: Statement = convertSnakToStatement( snak, references );
-		statements.push( statement );
+		const url: string = data.results.bindings[ 0 ].item.value;
+		const duplicateItemId: ItemId = url.replace( /^.*(Q\d+)$/, '$1' ) as ItemId;
+		const errorText: string = uppercaseFirst( getI18n( 'already-used-in' ).replace( '$1', duplicateItemId ) );
+
+		const mw = require( 'mw' );
+		mw.notify( errorText, {
+			type: 'error',
+			tag: 'wikidataInfoboxExport-error'
+		} );
 	}
+
+	const dataValue: ExternalIdDataValue = {
+		value: externalId.toString(),
+		type: 'string'
+	};
+	const snak: Snak = {
+		snaktype: 'value',
+		property: context.propertyId,
+		datavalue: dataValue,
+		datatype: 'external-id'
+	};
+	const references: Reference[] = getReferences( context.$wrapper );
+	const statement: Statement = convertSnakToStatement( snak, references );
+	statements.push( statement );
 
 	return statements;
 }
