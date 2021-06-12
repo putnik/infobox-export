@@ -17,7 +17,7 @@ import {
 import { ApiResponse, SparqlResponse } from './types/api';
 import { canExportQuantity } from './parser/quantity';
 import { Reference, Snak, Statement } from './types/wikidata/main';
-import { DataType, ItemId, PropertyId, typesMapping } from './types/wikidata/types';
+import { DataType, PropertyId, typesMapping } from './types/wikidata/types';
 import {
 	CommonsMediaDataValue,
 	ExternalIdDataValue,
@@ -27,7 +27,6 @@ import {
 } from './types/wikidata/datavalues';
 import { getReferences } from './parser/utils';
 import { createTimeValue } from './parser/time';
-import { getI18n } from './i18n';
 
 export const alreadyExistingItems: KeyValue = {};
 
@@ -284,6 +283,9 @@ export async function prepareExternalId( context: Context ): Promise<Statement[]
 
 	if ( context.propertyId === 'P345' ) { // IMDb
 		externalId = context.$field.find( 'a' ).first().attr( 'href' );
+		if ( !externalId ) {
+			return [];
+		}
 		externalId = externalId.substr( externalId.lastIndexOf( '/', externalId.length - 2 ) ).replace( /\//g, '' );
 	} else {
 		externalId = externalId.toString().replace( /^ID\s/, '' ).replace( /\s/g, '' );
@@ -293,14 +295,9 @@ export async function prepareExternalId( context: Context ): Promise<Statement[]
 	const data: SparqlResponse = await sparqlRequest( sparql );
 	if ( data.results.bindings.length ) {
 		const url: string = data.results.bindings[ 0 ].item.value;
-		const duplicateItemId: ItemId = url.replace( /^.*(Q\d+)$/, '$1' ) as ItemId;
-		const errorText: string = uppercaseFirst( getI18n( 'already-used-in' ).replace( '$1', duplicateItemId ) );
+		window.open( `${url}#${context.propertyId}`, '_blank' );
 
-		const mw = require( 'mw' );
-		mw.notify( errorText, {
-			type: 'error',
-			tag: 'wikidataInfoboxExport-error'
-		} );
+		return [];
 	}
 
 	const dataValue: ExternalIdDataValue = {

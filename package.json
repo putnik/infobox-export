@@ -14,7 +14,8 @@
   },
   "pre-commit": [
     "lint",
-    "test"
+    "test",
+    "build"
   ],
   "sideEffects": false,
   "keywords": [],
