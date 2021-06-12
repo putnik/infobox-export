@@ -17,8 +17,6 @@
 }
 
 .wikidata-infobox-export-dialog .wb-monolingualtext-language-name {
-    float: left;
-    margin-right: .25em;
     color: #54595d;
     font-weight: normal;
 }

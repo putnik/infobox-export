@@ -4,7 +4,7 @@ import { ItemValue, TimeValue, UrlValue } from './types/wikidata/values';
 import { ApiResponse } from './types/api';
 import { wdApiRequest } from './api';
 import { KeyValue } from './types/main';
-import { userLanguage } from './languages';
+import { allLanguages, contentLanguage, userLanguage } from './languages';
 import { getConfig } from './config';
 import { Reference, Snak, Statement } from './types/wikidata/main';
 
@@ -52,12 +52,14 @@ export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
 	const data: ApiResponse = await wdApiRequest( {
 		action: 'wbgetentities',
 		ids: value.id,
-		languages: userLanguage,
+		languages: allLanguages,
 		props: [ 'labels', 'descriptions' ]
 	} );
 	const itemData: KeyValue = data.entities[ value.id ];
-	const label: string | undefined = ( itemData.labels[ userLanguage ] || {} ).value; // FIXME
-	const description: string | undefined = ( itemData.descriptions[ userLanguage ] || {} ).value; // FIXME
+	const labelObject: KeyValue = itemData.labels[ userLanguage ] || itemData.labels[ contentLanguage ] || itemData.labels.en || {};
+	const label: string = labelObject.value || value.id;
+	const descriptionObject: KeyValue = itemData.descriptions[ userLanguage ] || itemData.descriptions[ contentLanguage ] || itemData.descriptions.en || {};
+	const description: string | undefined = descriptionObject.value;
 
 	const $mainLabel: JQuery = $( '<span>' )
 		.addClass( 'wikidata-infobox-export-main-label' )
