@@ -2,5 +2,7 @@
 	"re-circa": "(?:~|тақр(?:ибан)?|тахм(?:инан)?)\\.?",
 	"re-unknown": "^(\\?|номаълум)$",
 	"mark-checked": "Тафтишшуда",
-	"mark-archived": "Бойгонишуда"
+	"mark-archived": "Бойгонишуда",
+	"units": {},
+	"fixed-values": []
 }

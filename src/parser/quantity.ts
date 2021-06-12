@@ -1,5 +1,5 @@
 import { Context, KeyValue } from '../types/main';
-import { getConfig } from '../config';
+import { getConfig, getProperty, getUnit } from '../config';
 import { QuantityValue, TimeValue } from '../types/wikidata/values';
 import { getI18n } from '../i18n';
 import { randomEntityGuid, generateItemSnak } from '../wikidata';
@@ -179,7 +179,7 @@ export function parseQuantity( text: string, propertyId: PropertyId, forceIntege
 /**
  * Recognition of units of measurement in the infobox parameter and its label
  */
-function recognizeUnits( text: string, units: KeyValue, label?: string ): Unit[] {
+async function recognizeUnits( text: string, units: KeyValue, label?: string ): Promise<Unit[]> {
 	if ( Array.isArray( units ) && units.length === 0 ) {
 		return [ '1' ];
 	}
@@ -189,7 +189,7 @@ function recognizeUnits( text: string, units: KeyValue, label?: string ): Unit[]
 			continue;
 		}
 		const itemId: ItemId = parseInt( idx, 10 ) >= 0 ? units[ idx ] : idx;
-		const search: string = getConfig( `units.${itemId}.search` );
+		const search: string[] = await getUnit( itemId );
 		for ( let j = 0; j < search.length; j++ ) {
 			let expr = search[ j ];
 			if ( search[ j ].charAt( 0 ) !== '^' ) {
@@ -234,7 +234,7 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 		text = amount + getI18n( 'unit-sec' );
 	}
 
-	const forceInteger: boolean = getConfig( `properties.${context.propertyId}.constraints.integer` );
+	const forceInteger: boolean = await getProperty( context.propertyId, 'constraints.integer' );
 	let statement: Statement | void = parseQuantity( text, context.propertyId, forceInteger );
 	if ( !statement ) {
 		return [];
@@ -247,7 +247,7 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 
 	statement = await addQualifiers( context.$field, statement );
 
-	if ( getConfig( `properties.${context.propertyId}.constraints.qualifier` ).indexOf( 'P585' ) !== -1 ) {
+	if ( ( await getProperty( context.propertyId, 'constraints.qualifier' ) ).indexOf( 'P585' ) !== -1 ) {
 		let yearMatch: string[] = context.text.match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
 		if ( !yearMatch ) {
 			yearMatch = thText.match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
@@ -278,7 +278,7 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 			const qualifierQuantity: QuantityValue = qualifierQuantitySnak.datavalue.value as QuantityValue;
 			const supportedProperties: PropertyId[] = [ 'P2076', 'P2077' ];
 			for ( let j = 0; j < supportedProperties.length; j++ ) {
-				const units: Unit[] = recognizeUnits( qualifierMatch[ 1 ], getConfig( `properties.${supportedProperties[ j ]}.units` ) );
+				const units: Unit[] = await recognizeUnits( qualifierMatch[ 1 ], await getProperty( supportedProperties[ j ], 'units' ) );
 				if ( units.length === 1 ) {
 					qualifierQuantity.unit = units[ 0 ];
 					if ( !statement.qualifiers ) {
@@ -298,7 +298,7 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 		}
 	}
 
-	const foundUnits: Unit[] = recognizeUnits( text, getConfig( `properties.${context.propertyId}.units` ), thText );
+	const foundUnits: Unit[] = await recognizeUnits( text, await getProperty( context.propertyId, 'units' ), thText );
 	for ( let u = 0; u < foundUnits.length; u++ ) {
 		const newStatement: Statement = clone( statement );
 		( newStatement.mainsnak.datavalue.value as QuantityValue ).unit = foundUnits[ u ];

@@ -18,7 +18,7 @@ import {
 } from 'ooui';
 
 import { getI18n } from './i18n';
-import { getConfig, getPropertyField } from './config';
+import { getConfig, getProperty } from './config';
 import { alreadyExistingItems } from './parser';
 import { convertStatementsToClaimsObject, createClaims } from './wikidata';
 import { formatReferences, formatSnak } from './formatter';
@@ -49,7 +49,7 @@ async function getQualifierFields( qualifiers: SnaksObject ): Promise<JQuery> {
 
 		for ( const i in qualifiers[ qualifierPropertyId ] ) {
 			const qualifierSnak: Snak = qualifiers[ qualifierPropertyId ][ i ];
-			const qualifierPropertyLabel: string = await getPropertyField( qualifierPropertyId as PropertyId, 'label' );
+			const qualifierPropertyLabel: string = await getProperty( qualifierPropertyId as PropertyId, 'label' );
 			const $qualifierPropertyLabel = $( '<span>' ).text( qualifierPropertyLabel );
 			const $qualifierLabel: JQuery = await formatSnak( qualifierSnak );
 
@@ -60,7 +60,7 @@ async function getQualifierFields( qualifiers: SnaksObject ): Promise<JQuery> {
 }
 
 async function getPropertyFieldset( propertyId: PropertyId, statements: Statement[] ): Promise<any> {
-	const label: string = await getPropertyField( propertyId, 'label' );
+	const label: string = await getProperty( propertyId, 'label' );
 	const $labelLink: JQuery = $( '<a>' )
 		.attr( 'href', `https://wikidata.org/wiki/Property:${propertyId}` )
 		.attr( 'rel', 'noopener noreferrer' )
@@ -92,14 +92,15 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 			indeterminate: isAlreadyInWikidata
 		} );
 		if ( !checkbox.isDisabled() ) {
-			if ( !firstSelected || !getConfig( `properties.${propertyId}.constraints.unique` ) ) {
+			const isUnique: boolean = await getProperty( propertyId, 'constraints.unique' );
+			if ( !firstSelected || !isUnique ) {
 				firstSelected = true;
 				checkbox.setSelected( true );
 			}
 
 			if ( $label[ 0 ].innerText.match( new RegExp( getI18n( 'already-used-in' ) ) ) &&
-				getConfig( `properties.${propertyId}.constraints.unique` ) &&
-				getConfig( `properties.${propertyId}.datatype` ) === 'external-id' ) {
+				await getProperty( propertyId, 'constraints.unique' ) &&
+				await getProperty( propertyId, 'datatype' ) === 'external-id' ) {
 				checkbox.setSelected( false );
 			}
 		}

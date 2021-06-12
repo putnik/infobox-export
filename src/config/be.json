@@ -14,5 +14,7 @@
 	"re-10_12": "трлн|трыльён",
 	"mark-checked": "Праверана",
 	"mark-archived": "Архівавана",
-	"mark-julian": "па юліянскім"
+	"mark-julian": "па юліянскім",
+	"units": {},
+	"fixed-values": []
 }

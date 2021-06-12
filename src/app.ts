@@ -11,7 +11,7 @@ import {
 	prepareUrl
 } from './parser';
 import { getI18n } from './i18n';
-import { getConfig, loadConfig, loadProperties, saveConfig, setConfig } from './config';
+import { getProperty, loadConfig, loadProperties, saveConfig, setConfig } from './config';
 import { showDialog } from './ui';
 import { loadMonths } from './months';
 import { ApiResponse, SparqlResponse } from './types/api';
@@ -25,7 +25,7 @@ const $ = require( 'jquery' );
 const mw = require( 'mw' );
 const ooui = require( 'ooui' );
 
-const propertyIds = [ 'P2076', 'P2077' ]; // Temperature and pressure for qualifiers
+const propertyIds: PropertyId[] = [ 'P2076', 'P2077' ]; // Temperature and pressure for qualifiers
 let windowManager;
 
 /**
@@ -33,7 +33,7 @@ let windowManager;
  */
 async function parseField( $field: JQuery ): Promise<Statement[]> {
 	const propertyId = $field.data( 'wikidata-property-id' );
-	const datatype: DataType = getConfig( `properties.${propertyId}.datatype` );
+	const datatype: DataType = await getProperty( propertyId, 'datatype' );
 
 	const context: Context = {
 		propertyId: propertyId,

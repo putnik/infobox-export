@@ -14,5 +14,7 @@
 	"re-10_12": "Billionen",
 	"mark-checked": "Überprüft",
 	"mark-archived": "Archiviert",
-	"mark-julian": "Julianisch"
+	"mark-julian": "Julianisch",
+	"units": {},
+	"fixed-values": []
 }

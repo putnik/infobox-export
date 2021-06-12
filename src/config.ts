@@ -4,7 +4,7 @@ import { KeyValue, Translations } from './types/main';
 import { ApiResponse } from './types/api';
 import { wdApiRequest } from './api';
 import { get, set, unique, uppercaseFirst } from './utils';
-import { PropertyId } from './types/wikidata/types';
+import { ItemId, PropertyId } from './types/wikidata/types';
 
 const mw = require( 'mw' );
 
@@ -32,18 +32,20 @@ const i18nConfig: Translations = {
 	tr: require( './config/tr.json' )
 };
 
-function getI18nConfig( key: string ): any {
+function getI18nConfig( path: string ): any {
 	let result: any;
-	if ( userLanguage in i18nConfig && key in i18nConfig[ userLanguage ] ) {
-		result = i18nConfig[ userLanguage ][ key ];
-	} else if ( key in i18nConfig.en ) {
-		result = i18nConfig.en[ key ];
-	} else {
-		console.warn( 'Config missed for "' + key + '"' );
+	if ( contentLanguage in i18nConfig ) {
+		result = get( i18nConfig[ contentLanguage ], path );
+	}
+	if ( result === undefined ) {
+		result = get( i18nConfig.en, path );
+	}
+	if ( result === undefined ) {
+		console.debug( 'Config missed for "' + path + '"' );
 		return undefined;
 	}
 
-	if ( key.match( /^re-/ ) ) {
+	if ( path.match( /^re-/ ) ) {
 		if ( result === '' ) {
 			result = '^@{999}$'; // impossible regexp
 		}
@@ -60,7 +62,7 @@ function getI18nConfig( key: string ): any {
  */
 export function getConfig( path: string ): any {
 	const result: any = get( config, path );
-	if ( result ) {
+	if ( result !== undefined ) {
 		return result;
 	}
 
@@ -111,15 +113,71 @@ export function loadConfig(): void {
 	}
 }
 
+function loadUnit( unitId: ItemId, unitData: any ): void {
+	let unit: string[] = get( config, `units.${unitId}` ) || [];
+	if ( unit.length ) {
+		return;
+	}
+
+	if ( getI18nConfig( `units.${unitId}` ) ) {
+		unit = getI18nConfig( `units.${unitId}` );
+	}
+
+	if ( unitData.labels && unitData.labels[ contentLanguage ] ) {
+		unit.push( unitData.labels[ userLanguage ].value.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
+	}
+
+	if ( unitData.aliases && unitData.aliases[ contentLanguage ] ) {
+		for ( const i in unitData.aliases[ contentLanguage ] ) {
+			unit.push( unitData.aliases[ contentLanguage ][ i ].value.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
+		}
+	}
+
+	if ( unitData.claims && unitData.claims.P5061 ) {
+		for ( const i in unitData.claims.P5061 ) {
+			const claim = unitData.claims.P5061[ i ];
+			if ( claim.mainsnak &&
+				claim.mainsnak.datavalue &&
+				claim.mainsnak.datavalue.value
+			) {
+				unit.push( claim.mainsnak.datavalue.value.text.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
+			}
+		}
+	}
+
+	setConfig( `units.${unitId}`, unique( unit ) );
+	console.debug( `Unit ${unitId} loaded.` );
+}
+
+async function loadUnits( units: ItemId[] ): Promise<void> {
+	for ( let idx = 0; idx < unique( units ).length; idx += 50 ) {
+		const unitData: ApiResponse = await wdApiRequest( {
+			action: 'wbgetentities',
+			languages: contentLanguage,
+			props: [ 'labels', 'aliases', 'claims' ],
+			ids: unique( units ).slice( idx, idx + 50 )
+		} );
+		if ( !unitData.success ) {
+			return;
+		}
+
+		for ( const unitId in unitData.entities ) {
+			loadUnit( unitId as ItemId, unitData.entities[ unitId ] );
+		}
+	}
+
+	saveConfig();
+}
+
 /**
  * Preload information on all properties
  */
-async function realLoadProperties( propertyIds: string[] ): Promise<void> {
+async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 	if ( !propertyIds || !propertyIds.length ) {
 		return;
 	}
 
-	const units: string[] = [];
+	const units: ItemId[] = [];
 	const data: ApiResponse = await wdApiRequest( {
 		action: 'wbgetentities',
 		languages: allLanguages,
@@ -130,22 +188,27 @@ async function realLoadProperties( propertyIds: string[] ): Promise<void> {
 		return;
 	}
 
-	for ( const propertyId in data.entities ) {
-		if ( !data.entities.hasOwnProperty( propertyId ) ) {
+	for ( const key in data.entities ) {
+		if ( !data.entities.hasOwnProperty( key ) ) {
 			continue;
 		}
+		const propertyId: PropertyId = key as PropertyId;
 		const entity: KeyValue = data.entities[ propertyId ];
 		const label: string = entity.labels[ contentLanguage ] ?
 			entity.labels[ contentLanguage ].value :
 			entity.labels.en.value;
-		setConfig( `properties.${propertyId}`, {
+		const propertyData: KeyValue = {
 			datatype: entity.datatype,
 			label: uppercaseFirst( label ),
-			constraints: { qualifier: [] },
+			constraints: {
+				integer: false,
+				unique: false,
+				qualifier: []
+			},
 			units: []
-		} );
+		};
 		if ( propertyId === 'P1128' || propertyId === 'P2196' ) {
-			setConfig( `properties.${propertyId}.constraints.integer`, 1 );
+			propertyData.constraints.integer = true;
 		}
 		// Property restrictions
 		if ( entity.claims && entity.claims.P2302 ) {
@@ -155,27 +218,25 @@ async function realLoadProperties( propertyIds: string[] ): Promise<void> {
 				switch ( type ) {
 					case 'Q19474404':
 					case 'Q21502410':
-						setConfig( `properties.${propertyId}.constraints.unique`, 1 );
+						propertyData.constraints.unique = true;
 						break;
+
 					case 'Q21510856': // Required
 						qualifiers = ( ( ( entity.claims.P2302[ i ] || {} ).qualifiers || {} ).P2306 || [] );
 						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
 							const qualifierId = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
 							if ( qualifierId ) {
-								const qualifiers: string[] = getConfig( `properties.${propertyId}.constraints.qualifier` );
-								qualifiers.push( qualifierId.toString() );
-								setConfig( `properties.${propertyId}.constraints.qualifier`, qualifiers );
+								propertyData.constraints.qualifier.push( qualifierId.toString() );
 							}
 						}
 						break;
+
 					case 'Q21514353': // Units
 						qualifiers = ( ( ( entity.claims.P2302[ i ] || {} ).qualifiers || {} ).P2305 || [] );
 						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
-							const unitId: string = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
+							const unitId: ItemId = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
 							if ( unitId ) {
-								const configUnits: string[] = getConfig( `properties.${propertyId}.units` ) || [];
-								configUnits.push( unitId );
-								setConfig( `properties.${propertyId}.units`, configUnits );
+								propertyData.units.push( unitId );
 								units.push( unitId );
 							}
 						}
@@ -183,86 +244,27 @@ async function realLoadProperties( propertyIds: string[] ): Promise<void> {
 				}
 			}
 		}
-
-		for ( let idx = 0; idx < unique( units ).length; idx += 50 ) {
-			const unitData: ApiResponse = await wdApiRequest( {
-				action: 'wbgetentities',
-				languages: allLanguages,
-				props: [ 'labels', 'descriptions', 'aliases', 'claims' ],
-				ids: unique( units ).slice( idx, idx + 50 )
-			} );
-			if ( !unitData.success ) {
-				return;
-			}
-
-			for ( const unitId in unitData.entities ) {
-				const unit = unitData.entities[ unitId ];
-				const unitSearch = getConfig( `units.${unitId}.search` ) || [];
-				if ( !getConfig( `units.${unitId}` ) ) {
-					setConfig( `units.${unitId}`, {} );
-				}
-
-				// Label
-				if ( unit.labels ) {
-					setConfig( `units.${unitId}.label`,
-						unit.labels[ userLanguage ] ||
-						unit.labels.en ||
-						unit.labels[ Object.keys( unit.labels )[ 0 ] ]
-					);
-
-					if ( unit.labels[ userLanguage ] ) {
-						unitSearch.push( unit.labels[ userLanguage ].value.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
-					}
-				}
-
-				// Description
-				if ( unit.descriptions ) {
-					setConfig( `units.${unitId}.description`,
-						unit.descriptions[ userLanguage ] ||
-						unit.descriptions.en ||
-						unit.descriptions[ Object.keys( unit.labels )[ 0 ] ]
-					);
-				}
-
-				// Aliases
-				if ( unit.aliases && unit.aliases[ userLanguage ] ) {
-					for ( const i in unit.aliases[ userLanguage ] ) {
-						unitSearch.push( unit.aliases[ userLanguage ][ i ].value.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
-					}
-				}
-
-				// Units (P5061)
-				if ( unit.claims && unit.claims.P5061 ) {
-					for ( const i in unit.claims.P5061 ) {
-						const claim = unit.claims.P5061[ i ];
-						if ( claim.mainsnak &&
-							claim.mainsnak.datavalue &&
-							claim.mainsnak.datavalue.value
-						) {
-							unitSearch.push( claim.mainsnak.datavalue.value.text.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
-						}
-					}
-				}
-				setConfig( `units.${unitId}.search`, unique( unitSearch ) );
-
-				saveConfig();
-			}
-		}
+		setConfig( `properties.${propertyId}`, propertyData );
+		console.debug( `Property ${propertyId} loaded.` );
 	}
+
+	saveConfig();
+
+	await loadUnits( units );
 }
 
 /**
  * Wrapper for property preloading that excludes already loaded properties
  */
-export async function loadProperties( propertyIds: string[] ): Promise<void> {
+export async function loadProperties( propertyIds: PropertyId[] ): Promise<void> {
 	if ( !propertyIds || !propertyIds.length ) {
 		return;
 	}
 
-	const realPropertyIds = [];
+	const realPropertyIds: PropertyId[] = [];
 	for ( const i in propertyIds ) {
-		const propertyId = propertyIds[ i ];
-		if ( propertyId && getConfig( `properties.${propertyId}` ) === undefined ) {
+		const propertyId: PropertyId = propertyIds[ i ];
+		if ( propertyId && get( config, `properties.${propertyId}` ) === undefined ) {
 			realPropertyIds.push( propertyId );
 		}
 	}
@@ -272,7 +274,31 @@ export async function loadProperties( propertyIds: string[] ): Promise<void> {
 	}
 }
 
-export async function getPropertyField( propertyId: PropertyId, field: string ): Promise<string> {
+export async function getProperty( propertyId: PropertyId, field: string | void ): Promise<any> {
 	await loadProperties( [ propertyId ] );
-	return getConfig( `properties.${propertyId}.${field}` );
+
+	let result: any;
+	if ( field ) {
+		result = get( config, `properties.${propertyId}.${field}` );
+	} else {
+		result = get( config, `properties.${propertyId}` );
+	}
+	if ( result === undefined ) {
+		console.debug( `Config missed for property ${propertyId}` + ( field ? ` , field ${field}` : '' ) );
+	}
+
+	return result;
+}
+
+export async function getUnit( unitId: ItemId ): Promise<string[]> {
+	if ( !get( config, `units.${unitId}` ) ) {
+		await loadUnits( [ unitId ] );
+	}
+
+	const result: string[] = get( config, `units.${unitId}` );
+	if ( !result && !result.length ) {
+		console.debug( `Config missed for unit ${unitId}` );
+	}
+
+	return result;
 }
