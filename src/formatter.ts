@@ -6,7 +6,7 @@ import { wdApiRequest } from './api';
 import { KeyValue } from './types/main';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
 import { getConfig } from './config';
-import { Reference, Snak, Statement } from './types/wikidata/main';
+import { Reference, Snak } from './types/wikidata/main';
 
 function getRefSup( url: string, text: string ): JQuery {
 	const $link: JQuery = $( '<a>' )
@@ -109,54 +109,26 @@ function formatTimeValue( value: TimeValue ): JQuery {
  * Formatting wikidata values for display to the user
  */
 export async function formatSnak( snak: Snak ): Promise<JQuery> {
-	let $label: JQuery;
+	if ( snak.snaktype === 'novalue' ) {
+		return $( '<span>' )
+			.addClass( 'infobox-export-novalue' )
+			.text( getI18n( 'value-prefix' ) + getI18n( 'no-value' ) );
+	}
+	if ( snak.snaktype === 'somevalue' ) {
+		return $( '<span>' )
+			.addClass( 'infobox-export-somevalue' )
+			.text( getI18n( 'value-prefix' ) + getI18n( 'unknown-value' ) );
+	}
+
 	switch ( snak.datatype ) {
 		case 'time':
 			// '''XIV century''' (Julian)
-			$label = await formatTimeValue( snak.datavalue.value as TimeValue );
-			break;
+			return formatTimeValue( snak.datavalue.value as TimeValue );
 
 		case 'wikibase-item':
 			// '''Label''': description
-			$label = await formatItemValue( snak.datavalue.value as ItemValue );
-			break;
-
-		default:
-			$label = await wbFormatValue( snak );
+			return formatItemValue( snak.datavalue.value as ItemValue );
 	}
 
-	return $label;
-}
-
-export async function formatStatement( statement: Statement ): Promise<JQuery> {
-	const $: JQueryStatic = require( 'jquery' );
-	const $label: JQuery = await formatSnak( statement.mainsnak );
-
-	for ( const qualifierPropertyId in statement.qualifiers ) {
-		if ( !statement.qualifiers.hasOwnProperty( qualifierPropertyId ) ) {
-			continue;
-		}
-
-		const qualifierSnak: Snak = statement.qualifiers[ qualifierPropertyId ][ 0 ];
-
-		if ( qualifierPropertyId === 'P1480' ) {
-			const value: ItemValue = qualifierSnak.datavalue.value as ItemValue;
-			if ( value.id === 'Q5727902' ) {
-				$label.prepend(
-					$( '<abbr>' )
-						.attr( 'title', getI18n( 'circa-title' ) )
-						.text( getI18n( 'circa-prefix' ) ),
-					' '
-				);
-				continue;
-			}
-		}
-
-		const $formatted: JQuery = await formatSnak( qualifierSnak );
-		if ( $formatted && $( '<span>' ).append( $formatted ).text() ) {
-			$label.append( $( '<span>' ).append( ' (', $formatted, ')' ) );
-		}
-	}
-
-	return $label;
+	return wbFormatValue( snak );
 }

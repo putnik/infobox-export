@@ -242,3 +242,10 @@ export function convertStatementsToClaimsObject( statements: Statement[] ): Clai
 	}
 	return claimObject;
 }
+
+export function createNovalueSnak( propertyId: PropertyId ): Snak {
+	return {
+		snaktype: 'novalue',
+		property: propertyId
+	};
+}

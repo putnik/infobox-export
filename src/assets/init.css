@@ -93,3 +93,9 @@
         transform: rotate(360deg);
     }
 }
+
+.infobox-export-novalue,
+.infobox-export-somevalue {
+    font-style: italic;
+    color: #54595d;
+}

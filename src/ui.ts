@@ -78,6 +78,7 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 		const propertyId: PropertyId = statement.mainsnak.property;
 		let isAlreadyInWikidata: boolean = false;
 		if (
+			statement.mainsnak.snaktype === 'value' &&
 			statement.mainsnak.datavalue.type === 'wikibase-entityid' &&
 			alreadyExistingItems[ propertyId ] &&
 			alreadyExistingItems[ propertyId ].includes( ( statement.mainsnak.datavalue.value as ItemValue ).id )

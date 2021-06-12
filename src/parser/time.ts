@@ -1,7 +1,7 @@
 import { Reference, Snak, Statement } from '../types/wikidata/main';
 import { getConfig } from '../config';
 import { TimeValue, Value } from '../types/wikidata/values';
-import { convertSnakToStatement, grigorianCalendar, julianCalendar } from '../wikidata';
+import { convertSnakToStatement, createNovalueSnak, grigorianCalendar, julianCalendar } from '../wikidata';
 import { TimeDataValue } from '../types/wikidata/datavalues';
 import { getReferences } from './utils';
 import { Context, KeyValue, TimeGuess } from '../types/main';
@@ -114,14 +114,15 @@ function guessDateAndPrecision( timestamp: string ): TimeGuess {
 	}
 
 	return {
-		type: 'novalue'
+		type: 'somevalue'
 	};
 }
 
 /**
- * Format dates as datavalue for Wikidata
+ * Format dates as datavalue for Wikidata.
+ * Returns null for novalue and undefined for somevalue or if nothing found.
  */
-export function createTimeValue( timestamp: string, forceJulian: boolean | void ): TimeValue | void {
+export function createTimeValue( timestamp: string, forceJulian: boolean | void ): TimeValue | null | undefined {
 	if ( !timestamp ) {
 		return;
 	}
@@ -152,7 +153,9 @@ export function createTimeValue( timestamp: string, forceJulian: boolean | void 
 	}
 
 	const guess: TimeGuess = guessDateAndPrecision( timestamp );
-	if ( guess.type !== 'value' ) {
+	if ( guess.type === 'novalue' ) {
+		return null;
+	} else if ( guess.type !== 'value' ) {
 		return;
 	}
 
@@ -202,16 +205,26 @@ export function prepareTime( context: Context ): Statement[] {
 	if ( timeText.match( /.{4,}[-−–—].{4,}/ ) && startEndPropertyMapping[ context.propertyId ] ) {
 		const parts: string[] = timeText.split( /[-−–—]/ );
 		if ( parts.length === 2 ) {
-			const startDateValue: Value | void = createTimeValue( parts[ 0 ], isJulian );
-			const endDateValue: Value | void = createTimeValue( parts[ 1 ], isJulian );
-			if ( startDateValue && endDateValue ) {
+			const startDateValue: Value | null | undefined = createTimeValue( parts[ 0 ], isJulian );
+			const endDateValue: Value | null | undefined = createTimeValue( parts[ 1 ], isJulian );
+			if ( startDateValue !== undefined && endDateValue !== undefined ) {
 				const references: Reference[] = getReferences( context.$wrapper );
 
-				const startDateSnak: Snak = createTimeSnak( startDateValue, context.propertyId );
+				let startDateSnak: Snak;
+				if ( startDateValue ) {
+					startDateSnak = createTimeSnak( startDateValue, context.propertyId );
+				} else {
+					startDateSnak = createNovalueSnak( context.propertyId );
+				}
 				const startDateStatement: Statement = convertSnakToStatement( startDateSnak, references );
 				statements.push( startDateStatement );
 
-				const endDateSnak: Snak = createTimeSnak( endDateValue, startEndPropertyMapping[ context.propertyId ] );
+				let endDateSnak: Snak;
+				if ( endDateValue ) {
+					endDateSnak = createTimeSnak( endDateValue, startEndPropertyMapping[ context.propertyId ] );
+				} else {
+					endDateSnak = createNovalueSnak( startEndPropertyMapping[ context.propertyId ] );
+				}
 				const endDateStatement: Statement = convertSnakToStatement( endDateSnak, references );
 				statements.push( endDateStatement );
 

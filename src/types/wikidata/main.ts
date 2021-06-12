@@ -5,8 +5,8 @@ export interface Snak {
 	snaktype: SnakType;
 	property: PropertyId;
 	hash?: string;
-	datavalue: DataValue;
-	datatype: DataType;
+	datavalue?: DataValue;
+	datatype?: DataType;
 }
 
 export type SnaksObject = {
