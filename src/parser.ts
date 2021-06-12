@@ -347,7 +347,7 @@ export function prepareMonolingualText( context: Context ): Statement[] {
 			} );
 		}
 	}
-	if ( Object.values( values ).length > 1 && values.und ) {
+	if ( values.und ) {
 		delete values.und;
 	}
 
