@@ -230,7 +230,7 @@ export async function init(): Promise<any> {
 	mw.util.addCSS( css );
 
 	const $exportAll: JQuery = $( '<div>' )
-		.addClass( 'wikidata-infobox-export-all' )
+		.addClass( 'infobox-export-all' )
 		.attr( 'title', getI18n( 'export-all' ) )
 		.on( 'click', exportAll );
 	const $container: JQuery = $( '.infobox:not(.vertical-navbox)' ).find( 'caption:visible, th:visible, td:visible' ).first();

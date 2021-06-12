@@ -12,56 +12,56 @@
     margin: -5px 0;
 }
 
-.wikidata-infobox-export-dialog .wb-monolingualtext-value {
+.infobox-export-dialog .wb-monolingualtext-value {
     font-weight: bold;
 }
 
-.wikidata-infobox-export-dialog .wb-monolingualtext-language-name {
+.infobox-export-dialog .wb-monolingualtext-language-name {
     color: #54595d;
     font-weight: normal;
 }
 
-.wikidata-infobox-export-calendar {
+.infobox-export-calendar {
     margin-left: .25em;
     color: #54595d;
 }
 
-.wikidata-infobox-export-calendar::before {
+.infobox-export-calendar::before {
     display: inline-block;
     content: '(';
 }
 
-.wikidata-infobox-export-calendar::after {
+.infobox-export-calendar::after {
     display: inline-block;
     content: ')';
 }
 
-.wikidata-infobox-export-statement .wikidata-infobox-export-main-label {
+.infobox-export-statement .infobox-export-main-label {
     font-weight: bold;
 }
 
-.wikidata-infobox-export-statement .wikidata-infobox-export-main-label .commons-media-caption,
-.wikidata-infobox-export-statement .wikidata-infobox-export-main-label .wb-unit,
-.wikidata-infobox-export-statement .wikidata-infobox-export-main-label .wikidata-infobox-export-sup {
+.infobox-export-statement .infobox-export-main-label .commons-media-caption,
+.infobox-export-statement .infobox-export-main-label .wb-unit,
+.infobox-export-statement .infobox-export-main-label .infobox-export-sup {
     font-weight: normal;
 }
 
-.wikidata-infobox-export-sup {
+.infobox-export-sup {
     margin-left: .1em;
 }
 
-.wikidata-infobox-export-qualifiers {
+.infobox-export-qualifiers {
     margin-left: 0;
     list-style: none;
 }
 
-.wikidata-infobox-export-dialog .commons-media-caption,
-.wikidata-infobox-export-qualifiers .wb-monolingualtext-language-name,
-.wikidata-infobox-export-qualifiers .wikidata-infobox-export-calendar {
+.infobox-export-dialog .commons-media-caption,
+.infobox-export-qualifiers .wb-monolingualtext-language-name,
+.infobox-export-qualifiers .infobox-export-calendar {
     display: none;
 }
 
-.wikidata-infobox-export-all {
+.infobox-export-all {
     display: none;
     float: right;
     margin-right: 0.3em;
@@ -76,17 +76,17 @@
     z-index: 1;
 }
 
-.wikidata-infobox-export-all.loader {
+.infobox-export-all.loader {
     margin-top: 2px;
     background-image: url( '//upload.wikimedia.org/wikipedia/commons/1/17/OOjs_UI_icon_reload.svg' );
     cursor: default;
-    animation-name: spin;
+    animation-name: infobox-export-spin;
     animation-duration: 4000ms;
     animation-iteration-count: infinite;
     animation-timing-function: linear;
 }
 
-@keyframes spin {
+@keyframes infobox-export-spin {
     from {
         transform: rotate(0deg);
     } to {

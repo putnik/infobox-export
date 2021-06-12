@@ -15,7 +15,7 @@ function getRefSup( url: string, text: string ): JQuery {
 		.attr( 'target', '_blank' )
 		.text( `[${text}]` );
 	return $( '<sup>' )
-		.addClass( 'wikidata-infobox-export-sup' )
+		.addClass( 'infobox-export-sup' )
 		.append( $link );
 }
 
@@ -62,7 +62,7 @@ export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
 	const description: string | undefined = descriptionObject.value;
 
 	const $mainLabel: JQuery = $( '<span>' )
-		.addClass( 'wikidata-infobox-export-main-label' )
+		.addClass( 'infobox-export-main-label' )
 		.html( label );
 	const $wdLink: JQuery = getRefSup( `https://wikidata.org/wiki/${value.id}`, 'd' );
 	const $label: JQuery = $( '<span>' ).append( $mainLabel, $wdLink );
@@ -100,7 +100,7 @@ function formatTimeValue( value: TimeValue ): JQuery {
 
 	$label
 		.append( $( '<strong>' ).text( dateString ) )
-		.append( $( '<span>' ).text( calendar ).addClass( 'wikidata-infobox-export-calendar' ) );
+		.append( $( '<span>' ).text( calendar ).addClass( 'infobox-export-calendar' ) );
 
 	return $label;
 }

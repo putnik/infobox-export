@@ -41,7 +41,7 @@ export function errorDialog( title: string, message: string ): void {
 }
 
 async function getQualifierFields( qualifiers: SnaksObject ): Promise<JQuery> {
-	const $qualifierFields: JQuery = $( '<ul>' ).addClass( 'wikidata-infobox-export-qualifiers' );
+	const $qualifierFields: JQuery = $( '<ul>' ).addClass( 'infobox-export-qualifiers' );
 	for ( const qualifierPropertyId in qualifiers ) {
 		if ( !qualifiers.hasOwnProperty( qualifierPropertyId ) ) {
 			continue;
@@ -112,7 +112,7 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 			label: $label,
 			align: 'inline',
 			classes: [
-				'wikidata-infobox-export-statement'
+				'infobox-export-statement'
 			],
 			helpInline: true
 		};
@@ -216,7 +216,7 @@ export async function showDialog( statements: Statement[] ) {
 	$( 'body' ).append( _windowManager.$element );
 	const processDialog = new ExtProcessDialog( {
 		classes: [
-			'wikidata-infobox-export-dialog'
+			'infobox-export-dialog'
 		]
 	} );
 	_windowManager.addWindows( [ processDialog ] );

@@ -226,7 +226,7 @@ export async function wbFormatValue( snak: Snak ): Promise<JQuery> {
 		return $( '<span>' ).addClass( 'error' ).text( firstError );
 	}
 	return $( '<span>' )
-		.addClass( 'wikidata-infobox-export-main-label' )
+		.addClass( 'infobox-export-main-label' )
 		.html( response.result );
 }
 
