@@ -17,5 +17,55 @@
 	"re-10_12": "трлн",
 	"mark-checked": "Проверено",
 	"mark-archived": "Архивировано",
-	"mark-julian": "по юлианскому"
+	"mark-julian": "по юлианскому",
+	"fixed-values": [
+		{
+			"property": "P21",
+			"search": "жен",
+			"item": "Q6581072",
+			"label": "женский"
+		},
+		{
+			"property": "P21",
+			"search": "муж",
+			"item": "Q6581097",
+			"label": "мужской"
+		},
+		{
+			"property": "P423",
+			"search": "прав",
+			"item": "Q10927630",
+			"label": "праворукий удар"
+		},
+		{
+			"property": "P423",
+			"search": "лев",
+			"item": "Q10927615",
+			"label": "леворукий удар"
+		},
+		{
+			"property": "P552",
+			"search": "прав",
+			"item": "Q3039938",
+			"label": "правша"
+		},
+		{
+			"property": "P552",
+			"search": "лев",
+			"item": "Q789447",
+			"label": "левша"
+		},
+		{
+			"property": "P741",
+			"search": "прав",
+			"item": "Q3039938",
+			"label": "правша"
+		},
+		{
+			"property": "P741",
+			"search": "лев",
+			"item": "Q789447",
+			"label": "левша"
+		}
+	]
 }

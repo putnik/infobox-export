@@ -15,7 +15,6 @@ let config: KeyValue = {
 	'storage-key': 'infoboxExportConfig',
 	references: {},
 	units: {},
-	'fixed-values': [],
 	centuries: [ 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII',
 		'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV',
 		'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII' ],
@@ -44,13 +43,12 @@ function getI18nConfig( key: string ): any {
 		return undefined;
 	}
 
-	result = result.replace( '%months%', getMonths().join( '|' ) );
-	result = result.replace( '%months-gen%', getMonthsGen().join( '|' ) );
-
 	if ( key.match( /^re-/ ) ) {
 		if ( result === '' ) {
 			result = '^@{999}$'; // impossible regexp
 		}
+		result = result.replace( '%months%', getMonths().join( '|' ) );
+		result = result.replace( '%months-gen%', getMonthsGen().join( '|' ) );
 		return new RegExp( result );
 	}
 
