@@ -59,12 +59,12 @@ export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
 	const labelObject: KeyValue = itemData.labels[ userLanguage ] ||
 		itemData.labels[ contentLanguage ] ||
 		itemData.labels.en ||
-		Object.values( itemData.labels ).length ? Object.values( itemData.labels ).shift() : {};
+		( Object.values( itemData.labels ).length ? Object.values( itemData.labels ).shift() : {} );
 	const label: string = labelObject.value || value.id;
 	const descriptionObject: KeyValue = itemData.descriptions[ userLanguage ] ||
 		itemData.descriptions[ contentLanguage ] ||
 		itemData.descriptions.en ||
-		Object.values( itemData.descriptions ).length ? Object.values( itemData.descriptions ).shift() : {};
+		( Object.values( itemData.descriptions ).length ? Object.values( itemData.descriptions ).shift() : {} );
 	const description: string | undefined = descriptionObject.value;
 
 	const $mainLabel: JQuery = $( '<span>' )

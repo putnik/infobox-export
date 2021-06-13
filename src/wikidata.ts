@@ -167,7 +167,7 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 		const labelObject: KeyValue = entity.labels[ userLanguage ] ||
 			entity.labels[ contentLanguage ] ||
 			entity.labels.en ||
-			Object.values( entity.labels ).length ? Object.values( entity.labels ).shift() : {};
+			( Object.values( entity.labels ).length ? Object.values( entity.labels ).shift() : {} );
 		const lowerLabel: string = ( labelObject.value || '' ).toLowerCase();
 		const relatedTitles: Title[] = titles.filter( function ( title: Title ) {
 			return title.label.toLowerCase() === lowerLabel;
