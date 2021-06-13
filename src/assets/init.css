@@ -1,14 +1,14 @@
-.infobox .no-wikidata {
+.infobox:not(.vertical-navbox):not([data-from]) .no-wikidata {
     display: block !important;
     background: #fdc;
     padding: 5px 0;
 }
 
-.infobox .no-wikidata.partial-wikidata {
+.infobox:not(.vertical-navbox):not([data-from]) .no-wikidata.partial-wikidata {
     background: #eeb;
 }
 
-.infobox .no-wikidata .no-wikidata {
+.infobox:not(.vertical-navbox):not([data-from]) .no-wikidata .no-wikidata {
     margin: -5px 0;
 }
 
