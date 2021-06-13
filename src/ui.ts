@@ -68,7 +68,7 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 		.text( label );
 
 	const fieldset: any = new FieldsetLayout( {
-		label: $( '<span>' ).append( $labelLink, ': ' )
+		label: $labelLink
 	} );
 	let firstSelected: boolean = false;
 	for ( let i = 0; i < statements.length; i++ ) {
