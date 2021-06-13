@@ -99,3 +99,13 @@
     font-style: italic;
     color: #54595d;
 }
+
+.infobox-export-external-link {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    background: url( 'https://www.wikidata.org/w/skins/Vector/resources/common/images/external-link-ltr-icon.svg' );
+    background-size: cover;
+    vertical-align: text-top;
+    margin-left: .1em;
+}

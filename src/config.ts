@@ -5,6 +5,8 @@ import { ApiResponse } from './types/api';
 import { wdApiRequest } from './api';
 import { get, getLabelValue, set, unique, uppercaseFirst } from './utils';
 import { ItemId, PropertyId } from './types/wikidata/types';
+import { Statement } from './types/wikidata/main';
+import { StringDataValue } from './types/wikidata/datavalues';
 
 const mw = require( 'mw' );
 
@@ -203,11 +205,38 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 				unique: false,
 				qualifier: []
 			},
+			formatter: '',
 			units: []
 		};
+
+		// Don't float people
 		if ( propertyId === 'P1128' || propertyId === 'P2196' ) {
 			propertyData.constraints.integer = true;
 		}
+
+		// Formatter
+		if ( entity.claims && entity.claims.P1630 ) {
+			console.log( 'entity.claims.P1630', entity.claims.P1630 );
+			let bestStatement: Statement | undefined;
+			for ( const i in entity.claims.P1630 ) {
+				const statement: Statement = entity.claims.P1630[ i ];
+				if ( statement.rank === 'deprecated' || statement.mainsnak.snaktype !== 'value' ) {
+					continue;
+				}
+				if ( !bestStatement ) {
+					bestStatement = statement;
+					continue;
+				}
+				if ( statement.rank === 'preferred' ) {
+					bestStatement = statement;
+					break;
+				}
+			}
+			if ( bestStatement ) {
+				propertyData.formatter = ( bestStatement.mainsnak.datavalue as StringDataValue ).value;
+			}
+		}
+
 		// Property restrictions
 		if ( entity.claims && entity.claims.P2302 ) {
 			for ( const i in entity.claims.P2302 ) {
@@ -282,7 +311,7 @@ export async function getProperty( propertyId: PropertyId, field: string | void 
 		result = get( config, `properties.${propertyId}` );
 	}
 	if ( result === undefined ) {
-		console.debug( `Config missed for property ${propertyId}` + ( field ? ` , field ${field}` : '' ) );
+		console.debug( `Config missed for property ${propertyId}` + ( field ? `, field ${field}` : '' ) );
 	}
 
 	return result;

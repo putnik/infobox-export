@@ -1,13 +1,14 @@
 import { getI18n } from './i18n';
 import { wbFormatValue } from './wikidata';
-import { ItemValue, TimeValue, UrlValue } from './types/wikidata/values';
+import { ExternalIdValue, ItemValue, StringValue, TimeValue, UrlValue } from './types/wikidata/values';
 import { ApiResponse } from './types/api';
 import { wdApiRequest } from './api';
 import { KeyValue } from './types/main';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
-import { getConfig } from './config';
+import { getConfig, getProperty } from './config';
 import { Reference, Snak } from './types/wikidata/main';
 import { getLabelValue } from './utils';
+import { PropertyId } from './types/wikidata/types';
 
 function getRefSup( url: string, text: string ): JQuery {
 	const $link: JQuery = $( '<a>' )
@@ -47,6 +48,25 @@ export function formatReferences( references: Reference[] ): JQuery {
 		}
 	}
 	return $result;
+}
+
+export async function formatExternalId( value: ExternalIdValue | StringValue, propertyId?: PropertyId ): Promise<JQuery> {
+	const $mainLabel: JQuery = $( '<span>' )
+		.addClass( 'infobox-export-main-label' )
+		.html( value );
+	const $label: JQuery = $( '<span>' ).append( $mainLabel );
+	if ( propertyId ) {
+		const formatter: string | undefined = await getProperty( propertyId, 'formatter' );
+		if ( formatter ) {
+			const $link = $( '<a>' )
+				.addClass( 'infobox-export-external-link' )
+				.attr( 'href', formatter.replace( '$1', value ) )
+				.attr( 'rel', 'noopener noreferrer' )
+				.attr( 'target', '_blank' );
+			$label.append( $link );
+		}
+	}
+	return $label;
 }
 
 export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
@@ -120,6 +140,10 @@ export async function formatSnak( snak: Snak ): Promise<JQuery> {
 	}
 
 	switch ( snak.datatype ) {
+		case 'external-id':
+			// ID [link]
+			return formatExternalId( snak.datavalue.value as ExternalIdValue, snak.property );
+
 		case 'time':
 			// '''XIV century''' (Julian)
 			return formatTimeValue( snak.datavalue.value as TimeValue );
