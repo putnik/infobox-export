@@ -1,8 +1,8 @@
 import { getRandomHex, unique } from './utils';
 import { getWdApi, wdApiRequest } from './api';
 import { getI18n } from './i18n';
-import { allLanguages, userLanguage } from './languages';
-import { Title } from './types/main';
+import { allLanguages, contentLanguage, userLanguage } from './languages';
+import { KeyValue, Title } from './types/main';
 import { ItemValue } from './types/wikidata/values';
 import { ApiResponse } from './types/api';
 import { Entity, PropertyId } from './types/wikidata/types';
@@ -84,14 +84,14 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 		return [];
 	}
 
-	let languages: string[] = titles.map( function ( item: Title ) {
-		return item.language;
+	let languages: string[] = titles.map( function ( title: Title ) {
+		return title.language;
 	} );
 	languages = $.merge( languages, allLanguages );
 	languages = unique( languages );
 
-	const sites: string[] = titles.map( function ( item: Title ) {
-		return item.project;
+	const sites: string[] = titles.map( function ( title: Title ) {
+		return title.project;
 	} );
 
 	const data: ApiResponse = await wdApiRequest( {
@@ -99,8 +99,8 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 		sites: sites,
 		languages: languages,
 		props: [ 'labels', 'claims' ],
-		titles: titles.map( function ( item: Title ) {
-			return item.label;
+		titles: titles.map( function ( title: Title ) {
+			return title.label;
 		} )
 	} );
 	if ( !data.success ) {
@@ -114,7 +114,7 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 		}
 
 		const entity = data.entities[ entityId ];
-		const label: { value: string } = entity.labels[ userLanguage ] || entity.labels.en || entity.labels[ Object.keys( entity.labels )[ 0 ] ] || { value: '' };
+		const userLabel: { value: string } = entity.labels[ userLanguage ] || entity.labels.en || entity.labels[ Object.keys( entity.labels )[ 0 ] ] || { value: '' };
 
 		if ( ( ( ( ( ( ( ( entity || {} ).claims || {} ).P31 || [] )[ 0 ] || {} ).mainsnak || {} ).datavalue || {} ).value || {} ).id === 'Q4167410' ) {
 			continue; // skip disambigs
@@ -147,12 +147,12 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 
 		if ( subclassFound ) {
 			if ( subclassEntity ) {
-				const subclassLabel: { value: string } = subclassEntity.labels[ userLanguage ] ||
+				const userSubclassLabel: { value: string } = subclassEntity.labels[ userLanguage ] ||
 					subclassEntity.labels.en ||
 					subclassEntity.labels[ Object.keys( subclassEntity.labels )[ 0 ] ];
 				const text: string = getI18n( 'more-precise-value' )
-					.replace( '$1', label.value )
-					.replace( '$2', subclassLabel.value );
+					.replace( '$1', userLabel.value )
+					.replace( '$2', userSubclassLabel.value );
 				mw.notify( text, {
 					type: 'warn',
 					tag: 'wikidataInfoboxExport-warn-precise'
@@ -163,6 +163,19 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 
 		const snak: Snak = generateItemSnak( propertyId, entityId );
 		const statement: Statement = convertSnakToStatement( snak, references );
+
+		const labelObject: KeyValue = entity.labels[ userLanguage ] ||
+			entity.labels[ contentLanguage ] ||
+			entity.labels.en ||
+			Object.values( entity.labels ).length ? Object.values( entity.labels ).shift() : {};
+		const lowerLabel: string = ( labelObject.value || '' ).toLowerCase();
+		const relatedTitles: Title[] = titles.filter( function ( title: Title ) {
+			return title.label.toLowerCase() === lowerLabel;
+		} );
+		if ( relatedTitles.length === 1 ) {
+			statement.qualifiers = relatedTitles.shift().qualifiers;
+		}
+
 		statements.push( statement );
 	}
 

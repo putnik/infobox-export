@@ -19,12 +19,12 @@ import {
 
 import { getI18n } from './i18n';
 import { getConfig, getProperty } from './config';
-import { alreadyExistingItems } from './parser';
 import { convertStatementsToClaimsObject, createClaims } from './wikidata';
 import { formatReferences, formatSnak } from './formatter';
 import { ClaimsObject, Snak, SnaksObject, Statement } from './types/wikidata/main';
 import { PropertyId } from './types/wikidata/types';
 import { KeyValue } from './types/main';
+import { alreadyExistingItems } from './parser/item';
 
 let _windowManager: any;
 

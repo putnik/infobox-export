@@ -1,9 +1,7 @@
 import { sparqlRequest, wdApiRequest } from './api';
 import { setBaseRevId } from './wikidata';
 import {
-	alreadyExistingItems,
 	canExportValue,
-	parseItems,
 	prepareCommonsMedia,
 	prepareExternalId,
 	prepareMonolingualText,
@@ -20,6 +18,7 @@ import { Statement } from './types/wikidata/main';
 import { DataType, PropertyId } from './types/wikidata/types';
 import { prepareTime } from './parser/time';
 import { Context } from './types/main';
+import { alreadyExistingItems, parseItem } from './parser/item';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
@@ -73,7 +72,7 @@ async function parseField( $field: JQuery ): Promise<Statement[]> {
 			return prepareTime( context );
 
 		case 'wikibase-item':
-			return parseItems( context );
+			return parseItem( context );
 
 		case 'url':
 			return prepareUrl( context );
@@ -203,7 +202,7 @@ export async function init(): Promise<any> {
 		return;
 	}
 
-	const $fields = $( '.infobox .no-wikidata' );
+	const $fields = $( '.infobox:not(.vertical-navbox):not([data-from]) .no-wikidata' );
 	$fields.each( async function () {
 		const $field: JQuery = $( this );
 		const propertyId: PropertyId = $field.attr( 'data-wikidata-property-id' ) as PropertyId;
@@ -233,7 +232,7 @@ export async function init(): Promise<any> {
 		.addClass( 'infobox-export-all' )
 		.attr( 'title', getI18n( 'export-all' ) )
 		.on( 'click', exportAll );
-	const $container: JQuery = $( '.infobox:not(.vertical-navbox)' ).find( 'caption:visible, th:visible, td:visible' ).first();
+	const $container: JQuery = $( '.infobox:not(.vertical-navbox):not([data-from])' ).find( 'caption:visible, th:visible, td:visible' ).first();
 	$container.prepend( $exportAll );
 
 	// TODO: Do not load properties until the window is opened for the first time

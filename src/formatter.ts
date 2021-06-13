@@ -56,9 +56,15 @@ export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
 		props: [ 'labels', 'descriptions' ]
 	} );
 	const itemData: KeyValue = data.entities[ value.id ];
-	const labelObject: KeyValue = itemData.labels[ userLanguage ] || itemData.labels[ contentLanguage ] || itemData.labels.en || {};
+	const labelObject: KeyValue = itemData.labels[ userLanguage ] ||
+		itemData.labels[ contentLanguage ] ||
+		itemData.labels.en ||
+		Object.values( itemData.labels ).length ? Object.values( itemData.labels ).shift() : {};
 	const label: string = labelObject.value || value.id;
-	const descriptionObject: KeyValue = itemData.descriptions[ userLanguage ] || itemData.descriptions[ contentLanguage ] || itemData.descriptions.en || {};
+	const descriptionObject: KeyValue = itemData.descriptions[ userLanguage ] ||
+		itemData.descriptions[ contentLanguage ] ||
+		itemData.descriptions.en ||
+		Object.values( itemData.descriptions ).length ? Object.values( itemData.descriptions ).shift() : {};
 	const description: string | undefined = descriptionObject.value;
 
 	const $mainLabel: JQuery = $( '<span>' )

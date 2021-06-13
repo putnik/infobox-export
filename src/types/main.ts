@@ -1,4 +1,5 @@
 import { ItemId, PropertyId, SnakType } from './wikidata/types';
+import { SnaksObject } from './wikidata/main';
 
 export interface KeyValue {
 	[ key: string ]: any;
@@ -14,8 +15,7 @@ export interface Title {
 	label: string;
 	language: string;
 	project: string;
-	qualifiers?: KeyValue;
-	year?: any;
+	qualifiers?: SnaksObject;
 }
 
 export interface Translations {
