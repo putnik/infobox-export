@@ -84,8 +84,10 @@ export async function parseItem( context: Context ): Promise<Statement[]> {
 
 				let timeString: string = '';
 				if ( $links[ j ].nextSibling ) {
-					const match: RegExpMatchArray = $links[ j ].nextSibling.textContent.match( /^\s*\((.+)\)\s*$/ );
-					timeString = match[ 1 ];
+					const timeMatch: RegExpMatchArray | null = $links[ j ].nextSibling.textContent.match( /^\s*\((.+)\)\s*$/ );
+					if ( timeMatch ) {
+						timeString = timeMatch[ 1 ];
+					}
 				}
 
 				const value: Title = {
@@ -96,10 +98,11 @@ export async function parseItem( context: Context ): Promise<Statement[]> {
 				};
 
 				if ( $link.hasClass( 'extiw' ) ) {
-					const m: RegExpMatchArray = $links[ j ].getAttribute( 'href' ).match( /^https:\/\/([a-z-]+)\.(wik[^.]+)\./ );
-					if ( m && m[ 2 ] !== 'wikimedia' ) {
-						value.language = m[ 1 ];
-						value.project = m[ 1 ] + m[ 2 ].replace( 'wikipedia', 'wiki' );
+					const wikiLinkMatch: RegExpMatchArray | null = $links[ j ].getAttribute( 'href' )
+						.match( /^https:\/\/([a-z-]+)\.(wik[^.]+)\./ );
+					if ( wikiLinkMatch && wikiLinkMatch[ 2 ] !== 'wikimedia' ) {
+						value.language = wikiLinkMatch[ 1 ];
+						value.project = wikiLinkMatch[ 1 ] + wikiLinkMatch[ 2 ].replace( 'wikipedia', 'wiki' );
 					}
 				}
 				if ( $link.hasClass( 'mw-redirect' ) ) {

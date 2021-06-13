@@ -1,11 +1,11 @@
-import { getRandomHex, unique } from './utils';
+import { getLabelValue, getRandomHex, unique } from './utils';
 import { getWdApi, wdApiRequest } from './api';
 import { getI18n } from './i18n';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
-import { KeyValue, Title } from './types/main';
+import { Title } from './types/main';
 import { ItemValue } from './types/wikidata/values';
 import { ApiResponse } from './types/api';
-import { Entity, PropertyId } from './types/wikidata/types';
+import { Entity, ItemId, PropertyId } from './types/wikidata/types';
 import { Statement, Snak, Reference, ClaimsObject } from './types/wikidata/main';
 import { ItemDataValue } from './types/wikidata/datavalues';
 import { errorDialog } from './ui';
@@ -114,14 +114,15 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 		}
 
 		const entity = data.entities[ entityId ];
-		const userLabel: { value: string } = entity.labels[ userLanguage ] || entity.labels.en || entity.labels[ Object.keys( entity.labels )[ 0 ] ] || { value: '' };
+		const userLabel: string = getLabelValue( entity.labels, [ userLanguage, contentLanguage ], entityId );
 
 		if ( ( ( ( ( ( ( ( entity || {} ).claims || {} ).P31 || [] )[ 0 ] || {} ).mainsnak || {} ).datavalue || {} ).value || {} ).id === 'Q4167410' ) {
 			continue; // skip disambigs
 		}
 
 		let subclassFound: boolean | string = false;
-		let subclassEntity: any = null;
+		let subclassEntity: any;
+		let subclassEntityId: ItemId;
 		const subclassPropertyIds: string[] = [ 'P17', 'P31', 'P131', 'P279', 'P361' ];
 		for ( const candidateId in data.entities ) {
 			if ( !data.entities.hasOwnProperty( candidateId ) || !candidateId.match( /^Q/ ) || entityId === candidateId ) {
@@ -134,6 +135,7 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 					const value: ItemValue = ( ( ( statement.mainsnak || {} ).datavalue || {} ).value || {} ) as ItemValue;
 					const result: boolean = value.id === entityId;
 					if ( result ) {
+						subclassEntityId = candidateId as ItemId;
 						subclassEntity = data.entities[ candidateId ];
 					}
 					return result;
@@ -147,12 +149,10 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 
 		if ( subclassFound ) {
 			if ( subclassEntity ) {
-				const userSubclassLabel: { value: string } = subclassEntity.labels[ userLanguage ] ||
-					subclassEntity.labels.en ||
-					subclassEntity.labels[ Object.keys( subclassEntity.labels )[ 0 ] ];
+				const userSubclassLabel: string = getLabelValue( subclassEntity.labels, [ userLanguage, contentLanguage ], subclassEntityId );
 				const text: string = getI18n( 'more-precise-value' )
-					.replace( '$1', userLabel.value )
-					.replace( '$2', userSubclassLabel.value );
+					.replace( '$1', userLabel )
+					.replace( '$2', userSubclassLabel );
 				mw.notify( text, {
 					type: 'warn',
 					tag: 'wikidataInfoboxExport-warn-precise'
@@ -164,11 +164,7 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 		const snak: Snak = generateItemSnak( propertyId, entityId );
 		const statement: Statement = convertSnakToStatement( snak, references );
 
-		const labelObject: KeyValue = entity.labels[ userLanguage ] ||
-			entity.labels[ contentLanguage ] ||
-			entity.labels.en ||
-			( Object.values( entity.labels ).length ? Object.values( entity.labels ).shift() : {} );
-		const lowerLabel: string = ( labelObject.value || '' ).toLowerCase();
+		const lowerLabel: string = getLabelValue( entity.labels, [ contentLanguage, userLanguage ] ).toLowerCase();
 		const relatedTitles: Title[] = titles.filter( function ( title: Title ) {
 			return title.label.toLowerCase() === lowerLabel;
 		} );
@@ -230,9 +226,7 @@ export async function wbFormatValue( snak: Snak ): Promise<JQuery> {
 		generate: 'text/html; disposition=verbose',
 		datavalue: JSON.stringify( snak.datavalue ),
 		datatype: snak.datatype,
-		options: JSON.stringify( {
-			lang: userLanguage
-		} )
+		uselang: userLanguage
 	} );
 	if ( response.errors ) {
 		const firstError: string = response.errors[ 0 ][ '*' ];

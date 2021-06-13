@@ -3,7 +3,7 @@ import { allLanguages, contentLanguage, userLanguage } from './languages';
 import { KeyValue, Translations } from './types/main';
 import { ApiResponse } from './types/api';
 import { wdApiRequest } from './api';
-import { get, set, unique, uppercaseFirst } from './utils';
+import { get, getLabelValue, set, unique, uppercaseFirst } from './utils';
 import { ItemId, PropertyId } from './types/wikidata/types';
 
 const mw = require( 'mw' );
@@ -124,7 +124,7 @@ function loadUnit( unitId: ItemId, unitData: any ): void {
 	}
 
 	if ( unitData.labels && unitData.labels[ contentLanguage ] ) {
-		unit.push( unitData.labels[ userLanguage ].value.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
+		unit.push( unitData.labels[ contentLanguage ].value.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
 	}
 
 	if ( unitData.aliases && unitData.aliases[ contentLanguage ] ) {
@@ -194,9 +194,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 		}
 		const propertyId: PropertyId = key as PropertyId;
 		const entity: KeyValue = data.entities[ propertyId ];
-		const label: string = entity.labels[ contentLanguage ] ?
-			entity.labels[ contentLanguage ].value :
-			entity.labels.en.value;
+		const label: string = getLabelValue( entity.labels, [ userLanguage, contentLanguage ], propertyId );
 		const propertyData: KeyValue = {
 			datatype: entity.datatype,
 			label: uppercaseFirst( label ),

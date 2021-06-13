@@ -7,6 +7,7 @@ import { KeyValue } from './types/main';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
 import { getConfig } from './config';
 import { Reference, Snak } from './types/wikidata/main';
+import { getLabelValue } from './utils';
 
 function getRefSup( url: string, text: string ): JQuery {
 	const $link: JQuery = $( '<a>' )
@@ -56,16 +57,8 @@ export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
 		props: [ 'labels', 'descriptions' ]
 	} );
 	const itemData: KeyValue = data.entities[ value.id ];
-	const labelObject: KeyValue = itemData.labels[ userLanguage ] ||
-		itemData.labels[ contentLanguage ] ||
-		itemData.labels.en ||
-		( Object.values( itemData.labels ).length ? Object.values( itemData.labels ).shift() : {} );
-	const label: string = labelObject.value || value.id;
-	const descriptionObject: KeyValue = itemData.descriptions[ userLanguage ] ||
-		itemData.descriptions[ contentLanguage ] ||
-		itemData.descriptions.en ||
-		( Object.values( itemData.descriptions ).length ? Object.values( itemData.descriptions ).shift() : {} );
-	const description: string | undefined = descriptionObject.value;
+	const label: string = getLabelValue( itemData.labels, [ userLanguage, contentLanguage ], value.id );
+	const description: string = getLabelValue( itemData.descriptions, [ userLanguage, contentLanguage ] );
 
 	const $mainLabel: JQuery = $( '<span>' )
 		.addClass( 'infobox-export-main-label' )

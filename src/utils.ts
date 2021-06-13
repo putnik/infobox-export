@@ -1,6 +1,8 @@
 /**
  * Returns an array of elements with duplicate values deleted
  */
+import { KeyValue } from './types/main';
+
 export function unique( array: any[] ): any[] {
 	const $ = require( 'jquery' );
 	return $.grep( array, function ( el: any, index: number ) {
@@ -48,5 +50,22 @@ export function set( object: object, path: string, value: any ): void {
 		},
 		object
 	);
+}
 
+export function getLabelValue( labels: KeyValue, languages: string[], defaultValue?: string ): string {
+	languages.push( 'en' );
+	for ( const i in languages ) {
+		const language: string = languages[ i ];
+		if ( labels[ language ] ) {
+			return labels[ language ].value;
+		}
+	}
+	if ( Object.values( labels ).length ) {
+		const label: KeyValue = Object.values( labels ).shift();
+		return label.value;
+	}
+	if ( defaultValue ) {
+		return defaultValue;
+	}
+	return '';
 }

@@ -270,7 +270,7 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 		}
 	}
 
-	const qualifierMatch: RegExpMatchArray = context.text.match( /\(([^)]*)/ );
+	const qualifierMatch: RegExpMatchArray | null = context.text.match( /\(([^)]*)/ );
 	if ( qualifierMatch ) {
 		const qualifierTempStatement: Statement | void = parseQuantity( qualifierMatch[ 1 ], 'P0' );
 		if ( qualifierTempStatement ) {
