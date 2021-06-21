@@ -84,7 +84,7 @@ export async function parseItem( context: Context ): Promise<Statement[]> {
 
 				let timeString: string = '';
 				if ( $links[ j ].nextSibling ) {
-					const timeMatch: RegExpMatchArray | null = $links[ j ].nextSibling.textContent.match( /^\s*\((.+)\)\s*$/ );
+					const timeMatch: RegExpMatchArray | null = $links[ j ].nextSibling.textContent.match( /^['"»]?\s*\((.+)\)\s*$/ );
 					if ( timeMatch ) {
 						timeString = timeMatch[ 1 ];
 					}

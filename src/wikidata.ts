@@ -98,10 +98,11 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 		action: 'wbgetentities',
 		sites: sites,
 		languages: languages,
-		props: [ 'labels', 'claims' ],
+		props: [ 'labels', 'claims', 'sitelinks' ],
 		titles: titles.map( function ( title: Title ) {
 			return title.label;
-		} )
+		} ),
+		sitefilter: sites
 	} );
 	if ( !data.success ) {
 		return [];
@@ -166,8 +167,20 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 
 		const lowerLabel: string = getLabelValue( entity.labels, [ contentLanguage, userLanguage ] ).toLowerCase();
 		const relatedTitles: Title[] = titles.filter( function ( title: Title ) {
-			return title.label.toLowerCase() === lowerLabel;
+			if ( title.label.toLowerCase() === lowerLabel ) {
+				return true;
+			}
+			for ( const i in entity.sitelinks ) {
+				if ( !entity.sitelinks.hasOwnProperty( i ) ) {
+					continue;
+				}
+				if ( title.label.toLowerCase() === entity.sitelinks[ i ].title.toLowerCase() ) {
+					return true;
+				}
+			}
+			return false;
 		} );
+
 		if ( relatedTitles.length === 1 ) {
 			statement.qualifiers = relatedTitles.shift().qualifiers;
 		}
