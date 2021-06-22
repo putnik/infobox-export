@@ -9,6 +9,7 @@ import { getMonths, getMonthsGen } from '../months';
 import { PropertyId } from '../types/wikidata/types';
 
 const startEndPropertyMapping: KeyValue = {
+	P571: 'P576',
 	P580: 'P582',
 	P2031: 'P2032'
 };
