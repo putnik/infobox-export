@@ -30,6 +30,7 @@ module.exports = {
 		filename: "main.js",
 		path: path.resolve(__dirname, "dist"),
 	},
+	target: ['web', 'es5'],
 	mode: 'production',
 	devServer: {
 		contentBase: APP_SOURCE,
