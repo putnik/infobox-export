@@ -38,7 +38,7 @@ async function parseField( $field: JQuery ): Promise<Statement[]> {
 		propertyId: propertyId,
 		text: '',
 		$field: $field.clone(),
-		$wrapper: $field.clone()
+		$wrapper: $field
 	};
 
 	context.$field.find( 'sup.reference' ).remove();

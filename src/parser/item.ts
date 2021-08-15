@@ -167,7 +167,7 @@ export async function canExportItem( propertyId: PropertyId, wikidataStatements:
 		propertyId: propertyId,
 		text: $field.text().trim(),
 		$field: $field.clone(),
-		$wrapper: $field.clone()
+		$wrapper: $field
 	};
 	const localStatements: Statement[] = await parseItem( context );
 	alreadyExistingItems[ propertyId ] = [];
