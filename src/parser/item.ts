@@ -170,11 +170,13 @@ export async function canExportItem( propertyId: PropertyId, wikidataStatements:
 		$wrapper: $field.clone()
 	};
 	const localStatements: Statement[] = await parseItem( context );
+	alreadyExistingItems[ propertyId ] = [];
 	const duplicates: string[] = [];
 	for ( let i = 0; i < localStatements.length; i++ ) {
 		for ( let j = 0; j < wikidataStatements.length; j++ ) {
 			const localValue: ItemValue = localStatements[ i ].mainsnak.datavalue.value as ItemValue;
 			const wikidataValue: ItemValue = wikidataStatements[ j ].mainsnak.datavalue.value as ItemValue;
+			alreadyExistingItems[ propertyId ].push( wikidataValue.id );
 			if ( localValue.id === wikidataValue.id ) {
 				duplicates.push( localValue.id );
 			}
@@ -183,7 +185,6 @@ export async function canExportItem( propertyId: PropertyId, wikidataStatements:
 	if ( duplicates.length < localStatements.length ) {
 		if ( duplicates.length > 0 ) {
 			const propertyId: PropertyId = wikidataStatements[ 0 ].mainsnak.property;
-			alreadyExistingItems[ propertyId ] = duplicates;
 			if ( propertyId === 'P166' && localStatements.length === wikidataStatements.length ) {
 				return false;
 			}

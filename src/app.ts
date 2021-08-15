@@ -18,7 +18,7 @@ import { Statement } from './types/wikidata/main';
 import { DataType, PropertyId } from './types/wikidata/types';
 import { prepareTime } from './parser/time';
 import { Context } from './types/main';
-import { alreadyExistingItems, parseItem } from './parser/item';
+import { parseItem } from './parser/item';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
@@ -214,7 +214,7 @@ export async function init(): Promise<any> {
 		const canExport: boolean = await canExportValue( propertyId, $field, claims[ propertyId ] );
 		if ( canExport ) {
 			$field.addClass( 'no-wikidata' );
-			if ( alreadyExistingItems[ propertyId ] && alreadyExistingItems[ propertyId ].length ) {
+			if ( claims[ propertyId ] && claims[ propertyId ].length ) {
 				$field.addClass( 'partial-wikidata' );
 			}
 			$field.on( 'dblclick', clickEvent );
