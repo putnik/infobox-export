@@ -1,5 +1,6 @@
 import { DataType, PropertyId, Rank, SnakType } from './types';
 import { DataValue } from './datavalues';
+import { ItemValue } from './values';
 
 export interface Snak {
 	snaktype: SnakType;
@@ -19,6 +20,10 @@ export interface Reference {
 	'snaks-order'?: string[];
 }
 
+export interface StatementMeta {
+	subclassItem?: ItemValue;
+}
+
 export interface Statement {
 	mainsnak: Snak;
 	type: 'statement';
@@ -27,6 +32,8 @@ export interface Statement {
 
 	qualifiers?: SnaksObject;
 	references?: Reference[];
+
+	meta?: StatementMeta;
 }
 
 export interface ClaimsObject {

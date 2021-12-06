@@ -11,6 +11,7 @@ import {
 	FieldsetLayout,
 	MessageDialog,
 	PanelLayout,
+	PopupButtonWidget,
 	Process,
 	ProcessDialog,
 	WindowManager
@@ -19,8 +20,8 @@ import {
 
 import { getI18n } from './i18n';
 import { getConfig, getProperty } from './config';
-import { convertStatementsToClaimsObject, createClaims } from './wikidata';
-import { formatReferences, formatSnak } from './formatter';
+import { convertStatementsToClaimsObject, createClaims, stringifyStatement } from './wikidata';
+import { formatItemValue, formatReferences, formatSnak } from './formatter';
 import { ClaimsObject, Snak, SnaksObject, Statement } from './types/wikidata/main';
 import { PropertyId } from './types/wikidata/types';
 import { KeyValue } from './types/main';
@@ -86,15 +87,17 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 			isAlreadyInWikidata = true;
 		}
 
+		const hasSubclassEntity: boolean = typeof ( statement.meta || {} ).subclassItem !== 'undefined';
+
 		const checkbox = new CheckboxInputWidget( {
-			value: JSON.stringify( statement ),
+			value: stringifyStatement( statement ),
 			selected: isAlreadyInWikidata,
 			disabled: isAlreadyInWikidata,
 			indeterminate: isAlreadyInWikidata
 		} );
 		if ( !checkbox.isDisabled() ) {
 			const isUnique: boolean = await getProperty( propertyId, 'constraints.unique' );
-			if ( !firstSelected || !isUnique ) {
+			if ( !( firstSelected && isUnique ) && !hasSubclassEntity ) {
 				firstSelected = true;
 				checkbox.setSelected( true );
 			}
@@ -107,6 +110,37 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 		}
 		if ( statement.references ) {
 			$label.append( formatReferences( statement.references ) );
+		}
+
+		if ( hasSubclassEntity ) {
+			const $userSubclassLabel: JQuery = await formatItemValue( statement.meta.subclassItem );
+			const $subclassText: JQuery = $( '<div>' );
+			getI18n( 'more-precise-value' )
+				.split( /(\$\d+)/ )
+				.forEach( function ( part: string ) {
+					if ( part === '$1' ) {
+						$subclassText.append( $userSubclassLabel );
+					} else {
+						$subclassText.append( part );
+					}
+				} );
+			const subclassWarning = new PopupButtonWidget( {
+				flags: 'warning',
+				framed: false,
+				icon: 'alert',
+				type: 'warning',
+				popup: {
+					$content: $subclassText,
+					padded: true
+				}
+			} );
+			const $subclassWrapper: JQuery = $( '<div>' )
+				.css( {
+					float: 'right',
+					'margin-top': '-.5em'
+				} )
+				.append( subclassWarning.$element );
+			$label.prepend( $subclassWrapper );
 		}
 
 		const fieldData: KeyValue = {

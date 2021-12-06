@@ -1,4 +1,4 @@
-import { getLabelValue, getRandomHex, unique } from './utils';
+import { getLabelValue, getRandomHex, clone, unique } from './utils';
 import { getWdApi, wdApiRequest } from './api';
 import { getI18n } from './i18n';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
@@ -49,6 +49,12 @@ export function randomEntityGuid(): string {
 	}
 
 	return entityId + '$' + guid;
+}
+
+export function stringifyStatement( statement: Statement ): string {
+	const rawStatement = clone( statement );
+	rawStatement.meta = null;
+	return JSON.stringify( rawStatement );
 }
 
 export function generateItemSnak( propertyId: PropertyId, entityId: string ): Snak {
@@ -115,8 +121,6 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 		}
 
 		const entity = data.entities[ entityId ];
-		const userLabel: string = getLabelValue( entity.labels, [ userLanguage, contentLanguage ], entityId );
-
 		if ( ( ( ( ( ( ( ( entity || {} ).claims || {} ).P31 || [] )[ 0 ] || {} ).mainsnak || {} ).datavalue || {} ).value || {} ).id === 'Q4167410' ) {
 			continue; // skip disambigs
 		}
@@ -148,22 +152,18 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 			}
 		}
 
-		if ( subclassFound ) {
-			if ( subclassEntity ) {
-				const userSubclassLabel: string = getLabelValue( subclassEntity.labels, [ userLanguage, contentLanguage ], subclassEntityId );
-				const text: string = getI18n( 'more-precise-value' )
-					.replace( '$1', userLabel )
-					.replace( '$2', userSubclassLabel );
-				mw.notify( text, {
-					type: 'warn',
-					tag: 'wikidataInfoboxExport-warn-precise'
-				} );
-			}
-			continue; // skip values for which there are more accurate values
-		}
-
 		const snak: Snak = generateItemSnak( propertyId, entityId );
 		const statement: Statement = convertSnakToStatement( snak, references );
+
+		if ( subclassFound && subclassEntity ) {
+			statement.meta = {
+				subclassItem: {
+					'entity-type': 'item',
+					'numeric-id': parseInt( subclassEntityId.replace( 'Q', '' ), 10 ),
+					id: subclassEntityId
+				}
+			};
+		}
 
 		const lowerLabel: string = getLabelValue( entity.labels, [ contentLanguage, userLanguage ] ).toLowerCase();
 		const relatedTitles: Title[] = titles.filter( function ( title: Title ) {
@@ -202,7 +202,7 @@ export async function createClaims( statements: Statement[] ): Promise<void> {
 		propertyIds.push( propertyId );
 		const claimData: ApiResponse = await getWdApi().postWithToken( 'csrf', {
 			action: 'wbsetclaim',
-			claim: JSON.stringify( statement ),
+			claim: stringifyStatement( statement ),
 			baserevid: baseRevId,
 			tags: 'InfoboxExport gadget'
 		} );

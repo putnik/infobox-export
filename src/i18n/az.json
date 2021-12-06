@@ -5,7 +5,7 @@
 	"cancel-button-label": "İmtina et",
 	"export-confirmation": "Şablondan bu parametrin göstəricisi Vikiverilənlərə ixrac olunsunmu?",
 	"license-cc0": "«Dəyişiklikləri yayımla» düyməsini basarkən siz <a $terms>istifadə şərtləri</a> ilə razılaşdığınızı və redaktələrinizin <a $license>Creative Commons CC0 License</a> lisenziyası əsasında dərcinə razı olduğunuzu bildirmiş olursunuz.",
-	"more-precise-value": "«$1» göstəricisi nəzərə alınmayacaq, çünki «$2» göstəricisi daha dəqiqdir",
+	"more-precise-value": "Göstəricisi nəzərə alınmayacaq, çünki göstəricisi daha dəqiqdir: $1",
 	"already-used-in": " artıq istifadə olunur ",
 	"bce-postfix": " b. e. ə.",
 	"age-postfix": " əsr",

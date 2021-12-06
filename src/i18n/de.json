@@ -5,7 +5,7 @@
 	"cancel-button-label": "Abbrechen",
 	"export-confirmation": "Eigenschafts-Wert aus einer Infobox nach Wikidta exportieren?",
 	"license-cc0": "Durch Klicken auf \"$button\" stimmst du den <a $terms>Nutzungsbedingungen</a> zu und stimmst unwiderruflich der Veröffentlichung deines Beitrags unter der <a $license>Creative Commons CC0 Lizenz</a> zu.",
-	"more-precise-value": "Der Wert \"$1\" wird ausgelassen, da der genauere Wert \"$2\" bevorzugt wird",
+	"more-precise-value": "Der Wert wird ausgelassen, da der genauere Wert bevorzugt wird: $1",
 	"already-used-in": " bereits genutzt in ",
 	"bce-postfix": " v. Chr.",
 	"age-postfix": " Jahrhundert",

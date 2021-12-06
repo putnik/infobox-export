@@ -5,7 +5,7 @@
 	"cancel-button-label": "Cancel",
 	"export-confirmation": "Export property value from an infobox to Wikidata?",
 	"license-cc0": "By clicking \"$button\", you agree to the <a $terms>terms of use</a>, and you irrevocably agree to release your contribution under the <a $license>Creative Commons CC0 License</a>.",
-	"more-precise-value": "The value \"$1\" is excluded in favor of a more accurate value \"$2\"",
+	"more-precise-value": "The value is excluded in favor of a more accurate value: $1",
 	"already-used-in": " already used in ",
 	"bce-postfix": " BCE",
 	"age-postfix": " century",
