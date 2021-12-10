@@ -171,22 +171,22 @@ export async function canExportItem( propertyId: PropertyId, wikidataStatements:
 	};
 	const localStatements: Statement[] = await parseItem( context );
 	alreadyExistingItems[ propertyId ] = [];
-	const invalidValues: string[] = [];
+	const invalidValues: Set<string> = new Set();
 	for ( let i = 0; i < localStatements.length; i++ ) {
 		const localValue: ItemValue = localStatements[ i ].mainsnak.datavalue.value as ItemValue;
 		if ( localStatements[ i ].meta?.subclassItem ) {
-			invalidValues.push( localValue.id );
+			invalidValues.add( localValue.id );
 		}
 		for ( let j = 0; j < wikidataStatements.length; j++ ) {
 			const wikidataValue: ItemValue = wikidataStatements[ j ].mainsnak.datavalue.value as ItemValue;
 			alreadyExistingItems[ propertyId ].push( wikidataValue.id );
 			if ( localValue.id === wikidataValue.id ) {
-				invalidValues.push( localValue.id );
+				invalidValues.add( localValue.id );
 			}
 		}
 	}
-	if ( invalidValues.length < localStatements.length ) {
-		if ( invalidValues.length > 0 ) {
+	if ( invalidValues.size < localStatements.length ) {
+		if ( invalidValues.size > 0 ) {
 			const propertyId: PropertyId = wikidataStatements[ 0 ].mainsnak.property;
 			if ( propertyId === 'P166' && localStatements.length === wikidataStatements.length ) {
 				return false;
