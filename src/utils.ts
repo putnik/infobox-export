@@ -30,7 +30,7 @@ export function get( object: object, path: string ): any {
 	return path
 		.split( '.' )
 		.reduce(
-			( obj: object | any, key: string ) => ( obj || {} )[ key ],
+			( obj: object | any, key: string ) => obj?.[ key ],
 			object
 		);
 }

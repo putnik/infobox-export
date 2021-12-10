@@ -33,11 +33,11 @@ export const missedLanguages: {[key: string]: string} = {
 export function checkForMissedLanguage( statement: Statement ): Statement {
 	const value: MonolingualTextValue = statement.mainsnak.datavalue.value as MonolingualTextValue;
 	if ( value.language in missedLanguages ) {
-		( statement.mainsnak.datavalue.value as MonolingualTextValue ).language = 'mis';
 		if ( !( 'qualifiers' in statement ) ) {
 			statement.qualifiers = {};
 		}
 		statement.qualifiers.P407 = [ generateItemSnak( 'P407', missedLanguages[ value.language ] ) ];
+		( statement.mainsnak.datavalue.value as MonolingualTextValue ).language = 'mis';
 	}
 
 	return statement;

@@ -87,7 +87,7 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 			isAlreadyInWikidata = true;
 		}
 
-		const hasSubclassEntity: boolean = typeof ( statement.meta || {} ).subclassItem !== 'undefined';
+		const hasSubclassEntity: boolean = typeof statement.meta?.subclassItem !== 'undefined';
 
 		const checkbox = new CheckboxInputWidget( {
 			value: stringifyStatement( statement ),
@@ -131,6 +131,7 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 				type: 'warning',
 				popup: {
 					$content: $subclassText,
+					align: 'force-left',
 					padded: true
 				}
 			} );
@@ -232,6 +233,7 @@ export async function showDialog( statements: Statement[] ) {
 		ExtProcessDialog.super.prototype.initialize.apply( this, arguments );
 		this.content = formPanel;
 		this.$body.append( this.content.$element );
+		this.$body.css( 'overflow', 'hidden' );
 	};
 
 	ExtProcessDialog.prototype.getActionProcess = function ( action: string ) {

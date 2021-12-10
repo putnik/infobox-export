@@ -2,7 +2,7 @@ import { Context, FixedValue, KeyValue, Title } from '../types/main';
 import { Reference, Snak, SnaksObject, Statement } from '../types/wikidata/main';
 import { getConfig } from '../config';
 import { getReferences } from './utils';
-import { convertSnakToStatement, generateItemSnak, getWikidataIds } from '../wikidata';
+import { convertSnakToStatement, generateItemSnak, getStatements } from '../wikidata';
 import { lowercaseFirst, unique, uppercaseFirst } from '../utils';
 import { contentLanguage } from '../languages';
 import { ItemValue } from '../types/wikidata/values';
@@ -23,8 +23,8 @@ function getTimeSnaks( text: string ): SnaksObject {
 	const fakeContext: Context = {
 		propertyId: START_PROPERTY,
 		text: text,
-		$field: $( text ),
-		$wrapper: $( text )
+		$field: $( '<span>' ).text( text ),
+		$wrapper: $( '<span>' ).text( text )
 	};
 
 	const fakeTimeStatements: Statement[] = prepareTime( fakeContext );
@@ -159,7 +159,7 @@ export async function parseItem( context: Context ): Promise<Statement[]> {
 		}
 	}
 
-	return getWikidataIds( context.propertyId, titles, references );
+	return getStatements( context.propertyId, titles, references );
 }
 
 export async function canExportItem( propertyId: PropertyId, wikidataStatements: Statement[], $field: JQuery ): Promise<boolean> {
@@ -171,26 +171,29 @@ export async function canExportItem( propertyId: PropertyId, wikidataStatements:
 	};
 	const localStatements: Statement[] = await parseItem( context );
 	alreadyExistingItems[ propertyId ] = [];
-	const duplicates: string[] = [];
+	const invalidValues: string[] = [];
 	for ( let i = 0; i < localStatements.length; i++ ) {
+		const localValue: ItemValue = localStatements[ i ].mainsnak.datavalue.value as ItemValue;
+		if ( localStatements[ i ].meta?.subclassItem ) {
+			invalidValues.push( localValue.id );
+		}
 		for ( let j = 0; j < wikidataStatements.length; j++ ) {
-			const localValue: ItemValue = localStatements[ i ].mainsnak.datavalue.value as ItemValue;
 			const wikidataValue: ItemValue = wikidataStatements[ j ].mainsnak.datavalue.value as ItemValue;
 			alreadyExistingItems[ propertyId ].push( wikidataValue.id );
 			if ( localValue.id === wikidataValue.id ) {
-				duplicates.push( localValue.id );
+				invalidValues.push( localValue.id );
 			}
 		}
 	}
-	if ( duplicates.length < localStatements.length ) {
-		if ( duplicates.length > 0 ) {
+	if ( invalidValues.length < localStatements.length ) {
+		if ( invalidValues.length > 0 ) {
 			const propertyId: PropertyId = wikidataStatements[ 0 ].mainsnak.property;
 			if ( propertyId === 'P166' && localStatements.length === wikidataStatements.length ) {
 				return false;
 			}
 		}
 		if ( Object.keys( wikidataStatements ).length > 0 ) {
-			if ( wikidataStatements[ 0 ].mainsnak.property === 'P19' || wikidataStatements[ 0 ].mainsnak.property === 'P20' ) {
+			if ( [ 'P19', 'P20' ].includes( wikidataStatements[ 0 ].mainsnak.property ) ) {
 				return false;
 			}
 		}

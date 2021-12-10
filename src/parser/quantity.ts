@@ -316,7 +316,7 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 export function canExportQuantity( statements: Statement[], $field: JQuery ): boolean {
 	for ( let i = 0; i < Object.keys( statements ).length; i++ ) {
 		const parsedTime: TimeValue | void = createTimeValue( ( $field.text().match( /\(([^)]*\d\d\d\d)[,)\s]/ ) || [] )[ 1 ] );
-		if ( parsedTime && ( statements[ i ].qualifiers || {} ).P585 ) {
+		if ( parsedTime && statements[ i ].qualifiers?.P585 ) {
 			const pointInTimeValue: TimeValue = statements[ i ].qualifiers.P585[ 0 ].datavalue.value as TimeValue;
 			if ( parsedTime.precision < pointInTimeValue.precision ) {
 				( statements[ i ].qualifiers.P585[ 0 ].datavalue.value as TimeValue ).precision = parsedTime.precision;

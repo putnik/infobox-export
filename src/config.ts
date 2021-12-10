@@ -240,7 +240,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 		// Property restrictions
 		if ( entity.claims && entity.claims.P2302 ) {
 			for ( const i in entity.claims.P2302 ) {
-				const type = ( ( ( ( entity.claims.P2302[ i ] || {} ).mainsnak || {} ).datavalue || {} ).value || {} ).id;
+				const type = entity.claims.P2302[ i ]?.mainsnak?.datavalue?.value?.id;
 				let qualifiers;
 				switch ( type ) {
 					case 'Q19474404':
@@ -249,9 +249,9 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 						break;
 
 					case 'Q21510856': // Required
-						qualifiers = ( ( ( entity.claims.P2302[ i ] || {} ).qualifiers || {} ).P2306 || [] );
+						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P2306 || [];
 						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
-							const qualifierId = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
+							const qualifierId = qualifiers[ idx ]?.datavalue?.value?.id;
 							if ( qualifierId ) {
 								propertyData.constraints.qualifier.push( qualifierId.toString() );
 							}
@@ -259,9 +259,9 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 						break;
 
 					case 'Q21514353': // Units
-						qualifiers = ( ( ( entity.claims.P2302[ i ] || {} ).qualifiers || {} ).P2305 || [] );
+						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P2305 || [];
 						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
-							const unitId: ItemId = ( ( ( qualifiers[ idx ] || {} ).datavalue || {} ).value || {} ).id;
+							const unitId: ItemId = qualifiers[ idx ]?.datavalue?.value?.id;
 							if ( unitId ) {
 								propertyData.units.push( unitId );
 								units.push( unitId );

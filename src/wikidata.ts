@@ -85,7 +85,7 @@ export function convertSnakToStatement( snak: Snak, references: Reference[] ): S
 	};
 }
 
-export async function getWikidataIds( propertyId: PropertyId, titles: Title[], references: Reference[] ): Promise<Statement[]> {
+export async function getStatements( propertyId: PropertyId, titles: Title[], references: Reference[] ): Promise<Statement[]> {
 	if ( !titles.length ) {
 		return [];
 	}
@@ -121,7 +121,7 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 		}
 
 		const entity = data.entities[ entityId ];
-		if ( ( ( ( ( ( ( ( entity || {} ).claims || {} ).P31 || [] )[ 0 ] || {} ).mainsnak || {} ).datavalue || {} ).value || {} ).id === 'Q4167410' ) {
+		if ( entity?.claims?.P31?.[ 0 ]?.mainsnak?.datavalue?.value?.id === 'Q4167410' ) {
 			continue; // skip disambigs
 		}
 
@@ -135,9 +135,9 @@ export async function getWikidataIds( propertyId: PropertyId, titles: Title[], r
 			}
 
 			subclassFound = subclassPropertyIds.find( function ( propertyId: PropertyId ) {
-				const values = ( ( ( data.entities[ candidateId ] || {} ).claims || {} )[ propertyId ] || [] );
+				const values = data.entities[ candidateId ]?.claims?.[ propertyId ] || [];
 				return values.find( function ( statement: Statement ) {
-					const value: ItemValue = ( ( ( statement.mainsnak || {} ).datavalue || {} ).value || {} ) as ItemValue;
+					const value: ItemValue = ( statement.mainsnak?.datavalue?.value || {} ) as ItemValue;
 					const result: boolean = value.id === entityId;
 					if ( result ) {
 						subclassEntityId = candidateId as ItemId;
