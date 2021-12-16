@@ -282,7 +282,7 @@ export function prepareString( context: Context ): Statement[] {
 
 export function prepareUrl( context: Context ): Statement[] {
 	const statements: Statement[] = [];
-	const $links: JQuery = context.$field.find( 'a' );
+	const $links: JQuery = context.$field.find( 'a[href]' );
 	const references: Reference[] = getReferences( context.$wrapper );
 	$links.each( function () {
 		const $link: JQuery = $( this );

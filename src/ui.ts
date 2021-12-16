@@ -181,7 +181,7 @@ async function getFormPanel( statements: Statement[] ): Promise<any> {
 			...propertyFieldsets,
 			$( '<hr>' ).css( 'margin-top', '1.5em' ),
 			$( '<p>' ).text( getI18n( 'export-confirmation' ) ),
-			$( '<p>' ).css( 'font-size', 'smaller' ).html( getI18n( 'license-cc0' ) )
+			$( '<p>' ).css( 'font-size', '85%' ).html( getI18n( 'license-cc0' ) )
 		]
 	} );
 }
