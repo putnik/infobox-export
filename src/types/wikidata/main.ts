@@ -22,6 +22,7 @@ export interface Reference {
 
 export interface StatementMeta {
 	subclassItem?: ItemValue;
+	$checkbox?: JQuery;
 }
 
 export interface Statement {

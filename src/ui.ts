@@ -6,6 +6,7 @@ const mw = require( 'mw' );
 // @ts-ignore
 import { inheritClass } from 'oojs';
 import {
+	ActionWidget,
 	CheckboxInputWidget,
 	FieldLayout,
 	FieldsetLayout,
@@ -193,6 +194,7 @@ function collectFormData( formPanel: any ): Statement[] {
 		const $checkbox: JQuery = $( checkbox );
 		const jsonStatement: string = $checkbox.attr( 'value' );
 		const statement: Statement = JSON.parse( jsonStatement );
+		statement.meta = { $checkbox };
 		statements.push( statement );
 	} );
 
@@ -239,13 +241,20 @@ export async function showDialog( statements: Statement[] ) {
 	ExtProcessDialog.prototype.getActionProcess = function ( action: string ) {
 		const dialog = this;
 		if ( action === 'export' ) {
-			return new Process( function () {
+			return new Process( async function () {
+				const exportAction: ActionWidget = dialog.actions.get( { actions: 'export' } )[ 0 ];
+				exportAction.setDisabled( true );
+
 				const statements: Statement[] = collectFormData( formPanel );
-				createClaims( statements );
+				await createClaims( statements );
+
 				dialog.close( { action: action } );
+				dialog.getManager().destroy();
 			}, this );
+		} else {
+			dialog.close( { action: action } );
+			dialog.getManager().destroy();
 		}
-		dialog.getManager().destroy();
 		return ExtProcessDialog.super.prototype.getActionProcess.call( this, action );
 	};
 

@@ -1,4 +1,4 @@
-import { getLabelValue, getRandomHex, clone, unique } from './utils';
+import { getLabelValue, getRandomHex, clone, unique, sleep } from './utils';
 import { getWdApi, wdApiRequest } from './api';
 import { getI18n } from './i18n';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
@@ -195,9 +195,20 @@ export async function getStatements( propertyId: PropertyId, titles: Title[], re
  * Create all statements in Wikidata and mark properties exported
  */
 export async function createClaims( statements: Statement[] ): Promise<void> {
+	const SUCCESS_COLOR = '#00af89';
+	const DESTRUCTIVE_COLOR = '#d33';
 	let propertyIds: PropertyId[] = [];
+	const totalCount: number = statements.length;
 	while ( statements.length ) {
 		const statement: Statement = statements.shift();
+
+		const $checkbox = statement.meta.$checkbox;
+		if ( !$checkbox ) {
+			errorDialog( getI18n( 'value-failed' ), JSON.stringify( statement ) );
+			return;
+		}
+		$checkbox.prop( 'disabled', true );
+
 		const propertyId: PropertyId = statement.mainsnak.property;
 		propertyIds.push( propertyId );
 		const claimData: ApiResponse = await getWdApi().postWithToken( 'csrf', {
@@ -207,20 +218,20 @@ export async function createClaims( statements: Statement[] ): Promise<void> {
 			tags: 'InfoboxExport gadget'
 		} );
 
+		const $fakeCheckbox = statement.meta.$checkbox.parent().find( 'span' );
 		if ( claimData.success ) {
-			const valuesLeftStr = statements.length ? getI18n( 'values-left' ).replace( '$1', statements.length.toString() ) : '';
-			mw.notify( getI18n( 'value-saved' ).replace( '$1', propertyId ) + valuesLeftStr, {
-				tag: 'wikidataInfoboxExport-success'
+			$fakeCheckbox.css( {
+				'background-color': SUCCESS_COLOR,
+				'border-color': SUCCESS_COLOR
 			} );
-
 			baseRevId = claimData.pageinfo.lastrevid;
 		} else {
-			// mw.notify( getI18n( 'value-failed' ), {
-			// type: 'error',
-			// tag: 'wikidataInfoboxExport-error'
-			// } );
+			$fakeCheckbox.css( {
+				'background-color': DESTRUCTIVE_COLOR,
+				'border-color': DESTRUCTIVE_COLOR
+			} );
 			errorDialog( getI18n( 'value-failed' ), JSON.stringify( claimData ) );
-			break;
+			return;
 		}
 	}
 
@@ -231,6 +242,15 @@ export async function createClaims( statements: Statement[] ): Promise<void> {
 			.removeClass( 'no-wikidata' )
 			.off( 'dblclick' ); // FIXME: disable only clickEvent
 	}
+
+	// Delay for the user to see the last green checkbox
+	await sleep( 450 );
+
+	mw.loader.using( 'mediawiki.action.view.postEdit', function () {
+		mw.hook( 'postEdit' ).fire( {
+			message: getI18n( totalCount > 1 ? 'all-values-saved' : 'value-saved' )
+		} );
+	} );
 }
 
 export async function wbFormatValue( snak: Snak ): Promise<JQuery> {
