@@ -195,7 +195,7 @@ export async function getStatements( propertyId: PropertyId, titles: Title[], re
  * Create all statements in Wikidata and mark properties exported
  */
 export async function createClaims( statements: Statement[] ): Promise<void> {
-	const SUCCESS_COLOR = '#00af89';
+	const SUCCESS_COLOR = '#c8ccd1';
 	const DESTRUCTIVE_COLOR = '#d33';
 	let propertyIds: PropertyId[] = [];
 	const totalCount: number = statements.length;
@@ -208,6 +208,7 @@ export async function createClaims( statements: Statement[] ): Promise<void> {
 			return;
 		}
 		$checkbox.prop( 'disabled', true );
+		const $fakeCheckbox = statement.meta.$checkbox.parent().find( 'span' );
 
 		const propertyId: PropertyId = statement.mainsnak.property;
 		propertyIds.push( propertyId );
@@ -216,23 +217,20 @@ export async function createClaims( statements: Statement[] ): Promise<void> {
 			claim: stringifyStatement( statement ),
 			baserevid: baseRevId,
 			tags: 'InfoboxExport gadget'
-		} );
-
-		const $fakeCheckbox = statement.meta.$checkbox.parent().find( 'span' );
-		if ( claimData.success ) {
-			$fakeCheckbox.css( {
-				'background-color': SUCCESS_COLOR,
-				'border-color': SUCCESS_COLOR
-			} );
-			baseRevId = claimData.pageinfo.lastrevid;
-		} else {
+		} ).fail( function () {
 			$fakeCheckbox.css( {
 				'background-color': DESTRUCTIVE_COLOR,
 				'border-color': DESTRUCTIVE_COLOR
 			} );
 			errorDialog( getI18n( 'value-failed' ), JSON.stringify( claimData ) );
 			return;
-		}
+		} );
+
+		$fakeCheckbox.css( {
+			'background-color': SUCCESS_COLOR,
+			'border-color': SUCCESS_COLOR
+		} );
+		baseRevId = claimData.pageinfo.lastrevid;
 	}
 
 	propertyIds = unique( propertyIds );
