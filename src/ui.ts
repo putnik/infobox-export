@@ -235,7 +235,8 @@ export async function showDialog( statements: Statement[] ) {
 		ExtProcessDialog.super.prototype.initialize.apply( this, arguments );
 		this.content = formPanel;
 		this.$body.append( this.content.$element );
-		this.$body.css( 'overflow', 'hidden' );
+		this.$body.css( 'overflow-x', 'hidden' );
+		this.$body.css( 'overflow-y', 'scroll' );
 	};
 
 	ExtProcessDialog.prototype.getActionProcess = function ( action: string ) {
