@@ -22,10 +22,8 @@ import { parseItem } from './parser/item';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
-const ooui = require( 'ooui' );
 
 const propertyIds: PropertyId[] = [ 'P2076', 'P2077' ]; // Temperature and pressure for qualifiers
-let windowManager;
 
 /**
  * Parsing values from parameters before displaying a dialog
@@ -171,11 +169,6 @@ export async function init(): Promise<any> {
 
 	loadConfig();
 	await loadDefaultReference();
-
-	// Dialogs initialization
-	windowManager = new ooui.WindowManager();
-	$( 'body' ).append( windowManager.$element );
-
 	await loadMonths();
 
 	// Item data request

@@ -5,19 +5,6 @@ const mw = require( 'mw' );
 
 // @ts-ignore
 import { inheritClass } from 'oojs';
-import {
-	ActionWidget,
-	CheckboxInputWidget,
-	FieldLayout,
-	FieldsetLayout,
-	MessageDialog,
-	PanelLayout,
-	PopupButtonWidget,
-	Process,
-	ProcessDialog,
-	WindowManager
-// @ts-ignore
-} from 'ooui';
 
 import { getI18n } from './i18n';
 import { getConfig, getProperty } from './config';
@@ -34,6 +21,7 @@ let _windowManager: any;
  * Error display
  */
 export function errorDialog( title: string, message: string ): void {
+	const { MessageDialog } = require( 'ooui' );
 	const errorDialog = new MessageDialog();
 	_windowManager.addWindows( [ errorDialog ] );
 	_windowManager.openWindow( errorDialog, {
@@ -62,6 +50,13 @@ async function getQualifierFields( qualifiers: SnaksObject ): Promise<JQuery> {
 }
 
 async function getPropertyFieldset( propertyId: PropertyId, statements: Statement[] ): Promise<any> {
+	const {
+		CheckboxInputWidget,
+		FieldLayout,
+		FieldsetLayout,
+		PopupButtonWidget
+	} = require( 'ooui' );
+
 	const label: string = await getProperty( propertyId, 'label' );
 	const $labelLink: JQuery = $( '<a>' )
 		.attr( 'href', `https://wikidata.org/wiki/Property:${propertyId}` )
@@ -175,6 +170,7 @@ async function getFormPanel( statements: Statement[] ): Promise<any> {
 		propertyFieldsets.push( propertyFieldset );
 	}
 
+	const { PanelLayout } = require( 'ooui' );
 	return new PanelLayout( {
 		padded: true,
 		expanded: false,
@@ -212,6 +208,11 @@ export async function showDialog( statements: Statement[] ) {
 		} );
 		return;
 	}
+	const {
+		Process,
+		ProcessDialog,
+		WindowManager
+	} = require( 'ooui' );
 
 	// Create a dialog
 	const ExtProcessDialog: any = function ( config: any ) {
@@ -243,7 +244,7 @@ export async function showDialog( statements: Statement[] ) {
 		const dialog = this;
 		if ( action === 'export' ) {
 			return new Process( async function () {
-				const exportAction: ActionWidget = dialog.actions.get( { actions: 'export' } )[ 0 ];
+				const exportAction = dialog.actions.get( { actions: 'export' } )[ 0 ];
 				exportAction.setDisabled( true );
 
 				const statements: Statement[] = collectFormData( formPanel );
