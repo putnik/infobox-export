@@ -1,15 +1,20 @@
 .infobox:not(.vertical-navbox):not([data-from]) .no-wikidata {
     display: block !important;
-    background: #fdc;
-    padding: 5px 0;
+    background: #fee7e6;
+    border: 1px solid #d33;
+    border-radius: 2px;
+    padding: 3px 6px;
 }
 
 .infobox:not(.vertical-navbox):not([data-from]) .no-wikidata.partial-wikidata {
-    background: #eeb;
+    background: #fef6e7;
+    border-color: #fc3;
 }
 
 .infobox:not(.vertical-navbox):not([data-from]) .no-wikidata .no-wikidata {
-    margin: -5px 0;
+    margin: -3px -6px;
+    border: 0;
+    background: transparent;
 }
 
 .infobox-export-dialog .wb-monolingualtext-value {
