@@ -310,7 +310,12 @@ export function prepareUrl( context: Context ): Statement[] {
  */
 export async function canExportValue( propertyId: PropertyId, $field: JQuery, statements: Statement[] ): Promise<boolean> {
 	if ( !statements || !( statements.length ) ) {
-		// Can't export only if image is local and large
+		// Can't export empty field
+		if ( $field.html().trim() === '' ) {
+			return false;
+		}
+
+		// Can't export if image is local and large
 		const $localImg: JQuery = $field.find( '.image img[src*="/wikipedia/' + contentLanguage + '/"]' );
 		return !$localImg.length || $localImg.width() < 80;
 	}
