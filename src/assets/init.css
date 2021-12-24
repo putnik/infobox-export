@@ -1,14 +1,14 @@
 .infobox:not(.vertical-navbox):not([data-from]) .no-wikidata {
     display: block !important;
     background: #fee7e6;
-    border: 1px solid #ee8d8d;
+    border: 1px solid #f6bab9;
     border-radius: 2px;
     padding: 3px 6px;
 }
 
 .infobox:not(.vertical-navbox):not([data-from]) .no-wikidata.partial-wikidata {
     background: #fef6e7;
-    border-color: #fc3;
+    border-color: #ffd760;
 }
 
 .infobox:not(.vertical-navbox):not([data-from]) .no-wikidata .no-wikidata {
