@@ -1,6 +1,5 @@
-import { getLabelValue, getRandomHex, clone, unique, sleep } from './utils';
+import { getLabelValue, getRandomHex, clone, unique } from './utils';
 import { getWdApi, wdApiRequest } from './api';
-import { getI18n } from './i18n';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
 import { Title } from './types/main';
 import { ItemValue } from './types/wikidata/values';
@@ -8,7 +7,6 @@ import { ApiResponse } from './types/api';
 import { Entity, ItemId, PropertyId } from './types/wikidata/types';
 import { Statement, Snak, Reference, ClaimsObject } from './types/wikidata/main';
 import { ItemDataValue } from './types/wikidata/datavalues';
-import { errorDialog } from './ui';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
@@ -192,62 +190,21 @@ export async function getStatements( propertyId: PropertyId, titles: Title[], re
 }
 
 /**
- * Create all statements in Wikidata and mark properties exported
+ * Creates statements in Wikidata or return error message otherwise
  */
-export async function createClaims( statements: Statement[] ): Promise<void> {
-	const SUCCESS_COLOR = '#c8ccd1';
-	const DESTRUCTIVE_COLOR = '#d33';
-	let propertyIds: PropertyId[] = [];
-	const totalCount: number = statements.length;
-	while ( statements.length ) {
-		const statement: Statement = statements.shift();
-
-		const $checkbox = statement.meta.$checkbox;
-		if ( !$checkbox ) {
-			errorDialog( getI18n( 'value-failed' ), JSON.stringify( statement ) );
-			return;
+export async function createClaim( statement: Statement ): Promise<string|null> {
+	return getWdApi().postWithToken( 'csrf', {
+		action: 'wbsetclaim',
+		claim: stringifyStatement( statement ),
+		baserevid: baseRevId,
+		tags: 'InfoboxExport gadget'
+	} ).then( ( _: string, response: ApiResponse ): null => {
+		if ( response?.pageinfo?.lastrevid ) {
+			baseRevId = response.pageinfo.lastrevid;
 		}
-		$checkbox.prop( 'disabled', true );
-		const $fakeCheckbox = statement.meta.$checkbox.parent().find( 'span' );
-
-		const propertyId: PropertyId = statement.mainsnak.property;
-		propertyIds.push( propertyId );
-		const claimData: ApiResponse = await getWdApi().postWithToken( 'csrf', {
-			action: 'wbsetclaim',
-			claim: stringifyStatement( statement ),
-			baserevid: baseRevId,
-			tags: 'InfoboxExport gadget'
-		} ).fail( function () {
-			$fakeCheckbox.css( {
-				'background-color': DESTRUCTIVE_COLOR,
-				'border-color': DESTRUCTIVE_COLOR
-			} );
-			errorDialog( getI18n( 'value-failed' ), JSON.stringify( claimData ) );
-			return;
-		} );
-
-		$fakeCheckbox.css( {
-			'background-color': SUCCESS_COLOR,
-			'border-color': SUCCESS_COLOR
-		} );
-		baseRevId = claimData.pageinfo.lastrevid;
-	}
-
-	propertyIds = unique( propertyIds );
-	for ( const i in propertyIds ) {
-		const propertyId: PropertyId = propertyIds[ i ];
-		$( `.no-wikidata[data-wikidata-property-id=${propertyId}]` )
-			.removeClass( 'no-wikidata' )
-			.off( 'dblclick' ); // FIXME: disable only clickEvent
-	}
-
-	// Delay for the user to see the last green checkbox
-	await sleep( 450 );
-
-	mw.loader.using( 'mediawiki.action.view.postEdit', function () {
-		mw.hook( 'postEdit' ).fire( {
-			message: getI18n( totalCount > 1 ? 'all-values-saved' : 'value-saved' )
-		} );
+		return null;
+	} ).catch( ( _: string, errorResponse: ApiResponse ): string => {
+		return errorResponse?.error?.info || 'Network error';
 	} );
 }
 

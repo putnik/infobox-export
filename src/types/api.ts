@@ -1,6 +1,12 @@
 import { KeyValue } from './main';
 
-export type ApiResponse = KeyValue
+export type ApiResponse = {
+	error?: {
+		code: string;
+		info: string;
+	};
+	[ key: string ]: any;
+}
 export type SparqlResponse = KeyValue
 
 export interface MediaWikiApi {

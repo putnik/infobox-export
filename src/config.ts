@@ -216,7 +216,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 
 		// Formatter
 		if ( entity.claims && entity.claims.P1630 ) {
-			console.log( 'entity.claims.P1630', entity.claims.P1630 );
+			console.debug( 'entity.claims.P1630', entity.claims.P1630 );
 			let bestStatement: Statement | undefined;
 			for ( const i in entity.claims.P1630 ) {
 				const statement: Statement = entity.claims.P1630[ i ];

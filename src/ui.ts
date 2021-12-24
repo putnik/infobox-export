@@ -8,27 +8,15 @@ import { inheritClass } from 'oojs';
 
 import { getI18n } from './i18n';
 import { getConfig, getProperty } from './config';
-import { convertStatementsToClaimsObject, createClaims, stringifyStatement } from './wikidata';
+import { convertStatementsToClaimsObject, createClaim, stringifyStatement } from './wikidata';
 import { formatItemValue, formatReferences, formatSnak } from './formatter';
 import { ClaimsObject, Snak, SnaksObject, Statement } from './types/wikidata/main';
 import { PropertyId } from './types/wikidata/types';
 import { KeyValue } from './types/main';
 import { alreadyExistingItems } from './parser/item';
+import { sleep, unique } from './utils';
 
 let _windowManager: any;
-
-/**
- * Error display
- */
-export function errorDialog( title: string, message: string ): void {
-	const { MessageDialog } = require( 'ooui' );
-	const errorDialog = new MessageDialog();
-	_windowManager.addWindows( [ errorDialog ] );
-	_windowManager.openWindow( errorDialog, {
-		title: title,
-		message: message
-	} );
-}
 
 async function getQualifierFields( qualifiers: SnaksObject ): Promise<JQuery> {
 	const $qualifierFields: JQuery = $( '<ul>' ).addClass( 'infobox-export-qualifiers' );
@@ -198,6 +186,61 @@ function collectFormData( formPanel: any ): Statement[] {
 }
 
 /**
+ * Create all statements in Wikidata and disable processed checkboxes
+ */
+async function createClaims( statements: Statement[] ): Promise<void> {
+	const SUCCESS_COLOR = '#c8ccd1';
+	let propertyIds: PropertyId[] = [];
+	const totalCount: number = statements.length;
+	while ( statements.length ) {
+		const statement: Statement = statements.shift();
+
+		const $checkbox = statement.meta.$checkbox;
+		$checkbox.prop( 'disabled', true );
+		const $fakeCheckbox = statement.meta.$checkbox.parent().find( 'span' );
+
+		const propertyId: PropertyId = statement.mainsnak.property;
+		propertyIds.push( propertyId );
+
+		const errorMessage: string|null = await createClaim( statement );
+		if ( errorMessage ) {
+			const { MessageWidget } = require( 'ooui' );
+			const errorMessageWidget = new MessageWidget( {
+				type: 'error',
+				label: getI18n( 'value-failed' ) + ': ' + errorMessage,
+				showClose: true
+			} );
+			$checkbox.prop( 'disabled', false );
+			$fakeCheckbox.closest( '.oo-ui-labelElement' )
+				.append( errorMessageWidget.$element );
+			throw errorMessage;
+		}
+
+		$fakeCheckbox.css( {
+			'background-color': SUCCESS_COLOR,
+			'border-color': SUCCESS_COLOR
+		} );
+	}
+
+	propertyIds = unique( propertyIds );
+	for ( const i in propertyIds ) {
+		const propertyId: PropertyId = propertyIds[ i ];
+		$( `.no-wikidata[data-wikidata-property-id=${propertyId}]` )
+			.removeClass( 'no-wikidata' )
+			.off( 'dblclick' ); // FIXME: disable only clickEvent
+	}
+
+	// Delay for the user to see the last green checkbox
+	await sleep( 450 );
+
+	mw.loader.using( 'mediawiki.action.view.postEdit', function () {
+		mw.hook( 'postEdit' ).fire( {
+			message: getI18n( totalCount > 1 ? 'all-values-saved' : 'value-saved' )
+		} );
+	} );
+}
+
+/**
  * Display a dialog to confirm export
  */
 export async function showDialog( statements: Statement[] ) {
@@ -248,7 +291,12 @@ export async function showDialog( statements: Statement[] ) {
 				exportAction.setDisabled( true );
 
 				const statements: Statement[] = collectFormData( formPanel );
-				await createClaims( statements );
+				try {
+					await createClaims( statements );
+				} catch {
+					exportAction.setDisabled( false );
+					return;
+				}
 
 				dialog.close( { action: action } );
 				dialog.getManager().destroy();
