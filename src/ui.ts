@@ -280,7 +280,7 @@ export async function showDialog( statements: Statement[] ) {
 		this.content = formPanel;
 		this.$body.append( this.content.$element );
 		this.$body.css( 'overflow-x', 'hidden' );
-		this.$body.css( 'overflow-y', 'scroll' );
+		this.$body.css( 'overflow-y', 'auto' );
 	};
 
 	ExtProcessDialog.prototype.getActionProcess = function ( action: string ) {
