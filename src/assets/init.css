@@ -1,7 +1,7 @@
 .infobox:not(.vertical-navbox):not([data-from]) .no-wikidata {
     display: block !important;
     background: #fee7e6;
-    border: 1px solid #d33;
+    border: 1px solid #ee8d8d;
     border-radius: 2px;
     padding: 3px 6px;
 }
