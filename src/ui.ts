@@ -60,6 +60,9 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 		const statement: Statement = statements[ i ];
 
 		const $label: JQuery = await formatSnak( statement.mainsnak );
+		if ( statement.rank === 'deprecated' ) {
+			$label.addClass( 'infobox-export-deprecated' );
+		}
 		const propertyId: PropertyId = statement.mainsnak.property;
 		let isAlreadyInWikidata: boolean = false;
 		if (
