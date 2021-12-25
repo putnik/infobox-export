@@ -96,7 +96,7 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 			$label.append( formatReferences( statement.references ) );
 		}
 
-		if ( hasSubclassEntity ) {
+		if ( !isAlreadyInWikidata && hasSubclassEntity ) {
 			const $userSubclassLabel: JQuery = await formatItemValue( statement.meta.subclassItem );
 			const $subclassText: JQuery = $( '<div>' );
 			getI18n( 'more-precise-value' )
