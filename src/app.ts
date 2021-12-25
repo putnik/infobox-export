@@ -5,8 +5,7 @@ import {
 	prepareCommonsMedia,
 	prepareExternalId,
 	prepareMonolingualText,
-	prepareString,
-	prepareUrl
+	prepareString
 } from './parser';
 import { getI18n } from './i18n';
 import { getProperty, loadConfig, loadProperties, saveConfig, setConfig } from './config';
@@ -19,6 +18,7 @@ import { DataType, PropertyId } from './types/wikidata/types';
 import { prepareTime } from './parser/time';
 import { Context } from './types/main';
 import { parseItem } from './parser/item';
+import { prepareUrl } from './parser/url';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );

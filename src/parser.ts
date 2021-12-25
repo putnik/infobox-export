@@ -1,14 +1,9 @@
 import { getProperty } from './config';
 import { checkForMissedLanguage, contentLanguage } from './languages';
-import {
-	convertSnakToStatement
-} from './wikidata';
+import { convertSnakToStatement } from './wikidata';
 import { sparqlRequest } from './api';
 import { Context, KeyValue } from './types/main';
-import {
-	MonolingualTextValue,
-	Value
-} from './types/wikidata/values';
+import { MonolingualTextValue, Value } from './types/wikidata/values';
 import { SparqlResponse } from './types/api';
 import { canExportQuantity } from './parser/quantity';
 import { Reference, Snak, Statement } from './types/wikidata/main';
@@ -17,14 +12,13 @@ import {
 	CommonsMediaDataValue,
 	ExternalIdDataValue,
 	MonolingualTextDataValue,
-	StringDataValue,
-	UrlDataValue
+	StringDataValue
 } from './types/wikidata/datavalues';
 import { getReferences } from './parser/utils';
 import { createTimeValue } from './parser/time';
 import { canExportItem, parseItem } from './parser/item';
 
-function addQualifierValue(
+export function addQualifierValue(
 	statement: Statement,
 	qualifierId: PropertyId,
 	qualifierDataType: DataType,
@@ -276,31 +270,6 @@ export function prepareString( context: Context ): Statement[] {
 			statements.push( statement );
 		}
 	}
-
-	return statements;
-}
-
-export function prepareUrl( context: Context ): Statement[] {
-	const statements: Statement[] = [];
-	const $links: JQuery = context.$field.find( 'a[href]' );
-	const references: Reference[] = getReferences( context.$wrapper );
-	$links.each( function () {
-		const $link: JQuery = $( this );
-		const url: string = $link.attr( 'href' ).replace( /^\/\//, 'https://' );
-
-		const dataValue: UrlDataValue = {
-			type: 'string',
-			value: url
-		};
-		const snak: Snak = {
-			snaktype: 'value',
-			property: context.propertyId,
-			datavalue: dataValue,
-			datatype: 'url'
-		};
-		const statement: Statement = convertSnakToStatement( snak, references );
-		statements.push( statement );
-	} );
 
 	return statements;
 }
