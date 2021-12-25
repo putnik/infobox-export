@@ -120,22 +120,47 @@ function guessDateAndPrecision( timestamp: string ): TimeGuess {
 	};
 }
 
-/**
- * Format dates as datavalue for Wikidata.
- * Returns null for novalue and undefined for somevalue or if nothing found.
- */
-export function createTimeValue( timestamp: string, forceJulian: boolean | void ): TimeValue | null | undefined {
-	if ( !timestamp ) {
-		return;
-	}
+export function createTimeValueFromDate(
+	time: Date,
+	isBce?: boolean,
+	precision?: number,
+	forceJulian?: boolean
+): TimeValue {
+	time.setUTCHours( 0 );
+	time.setUTCMinutes( 0 );
+	time.setUTCSeconds( 0 );
+
 	const result: TimeValue = {
-		time: '',
-		precision: 0,
+		time: ( isBce ? '-' : '+' ) + time.toISOString().replace( /\.000Z/, 'Z' ),
+		precision: precision || 11,
 		timezone: 0,
 		before: 0,
 		after: 0,
 		calendarmodel: grigorianCalendar
 	};
+
+	if ( result.precision < 11 ) {
+		result.time = result.time.replace( /-\d\dT/, '-00T' );
+	}
+	if ( result.precision < 10 ) {
+		result.time = result.time.replace( /-\d\d-/, '-00-' );
+	}
+
+	if ( forceJulian || time < new Date( Date.UTC( 1582, 9, 15 ) ) ) {
+		result.calendarmodel = julianCalendar;
+	}
+
+	return result;
+}
+
+/**
+ * Format dates as datavalue for Wikidata.
+ * Returns null for novalue and undefined for somevalue or if nothing found.
+ */
+export function createTimeValue( timestamp: string, forceJulian?: boolean ): TimeValue | null | undefined {
+	if ( !timestamp ) {
+		return;
+	}
 
 	if ( timestamp.match( /\s\([^)]*\)\s/ ) ) {
 		forceJulian = true;
@@ -161,28 +186,7 @@ export function createTimeValue( timestamp: string, forceJulian: boolean | void 
 		return;
 	}
 
-	try {
-		guess.isoDate.setUTCHours( 0 );
-		guess.isoDate.setUTCMinutes( 0 );
-		guess.isoDate.setUTCSeconds( 0 );
-
-		result.time = ( isBce ? '-' : '+' ) + guess.isoDate.toISOString().replace( /\.000Z/, 'Z' );
-		result.precision = guess.precision;
-	} catch ( e ) {
-		return;
-	}
-	if ( result.precision < 11 ) {
-		result.time = result.time.replace( /-\d\dT/, '-00T' );
-	}
-	if ( result.precision < 10 ) {
-		result.time = result.time.replace( /-\d\d-/, '-00-' );
-	}
-
-	if ( forceJulian || guess.isoDate < new Date( Date.UTC( 1582, 9, 15 ) ) ) {
-		result.calendarmodel = julianCalendar;
-	}
-
-	return result;
+	return createTimeValueFromDate( guess.isoDate, isBce, guess.precision, forceJulian );
 }
 
 function createTimeSnak( value: TimeValue, propertyId: PropertyId ): Snak {
