@@ -1,3 +1,4 @@
+import { createTimeValueFromDate } from './time';
 import { getReferences } from './utils';
 import { sparqlRequest } from '../api';
 import { addQualifierValue } from '../parser';
@@ -7,6 +8,40 @@ import { Context, KeyValue } from '../types/main';
 import { Reference, Snak, Statement } from '../types/wikidata/main';
 import { EntityIdValue } from '../types/wikidata/values';
 import { UrlDataValue } from '../types/wikidata/datavalues';
+
+const webArchivePrefix = /^https?:\/\/web\.archive\.org\/web\/(\d{4})(\d{2})(\d{2})\d+\//;
+
+async function addArchiveUrlQualifiers( statement: Statement, archiveUrl: string ): Promise<void> {
+	addQualifierValue(
+		statement,
+		'P2241',
+		'wikibase-item',
+		{
+			id: 'Q1193907'
+		}
+	);
+	addQualifierValue(
+		statement,
+		'P1065',
+		'url',
+		archiveUrl
+	);
+
+	const archiveTimeParts: RegExpMatchArray = archiveUrl.match( webArchivePrefix );
+	if ( archiveTimeParts.length === 4 ) {
+		const archiveTime: Date = new Date(
+			parseInt( archiveTimeParts[ 1 ], 10 ),
+			parseInt( archiveTimeParts[ 2 ], 10 ),
+			parseInt( archiveTimeParts[ 3 ], 10 )
+		);
+		addQualifierValue(
+			statement,
+			'P2960',
+			'time',
+			createTimeValueFromDate( archiveTime )
+		);
+	}
+}
 
 async function addLanguageQualifier( statement: Statement, context: Context ): Promise<void> {
 	const codes: KeyValue = {};
@@ -40,7 +75,13 @@ export async function prepareUrl( context: Context ): Promise<Statement[]> {
 	const references: Reference[] = getReferences( context.$wrapper );
 	$links.each( function () {
 		const $link: JQuery = $( this );
-		const url: string = $link.attr( 'href' ).replace( /^\/\//, 'https://' );
+		let url: string = $link.attr( 'href' ).replace( /^\/\//, 'https://' );
+		let archiveUrl: string|null;
+
+		if ( url.match( webArchivePrefix ) ) {
+			archiveUrl = url;
+			url = url.replace( webArchivePrefix, '' );
+		}
 
 		const dataValue: UrlDataValue = {
 			type: 'string',
@@ -53,6 +94,11 @@ export async function prepareUrl( context: Context ): Promise<Statement[]> {
 			datatype: 'url'
 		};
 		const statement: Statement = convertSnakToStatement( snak, references );
+
+		if ( archiveUrl ) {
+			statement.rank = 'deprecated';
+			addArchiveUrlQualifiers( statement, archiveUrl );
+		}
 
 		statements.push( statement );
 	} );
