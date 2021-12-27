@@ -10,6 +10,7 @@ import { prepareTime } from './time';
 import { ApiResponse } from '../types/api';
 import { apiRequest } from '../api';
 import { PropertyId } from '../types/wikidata/types';
+import { addQualifiers } from '../parser';
 
 export const alreadyExistingItems: KeyValue = {};
 
@@ -159,7 +160,12 @@ export async function parseItem( context: Context ): Promise<Statement[]> {
 		}
 	}
 
-	return getStatements( context.propertyId, titles, references );
+	const statements = await getStatements( context.propertyId, titles, references );
+	if ( statements.length === 1 ) {
+		statements[ 0 ] = await addQualifiers( context.$field, statements[ 0 ] );
+	}
+
+	return statements;
 }
 
 export async function canExportItem( propertyId: PropertyId, wikidataStatements: Statement[], $field: JQuery ): Promise<boolean> {
