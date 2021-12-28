@@ -66,31 +66,6 @@
     display: none;
 }
 
-.infobox-export-all {
-    display: none;
-    float: right;
-    margin-right: 0.3em;
-    margin-top: 1px;
-    width: 14px;
-    height: 14px;
-    line-height: 14px;
-    background-image: url( '//upload.wikimedia.org/wikipedia/commons/6/6b/OOjs_UI_icon_upload.svg' );
-    background-size: cover;
-    cursor: pointer;
-    position: relative;
-    z-index: 1;
-}
-
-.infobox-export-all.loader {
-    margin-top: 2px;
-    background-image: url( '//upload.wikimedia.org/wikipedia/commons/1/17/OOjs_UI_icon_reload.svg' );
-    cursor: default;
-    animation-name: infobox-export-spin;
-    animation-duration: 4000ms;
-    animation-iteration-count: infinite;
-    animation-timing-function: linear;
-}
-
 @keyframes infobox-export-spin {
     from {
         transform: rotate(0deg);

@@ -108,23 +108,6 @@ async function clickEvent(): Promise<void> {
 	$field.removeClass( 'infobox-export-loader' );
 }
 
-async function exportAll(): Promise<void> {
-	const $link = $( this );
-	$link.addClass( 'loader' );
-
-	const fields: JQuery[] = mw.util.$content.find( '.infobox .no-wikidata[data-wikidata-property-id]' ).toArray();
-	const allStatements: Statement[] = [];
-
-	for ( const i in fields ) {
-		const $field: JQuery = $( fields[ i ] );
-		const statements: Statement[] = await parseField( $field );
-		allStatements.push( ...statements );
-	}
-
-	await showDialog( allStatements );
-	$link.removeClass( 'loader' );
-}
-
 async function loadDefaultReference(): Promise<void> {
 	const sparql = `SELECT ?wiki WHERE { ?wiki wdt:P31/wdt:P279* wd:Q33120876 . ?wiki wdt:P856 ?site . FILTER REGEX(STR(?site), "https://${location.host}/") }`;
 	const data: SparqlResponse = await sparqlRequest( sparql );
@@ -224,13 +207,6 @@ export async function init(): Promise<any> {
 	} );
 	const css = require( './assets/init.css' ).toString();
 	mw.util.addCSS( css );
-
-	const $exportAll: JQuery = $( '<div>' )
-		.addClass( 'infobox-export-all' )
-		.attr( 'title', getI18n( 'export-all' ) )
-		.on( 'click', exportAll );
-	const $container: JQuery = $( '.infobox:not(.vertical-navbox):not([data-from])' ).find( 'caption:visible, th:visible, td:visible' ).first();
-	$container.prepend( $exportAll );
 
 	// TODO: Do not load properties until the window is opened for the first time
 	await loadProperties( propertyIds );
