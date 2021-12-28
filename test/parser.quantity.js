@@ -39,6 +39,13 @@ describe("parseRawQuantity()", function() {
 				"unit": "1"
 			} );
 		} );
+		it( "should convert to integer after multiplying by 10^n", function () {
+			const result = parseRawQuantity( config, "2.8×103", true );
+			assert.deepStrictEqual( result, {
+				"amount": "2800",
+				"unit": "1"
+			} );
+		} );
 	} );
 	describe("without forceInteger=true", function() {
 		it( "should return amount for integer value", function () {
@@ -107,6 +114,22 @@ describe("parseRawQuantity()", function() {
 					"amount": "108",
 					"lowerBound": "102.5",
 					"upperBound": "113.5",
+					"unit": "1"
+				} );
+			} );
+		} );
+		describe("for 10^n", function() {
+			it( "should process positive power", function () {
+				const result = parseRawQuantity( config, "1.23456×103" );
+				assert.deepStrictEqual( result, {
+					"amount": "1234.56",
+					"unit": "1"
+				} );
+			} );
+			it( "should process negative power", function () {
+				const result = parseRawQuantity( config, "1234.56×10-3" );
+				assert.deepStrictEqual( result, {
+					"amount": "1.23456",
 					"unit": "1"
 				} );
 			} );

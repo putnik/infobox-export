@@ -31,9 +31,9 @@ export function parseRawQuantity( config: any, text: string, forceInteger?: bool
 	} else if ( text.match( config[ 're-10_12' ] ) ) {
 		magnitude += 12;
 	} else {
-		const match = text.match( /[*|·]10(-?\d+)/ );
+		const match = text.match( /[*·⋅×]10(-?\d+)/ );
 		if ( match ) {
-			text = text.replace( /[*|·]10(-?\d+)/, '' );
+			text = text.replace( /[*·⋅×]10(-?\d+)/, '' );
 			magnitude += parseInt( match[ 1 ] );
 		}
 	}
