@@ -89,9 +89,12 @@ async function parseField( $field: JQuery ): Promise<Statement[]> {
  */
 async function clickEvent(): Promise<void> {
 	const $field = $( this );
-	if ( $field.parents( '.no-wikidata[data-wikidata-property-id]' ).length ) {
+	if ( $field.hasClass( 'no-wikidata-loader' ) ||
+		$field.parents( '.no-wikidata[data-wikidata-property-id]' ).length
+	) {
 		return;
 	}
+	$field.addClass( 'infobox-export-loader' );
 	const statements: Statement[] = await parseField( $field );
 
 	const subFields: JQuery[] = $field.find( '.no-wikidata[data-wikidata-property-id]' ).toArray();
@@ -102,6 +105,7 @@ async function clickEvent(): Promise<void> {
 	}
 
 	await showDialog( statements );
+	$field.removeClass( 'infobox-export-loader' );
 }
 
 async function exportAll(): Promise<void> {
