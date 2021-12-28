@@ -14,12 +14,16 @@ const startEndPropertyMapping: KeyValue = {
 	P2031: 'P2032'
 };
 
-function guessDateAndPrecision( timestamp: string ): TimeGuess {
+export function guessDateAndPrecision( timestamp: string ): TimeGuess {
 	let dateParts = timestamp.match( getConfig( 're-century' ) );
 	let isoDate;
 	if ( dateParts ) {
 		isoDate = new Date( 0 );
 		isoDate.setFullYear( getConfig( 'centuries' ).indexOf( dateParts[ 1 ].toUpperCase() ) * 100 + 1 );
+		isoDate.setUTCHours( 0 );
+		isoDate.setUTCMinutes( 0 );
+		isoDate.setUTCSeconds( 0 );
+
 		return {
 			type: 'value',
 			isoDate: isoDate,
@@ -30,6 +34,17 @@ function guessDateAndPrecision( timestamp: string ): TimeGuess {
 	dateParts = timestamp.match( getConfig( 're-month-year' ) );
 	if ( dateParts ) {
 		isoDate = new Date( Date.UTC( parseInt( dateParts[ 2 ], 10 ), getMonths().indexOf( dateParts[ 1 ] ) ) );
+		return {
+			type: 'value',
+			isoDate: isoDate,
+			precision: 10
+		};
+	}
+
+	dateParts = timestamp.match( getConfig( 're-month-dot-year' ) );
+	if ( dateParts ) {
+		console.log( parseInt( dateParts[ 2 ], 10 ), parseInt( dateParts[ 1 ], 10 ) );
+		isoDate = new Date( Date.UTC( parseInt( dateParts[ 2 ], 10 ), parseInt( dateParts[ 1 ], 10 ) - 1 ) );
 		return {
 			type: 'value',
 			isoDate: isoDate,
@@ -120,18 +135,37 @@ function guessDateAndPrecision( timestamp: string ): TimeGuess {
 	};
 }
 
+export function createTimeString( time: Date, precision: number ): string {
+	if ( precision <= 8 ) {
+		let year = time.getFullYear();
+		year -= year % 10 ** ( 9 - precision );
+		time.setFullYear( year );
+	}
+
+	time.setUTCHours( 0 );
+	time.setUTCMinutes( 0 );
+	time.setUTCSeconds( 0 );
+
+	let result = time.toISOString().replace( /\.000Z/, 'Z' );
+
+	if ( precision <= 10 ) {
+		result = result.replace( /-\d\dT/, '-00T' );
+	}
+	if ( precision <= 9 ) {
+		result = result.replace( /-\d\d-/, '-00-' );
+	}
+
+	return result;
+}
+
 export function createTimeValueFromDate(
 	time: Date,
 	isBce?: boolean,
 	precision?: number,
 	forceJulian?: boolean
 ): TimeValue {
-	time.setUTCHours( 0 );
-	time.setUTCMinutes( 0 );
-	time.setUTCSeconds( 0 );
-
 	const result: TimeValue = {
-		time: ( isBce ? '-' : '+' ) + time.toISOString().replace( /\.000Z/, 'Z' ),
+		time: ( isBce ? '-' : '+' ) + createTimeString( time, precision || 11 ),
 		precision: precision || 11,
 		timezone: 0,
 		before: 0,
@@ -139,14 +173,7 @@ export function createTimeValueFromDate(
 		calendarmodel: grigorianCalendar
 	};
 
-	if ( result.precision < 11 ) {
-		result.time = result.time.replace( /-\d\dT/, '-00T' );
-	}
-	if ( result.precision < 10 ) {
-		result.time = result.time.replace( /-\d\d-/, '-00-' );
-	}
-
-	if ( forceJulian || time < new Date( Date.UTC( 1582, 9, 15 ) ) ) {
+	if ( forceJulian || isBce || time < new Date( Date.UTC( 1582, 9, 15 ) ) ) {
 		result.calendarmodel = julianCalendar;
 	}
 
