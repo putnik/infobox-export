@@ -70,10 +70,7 @@ export function getLabelValue( labels: KeyValue, languages: string[], defaultVal
 	return '';
 }
 
-export async function sleep( ms: number ): Promise<void> {
-	/* eslint-disable */
-	return new Promise(
-		( resolve ) => setTimeout( resolve, ms )
-	);
-	/* eslint-enable */
+export async function sleep( milliseconds: number ): Promise<void> {
+	// eslint-disable-next-line
+	return new Promise<void>( resolve => setTimeout( resolve, milliseconds ) );
 }
