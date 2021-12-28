@@ -53,7 +53,7 @@ export function formatReferences( references: Reference[] ): JQuery {
 export async function formatExternalId( value: ExternalIdValue | StringValue, propertyId?: PropertyId ): Promise<JQuery> {
 	const $mainLabel: JQuery = $( '<span>' )
 		.addClass( 'infobox-export-main-label' )
-		.html( value );
+		.text( value );
 	const $label: JQuery = $( '<span>' ).append( $mainLabel );
 	if ( propertyId ) {
 		const formatter: string | undefined = await getProperty( propertyId, 'formatter' );
@@ -82,11 +82,11 @@ export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
 
 	const $mainLabel: JQuery = $( '<span>' )
 		.addClass( 'infobox-export-main-label' )
-		.html( label );
+		.text( label );
 	const $wdLink: JQuery = getRefSup( `https://wikidata.org/wiki/${value.id}`, 'd' );
 	const $label: JQuery = $( '<span>' ).append( $mainLabel, $wdLink );
 	if ( description ) {
-		$label.append( $( '<span>' ).html( ' — ' + description ) );
+		$label.append( $( '<span>' ).text( ' — ' + description ) );
 	}
 	return $label;
 }
