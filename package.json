@@ -9,7 +9,7 @@
     "lint": "eslint src --ext=\".js,.ts\"",
     "lint-fix": "eslint src --ext=\".js,.ts\" --fix",
     "serve": "webpack serve --mode development",
-    "test": "mocha --require @babel/register --extensions \".js, .ts, .tsx\"",
+    "test": "mocha --require @babel/register --extensions \".js, .ts, .tsx\" --globals global",
     "watch": "webpack --watch"
   },
   "pre-commit": [

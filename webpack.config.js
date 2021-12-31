@@ -1,4 +1,5 @@
 const path = require("path");
+const webpack = require("webpack");
 const APP_SOURCE = path.join(__dirname, "src");
 
 module.exports = {
@@ -47,4 +48,9 @@ module.exports = {
 		// To use in a DevTools snippet.
 		writeToDisk: true,
 	},
+	plugins: [
+		new webpack.DefinePlugin({
+			__VERSION__: JSON.stringify(require("./package.json").version),
+		}),
+	],
 };

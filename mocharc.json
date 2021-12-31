@@ -2,6 +2,7 @@
   "extension": ["ts"],
   "spec": "test/**/*.spec.ts",
   "require": [
+    "test/declare-register.js",
     "test/babel-register.js",
     "test/mocks-register.js"
   ]

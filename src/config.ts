@@ -9,10 +9,11 @@ import { Statement } from './types/wikidata/main';
 import { StringDataValue } from './types/wikidata/datavalues';
 
 const mw = require( 'mw' );
+declare let __VERSION__: string;
 
 // Main config
-let config: KeyValue = {
-	version: '3.0.0-beta',
+let config: Config = {
+	version: __VERSION__,
 	project: mw.config.get( 'wgDBname' ),
 	'storage-key': 'infoboxExportConfig',
 	references: {},
