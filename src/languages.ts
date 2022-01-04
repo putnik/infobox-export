@@ -16,9 +16,11 @@ export const allLanguages: string[] = unique( [
 
 export const missedLanguages: {[key: string]: string} = {
 	ain: 'Q20968488',
+	akk: 'Q32332',
 	atv: 'Q2640863',
 	bua: 'Q33120',
 	chm: 'Q973685',
+	dar: 'Q32332',
 	enf: 'Q29942',
 	evn: 'Q30004',
 	izh: 'Q33559',
