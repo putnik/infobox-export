@@ -206,6 +206,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 			constraints: {
 				integer: false,
 				unique: false,
+				unitOptional: false,
 				qualifier: []
 			},
 			formatter: '',
@@ -213,7 +214,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 		};
 
 		// Don't float people
-		if ( propertyId === 'P1128' || propertyId === 'P2196' ) {
+		if ( [ 'P1082', 'P1128', 'P2196' ].includes( propertyId ) ) {
 			propertyData.constraints.integer = true;
 		}
 
@@ -268,6 +269,8 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 							if ( unitId ) {
 								propertyData.units.push( unitId );
 								units.push( unitId );
+							} else if ( qualifiers[ idx ]?.snaktype === 'novalue' ) {
+								propertyData.constraints.unitOptional = true;
 							}
 						}
 						break;

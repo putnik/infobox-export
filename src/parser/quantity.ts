@@ -10,6 +10,8 @@ import { ItemId, PropertyId, Unit } from '../types/wikidata/types';
 import { createTimeValue } from './time';
 import { getReferences } from './utils';
 
+const NoUnit = '1';
+
 function numberToString( value: number, integral: number, fractional: number, magnitude: number ): string {
 	const integralMultiplier: number = parseFloat( '1e-' + integral.toString() );
 	const fractionalMultiplier: number = parseFloat( '1e' + fractional.toString() );
@@ -33,7 +35,7 @@ function numberToString( value: number, integral: number, fractional: number, ma
 export function parseRawQuantity( config: any, text: string, forceInteger?: boolean ): QuantityValue | null {
 	const value: QuantityValue = {
 		amount: '0',
-		unit: '1'
+		unit: NoUnit
 	};
 	text = text.replace( /,/g, '.' ).replace( /[−–—]/g, '-' ).trim();
 
@@ -162,7 +164,7 @@ export function parseQuantity( text: string, propertyId: PropertyId, forceIntege
  */
 async function recognizeUnits( text: string, units: KeyValue, label?: string ): Promise<Unit[]> {
 	if ( Array.isArray( units ) && units.length === 0 ) {
-		return [ '1' ];
+		return [];
 	}
 	const result: Unit[] = [];
 	for ( const idx in units ) {
@@ -199,7 +201,7 @@ async function recognizeUnits( text: string, units: KeyValue, label?: string ): 
 }
 
 async function removeUnitString( text: string, unit: Unit ): Promise<string> {
-	if ( unit === '1' ) {
+	if ( unit === NoUnit ) {
 		return text;
 	}
 	const itemId: ItemId = unit.replace( /^.+\/(Q\d+)$/, '$1' ) as ItemId;
@@ -232,9 +234,13 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 		text = amount + getI18n( 'unit-sec' );
 	}
 
-	const forceInteger: boolean = await getProperty( context.propertyId, 'constraints.integer' );
-
 	const foundUnits: Unit[] = await recognizeUnits( text, await getProperty( context.propertyId, 'units' ), thText );
+	const isUnitOptional: boolean = await getProperty( context.propertyId, 'constraints.unitOptional' );
+	if ( isUnitOptional ) {
+		foundUnits.push( NoUnit );
+	}
+
+	const forceInteger: boolean = await getProperty( context.propertyId, 'constraints.integer' );
 	for ( let u = 0; u < foundUnits.length; u++ ) {
 		const textWithoutUnit: string = await removeUnitString( text, foundUnits[ u ] );
 		let statement: Statement | void = parseQuantity( textWithoutUnit, context.propertyId, forceInteger );

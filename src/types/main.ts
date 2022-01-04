@@ -39,6 +39,7 @@ export interface Context {
 export interface Constraints {
 	integer: boolean;
 	unique: boolean;
+	unitOptional: boolean;
 	qualifier: PropertyId[];
 }
 
