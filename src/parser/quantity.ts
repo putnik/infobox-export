@@ -9,12 +9,28 @@ import { Reference, Snak, Statement } from '../types/wikidata/main';
 import { ItemId, PropertyId, Unit } from '../types/wikidata/types';
 import { createTimeValue } from './time';
 import { getReferences } from './utils';
-import { clone } from '../utils';
+
+function numberToString( value: number, integral: number, fractional: number, magnitude: number ): string {
+	const integralMultiplier: number = parseFloat( '1e-' + integral.toString() );
+	const fractionalMultiplier: number = parseFloat( '1e' + fractional.toString() );
+	const magnitudeMultiplier: number = parseFloat( '1e' + magnitude.toString() );
+
+	if ( magnitude >= 0 ) {
+		if ( magnitude <= fractional ) {
+			return ( magnitudeMultiplier * value ).toFixed( fractional - magnitude );
+		}
+		return ( fractionalMultiplier * value ).toFixed( 0 ).replace( /$/, new Array( magnitude - fractional + 1 ).join( '0' ) );
+	}
+	if ( magnitude >= -integral ) {
+		return ( magnitudeMultiplier * value ).toFixed( fractional - magnitude );
+	}
+	return ( integralMultiplier * value ).toFixed( integral + fractional ).replace( /0\./, '0.' + new Array( -magnitude - integral + 1 ).join( '0' ) );
+}
 
 /**
  * Parsing the number and (optionally) the accuracy
  */
-export function parseRawQuantity( config: any, text: string, forceInteger?: boolean ): QuantityValue {
+export function parseRawQuantity( config: any, text: string, forceInteger?: boolean ): QuantityValue | null {
 	const value: QuantityValue = {
 		amount: '0',
 		unit: '1'
@@ -44,8 +60,7 @@ export function parseRawQuantity( config: any, text: string, forceInteger?: bool
 	}
 
 	const interval: string[] = decimals[ 0 ].split( '-' );
-	if ( magnitude === 0 &&
-		decimals.length === 1 &&
+	if ( decimals.length === 1 &&
 		interval.length === 2 &&
 		interval[ 0 ].replace( /[^\d]/g, '' ).length !== 0 &&
 		interval[ 1 ].replace( /[^\d]/g, '' ).length !== 0
@@ -57,38 +72,26 @@ export function parseRawQuantity( config: any, text: string, forceInteger?: bool
 		const upperBound: number = parseFloat( value.upperBound );
 		const lowerBound: number = parseFloat( value.lowerBound );
 		const amount: number = ( upperBound + lowerBound ) / 2;
+		const integral: number = parts ? parts[ 1 ].length : amount.toString().length;
+		value.lowerBound = numberToString( lowerBound, integral, fractional, magnitude );
+		value.upperBound = numberToString( upperBound, integral, fractional, magnitude );
 		if ( upperBound % 2 !== lowerBound % 2 ) {
 			fractional += 1;
 		}
-		value.amount = amount.toFixed( fractional );
+		value.amount = numberToString( amount, integral, fractional, magnitude );
 		return value;
 	}
 
 	const amount: number = parseFloat( decimals[ 0 ].replace( /[^0-9.+-]/g, '' ) );
 	if ( isNaN( amount ) ) {
-		return;
+		return null;
 	}
 
 	let bound: number;
 	let parts: RegExpMatchArray | null = amount.toString().match( /(\d+)\.(\d+)/ );
 	let integral: number = parts ? parts[ 1 ].length : amount.toString().length;
 	let fractional: number = parts ? parts[ 2 ].length : 0;
-	let fractionalMultiplier: number = parseFloat( '1e' + fractional.toString() );
-	let magnitudeMultiplier: number = parseFloat( '1e' + magnitude.toString() );
-	let integralMultiplier: number = parseFloat( '1e-' + integral.toString() );
-	if ( magnitude >= 0 ) {
-		if ( magnitude <= fractional ) {
-			value.amount = ( magnitudeMultiplier * amount ).toFixed( fractional - magnitude );
-		} else {
-			value.amount = ( fractionalMultiplier * amount ).toFixed( 0 ).replace( /$/, new Array( magnitude - fractional + 1 ).join( '0' ) );
-		}
-	} else {
-		if ( magnitude >= -integral ) {
-			value.amount = ( magnitudeMultiplier * amount ).toFixed( fractional - magnitude );
-		} else {
-			value.amount = ( integralMultiplier * amount ).toFixed( integral + fractional ).replace( /0\./, '0.' + new Array( -magnitude - integral + 1 ).join( '0' ) );
-		}
-	}
+	value.amount = numberToString( amount, integral, fractional, magnitude );
 
 	if ( decimals.length > 1 ) {
 		bound = parseFloat( decimals[ 1 ].replace( /[^0-9.+-]/g, '' ) );
@@ -102,29 +105,8 @@ export function parseRawQuantity( config: any, text: string, forceInteger?: bool
 			integral = parts ? parts[ 1 ].length : amount.toString().length;
 			fractional = parts ? parts[ 2 ].length : 0;
 		}
-		fractionalMultiplier = parseFloat( '1e' + fractional.toString() );
-		magnitudeMultiplier = parseFloat( '1e' + magnitude.toString() );
-		integralMultiplier = parseFloat( '1e-' + integral.toString() );
-
-		const lowerBound: number = amount - bound;
-		const upperBound: number = amount + bound;
-		if ( magnitude >= 0 ) {
-			if ( magnitude <= fractional ) {
-				value.lowerBound = ( magnitudeMultiplier * lowerBound ).toFixed( fractional - magnitude );
-				value.upperBound = ( magnitudeMultiplier * upperBound ).toFixed( fractional - magnitude );
-			} else {
-				value.lowerBound = ( fractionalMultiplier * lowerBound ).toFixed( 0 ).replace( /$/, new Array( magnitude - fractional + 1 ).join( '0' ) );
-				value.upperBound = ( fractionalMultiplier * upperBound ).toFixed( 0 ).replace( /$/, new Array( magnitude - fractional + 1 ).join( '0' ) );
-			}
-		} else {
-			if ( magnitude >= -integral ) {
-				value.lowerBound = ( magnitudeMultiplier * lowerBound ).toFixed( fractional - magnitude );
-				value.upperBound = ( magnitudeMultiplier * upperBound ).toFixed( fractional - magnitude );
-			} else {
-				value.lowerBound = ( integralMultiplier * lowerBound ).toFixed( integral + fractional ).replace( /0\./, '0.' + new Array( -magnitude - integral + 1 ).join( '0' ) );
-				value.upperBound = ( integralMultiplier * upperBound ).toFixed( integral + fractional ).replace( /0\./, '0.' + new Array( -magnitude - integral + 1 ).join( '0' ) );
-			}
-		}
+		value.lowerBound = numberToString( amount - bound, integral, fractional, magnitude );
+		value.upperBound = numberToString( amount + bound, integral, fractional, magnitude );
 	}
 	return value;
 }
@@ -132,7 +114,7 @@ export function parseRawQuantity( config: any, text: string, forceInteger?: bool
 /**
  * Parsing the number and (optionally) the accuracy
  */
-export function parseQuantity( text: string, propertyId: PropertyId, forceInteger?: boolean ): ( Statement | void ) {
+export function parseQuantity( text: string, propertyId: PropertyId, forceInteger?: boolean ): Statement | null {
 	text = text.replace( /,/g, '.' ).replace( /[−–—]/g, '-' ).trim();
 	const config: KeyValue = {
 		're-10_3': getConfig( 're-10_3' ),
@@ -141,9 +123,9 @@ export function parseQuantity( text: string, propertyId: PropertyId, forceIntege
 		're-10_12': getConfig( 're-10_12' )
 	};
 
-	const value: QuantityValue | undefined = parseRawQuantity( config, text, forceInteger );
-	if ( value === undefined ) {
-		return;
+	const value: QuantityValue | null = parseRawQuantity( config, text, forceInteger );
+	if ( value === null ) {
+		return null;
 	}
 	const dataValue: DataValue = {
 		type: 'quantity',
@@ -216,6 +198,18 @@ async function recognizeUnits( text: string, units: KeyValue, label?: string ): 
 	return result;
 }
 
+async function removeUnitString( text: string, unit: Unit ): Promise<string> {
+	if ( unit === '1' ) {
+		return text;
+	}
+	const itemId: ItemId = unit.replace( /^.+\/(Q\d+)$/, '$1' ) as ItemId;
+	const searches: string[] = await getUnit( itemId );
+	searches.forEach( function ( search: string ) {
+		text = text.replace( search, '' );
+	} );
+	return text;
+}
+
 export async function prepareQuantity( context: Context ): Promise<Statement[]> {
 	const statements: Statement[] = [];
 	const thText: string = context.$wrapper.closest( 'tr' ).find( 'th' ).first().text().trim();
@@ -239,74 +233,74 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 	}
 
 	const forceInteger: boolean = await getProperty( context.propertyId, 'constraints.integer' );
-	let statement: Statement | void = parseQuantity( text, context.propertyId, forceInteger );
-	if ( !statement ) {
-		return [];
-	}
-
-	const references: Reference[] = getReferences( context.$wrapper );
-	if ( references.length ) {
-		statement.references = references;
-	}
-
-	statement = await addQualifiers( context.$field, statement );
-
-	if ( ( await getProperty( context.propertyId, 'constraints.qualifier' ) ).indexOf( 'P585' ) !== -1 ) {
-		let yearMatch: string[] = context.text.match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
-		if ( !yearMatch ) {
-			yearMatch = thText.match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
-		}
-		if ( yearMatch ) {
-			const extractedDate: TimeValue | void = createTimeValue( yearMatch[ 1 ].replace( /(\d)\s(\d)/, '$1$2' ) );
-			if ( extractedDate ) {
-				statement.qualifiers = {
-					P585: [ {
-						snaktype: 'value',
-						property: 'P585',
-						datavalue: {
-							type: 'time',
-							value: extractedDate
-						},
-						datatype: 'time'
-					} ]
-				};
-			}
-		}
-	}
-
-	const qualifierMatch: RegExpMatchArray | null = context.text.match( /\(([^)]*)/ );
-	if ( qualifierMatch ) {
-		const qualifierTempStatement: Statement | void = parseQuantity( qualifierMatch[ 1 ], 'P0' );
-		if ( qualifierTempStatement ) {
-			const qualifierQuantitySnak: Snak = qualifierTempStatement.mainsnak;
-			const qualifierQuantity: QuantityValue = qualifierQuantitySnak.datavalue.value as QuantityValue;
-			const supportedProperties: PropertyId[] = [ 'P2076', 'P2077' ];
-			for ( let j = 0; j < supportedProperties.length; j++ ) {
-				const units: Unit[] = await recognizeUnits( qualifierMatch[ 1 ], await getProperty( supportedProperties[ j ], 'units' ) );
-				if ( units.length === 1 ) {
-					qualifierQuantity.unit = units[ 0 ];
-					if ( !statement.qualifiers ) {
-						statement.qualifiers = {};
-					}
-					statement.qualifiers[ supportedProperties[ j ] ] = [ {
-						snaktype: 'value',
-						property: supportedProperties[ j ],
-						datavalue: {
-							type: 'quantity',
-							value: qualifierQuantity
-						},
-						datatype: 'quantity'
-					} ];
-				}
-			}
-		}
-	}
 
 	const foundUnits: Unit[] = await recognizeUnits( text, await getProperty( context.propertyId, 'units' ), thText );
 	for ( let u = 0; u < foundUnits.length; u++ ) {
-		const newStatement: Statement = clone( statement );
-		( newStatement.mainsnak.datavalue.value as QuantityValue ).unit = foundUnits[ u ];
-		statements.push( newStatement );
+		const textWithoutUnit: string = await removeUnitString( text, foundUnits[ u ] );
+		let statement: Statement | void = parseQuantity( textWithoutUnit, context.propertyId, forceInteger );
+		if ( !statement ) {
+			continue;
+		}
+		( statement.mainsnak.datavalue.value as QuantityValue ).unit = foundUnits[ u ];
+
+		const references: Reference[] = getReferences( context.$wrapper );
+		if ( references.length ) {
+			statement.references = references;
+		}
+
+		statement = await addQualifiers( context.$field, statement );
+
+		if ( ( await getProperty( context.propertyId, 'constraints.qualifier' ) ).indexOf( 'P585' ) !== -1 ) {
+			let yearMatch: string[] = context.text.match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
+			if ( !yearMatch ) {
+				yearMatch = thText.match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
+			}
+			if ( yearMatch ) {
+				const extractedDate: TimeValue | void = createTimeValue( yearMatch[ 1 ].replace( /(\d)\s(\d)/, '$1$2' ) );
+				if ( extractedDate ) {
+					statement.qualifiers = {
+						P585: [ {
+							snaktype: 'value',
+							property: 'P585',
+							datavalue: {
+								type: 'time',
+								value: extractedDate
+							},
+							datatype: 'time'
+						} ]
+					};
+				}
+			}
+		}
+
+		const qualifierMatch: RegExpMatchArray | null = context.text.match( /\(([^)]*)/ );
+		if ( qualifierMatch ) {
+			const qualifierTempStatement: Statement | null = parseQuantity( qualifierMatch[ 1 ], 'P0' );
+			if ( qualifierTempStatement ) {
+				const qualifierQuantitySnak: Snak = qualifierTempStatement.mainsnak;
+				const qualifierQuantity: QuantityValue = qualifierQuantitySnak.datavalue.value as QuantityValue;
+				const supportedProperties: PropertyId[] = [ 'P2076', 'P2077' ];
+				for ( let j = 0; j < supportedProperties.length; j++ ) {
+					const units: Unit[] = await recognizeUnits( qualifierMatch[ 1 ], await getProperty( supportedProperties[ j ], 'units' ) );
+					if ( units.length === 1 ) {
+						qualifierQuantity.unit = units[ 0 ];
+						if ( !statement.qualifiers ) {
+							statement.qualifiers = {};
+						}
+						statement.qualifiers[ supportedProperties[ j ] ] = [ {
+							snaktype: 'value',
+							property: supportedProperties[ j ],
+							datavalue: {
+								type: 'quantity',
+								value: qualifierQuantity
+							},
+							datatype: 'quantity'
+						} ];
+					}
+				}
+			}
+		}
+		statements.push( statement );
 	}
 
 	return statements;
