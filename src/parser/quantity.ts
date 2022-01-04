@@ -21,7 +21,7 @@ export function parseRawQuantity( config: any, text: string, forceInteger?: bool
 	};
 	text = text.replace( /,/g, '.' ).replace( /[−–—]/g, '-' ).trim();
 
-	let magnitude = 0;
+	let magnitude: number = 0;
 	if ( text.match( config[ 're-10_3' ] ) ) {
 		magnitude += 3;
 	} else if ( text.match( config[ 're-10_6' ] ) ) {
@@ -31,29 +31,27 @@ export function parseRawQuantity( config: any, text: string, forceInteger?: bool
 	} else if ( text.match( config[ 're-10_12' ] ) ) {
 		magnitude += 12;
 	} else {
-		const match = text.match( /[*·⋅×]10(-?\d+)/ );
+		const match: RegExpMatchArray | null = text.match( /[*·⋅×]10(-?\d+)/ );
 		if ( match ) {
 			text = text.replace( /[*·⋅×]10(-?\d+)/, '' );
 			magnitude += parseInt( match[ 1 ] );
 		}
 	}
-	const decimals = text.split( '±' );
+	const decimals: string[] = text.split( '±' );
 	if ( magnitude === 0 && forceInteger ) {
 		decimals[ 0 ] = decimals[ 0 ].replace( /\./g, '' ).trim();
 	}
 
-	let amount;
-	let bound;
-	const interval = decimals[ 0 ].split( '-' );
+	const interval: string[] = decimals[ 0 ].split( '-' );
 	if ( magnitude === 0 &&
 		decimals.length === 1 &&
 		interval.length === 2 &&
-		interval[ 0 ].length !== 0 &&
-		interval[ 1 ].length !== 0
+		interval[ 0 ].replace( /[^\d]/g, '' ).length !== 0 &&
+		interval[ 1 ].replace( /[^\d]/g, '' ).length !== 0
 	) {
 		value.lowerBound = interval[ 0 ].replace( /[^0-9.+-]/g, '' );
 		value.upperBound = interval[ 1 ].replace( /[^0-9.+-]/g, '' );
-		const parts = value.lowerBound.match( /(\d+)\.(\d+)/ );
+		const parts: RegExpMatchArray | null = value.lowerBound.match( /(\d+)\.(\d+)/ );
 		let fractional: number = parts ? parts[ 2 ].length : 0;
 		const upperBound: number = parseFloat( value.upperBound );
 		const lowerBound: number = parseFloat( value.lowerBound );
@@ -63,17 +61,17 @@ export function parseRawQuantity( config: any, text: string, forceInteger?: bool
 		}
 		value.amount = amount.toFixed( fractional );
 		return value;
-	} else {
-		amount = parseFloat( decimals[ 0 ].replace( /[^0-9.+-]/g, '' ) );
 	}
 
+	const amount: number = parseFloat( decimals[ 0 ].replace( /[^0-9.+-]/g, '' ) );
 	if ( isNaN( amount ) ) {
 		return;
 	}
 
-	let parts = amount.toString().match( /(\d+)\.(\d+)/ );
-	let integral = parts ? parts[ 1 ].length : amount.toString().length;
-	let fractional = parts ? parts[ 2 ].length : 0;
+	let bound: number;
+	let parts: RegExpMatchArray | null = amount.toString().match( /(\d+)\.(\d+)/ );
+	let integral: number = parts ? parts[ 1 ].length : amount.toString().length;
+	let fractional: number = parts ? parts[ 2 ].length : 0;
 	let fractionalMultiplier: number = parseFloat( '1e' + fractional.toString() );
 	let magnitudeMultiplier: number = parseFloat( '1e' + magnitude.toString() );
 	let integralMultiplier: number = parseFloat( '1e-' + integral.toString() );
@@ -107,8 +105,8 @@ export function parseRawQuantity( config: any, text: string, forceInteger?: bool
 		magnitudeMultiplier = parseFloat( '1e' + magnitude.toString() );
 		integralMultiplier = parseFloat( '1e-' + integral.toString() );
 
-		const lowerBound = amount - bound;
-		const upperBound = amount + bound;
+		const lowerBound: number = amount - bound;
+		const upperBound: number = amount + bound;
 		if ( magnitude >= 0 ) {
 			if ( magnitude <= fractional ) {
 				value.lowerBound = ( magnitudeMultiplier * lowerBound ).toFixed( fractional - magnitude );
