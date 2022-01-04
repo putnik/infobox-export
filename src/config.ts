@@ -1,6 +1,6 @@
 import { getMonths, getMonthsGen } from './months';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
-import { KeyValue, Translations } from './types/main';
+import { Config, KeyValue, Property, Translations } from './types/main';
 import { ApiResponse } from './types/api';
 import { wdApiRequest } from './api';
 import { get, getLabelValue, set, unique, uppercaseFirst } from './utils';
@@ -80,10 +80,12 @@ export function setConfig( path: string, value: any ): void {
  * Save config to localStorage
  */
 export function saveConfig(): void {
-	const configForSave = config;
+	const configForSave: Config = config;
 	for ( const key in configForSave ) {
+		// @ts-ignore
 		const value: any = config[ key ];
 		if ( value instanceof RegExp ) {
+			// @ts-ignore
 			configForSave[ key ] = value.source;
 		}
 	}
@@ -198,7 +200,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 		const propertyId: PropertyId = key as PropertyId;
 		const entity: KeyValue = data.entities[ propertyId ];
 		const label: string = getLabelValue( entity.labels, [ userLanguage, contentLanguage ], propertyId );
-		const propertyData: KeyValue = {
+		const propertyData: Property = {
 			datatype: entity.datatype,
 			label: uppercaseFirst( label ),
 			constraints: {
@@ -241,7 +243,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 		// Property restrictions
 		if ( entity.claims && entity.claims.P2302 ) {
 			for ( const i in entity.claims.P2302 ) {
-				const type = entity.claims.P2302[ i ]?.mainsnak?.datavalue?.value?.id;
+				const type: ItemId = entity.claims.P2302[ i ]?.mainsnak?.datavalue?.value?.id;
 				let qualifiers;
 				switch ( type ) {
 					case 'Q19474404':
