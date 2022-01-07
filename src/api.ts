@@ -34,6 +34,6 @@ export async function getMessages( messageKeys: string[], language: string ): Pr
 
 export async function sparqlRequest( request: string ): Promise<SparqlResponse> {
 	const $ = require( 'jquery' );
-	const url = 'https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent( request );
-	return $.get( url );
+	const url = 'https://query.wikidata.org/sparql?format=json';
+	return $.post( url, { query: request } );
 }

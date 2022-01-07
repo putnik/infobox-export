@@ -77,6 +77,13 @@ export async function sleep( milliseconds: number ): Promise<void> {
 	return new Promise<void>( resolve => setTimeout( resolve, milliseconds ) );
 }
 
+export function prepareSearchString( search: string | undefined ): string {
+	if ( !search ) {
+		return '';
+	}
+	return search.trim().toLowerCase().replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' );
+}
+
 export async function queryIndexedDB( storeName: string, key: string, value?: any ): Promise<IndexedDbData | undefined> {
 	// eslint-disable-next-line
 	return new Promise(

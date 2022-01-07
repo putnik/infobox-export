@@ -14,7 +14,7 @@ import { loadMonths } from './months';
 import { ApiResponse, SparqlResponse } from './types/api';
 import { prepareQuantity } from './parser/quantity';
 import { Statement } from './types/wikidata/main';
-import { DataType, PropertyId } from './types/wikidata/types';
+import { DataType, ItemId, PropertyId } from './types/wikidata/types';
 import { prepareTime } from './parser/time';
 import { Context } from './types/main';
 import { parseItem } from './parser/item';
@@ -109,14 +109,14 @@ async function clickEvent(): Promise<void> {
 }
 
 async function loadDefaultReference(): Promise<void> {
-	const sparql = `SELECT ?wiki WHERE { ?wiki wdt:P31/wdt:P279* wd:Q33120876 . ?wiki wdt:P856 ?site . FILTER REGEX(STR(?site), "https://${location.host}/") }`;
+	const sparql: string = `SELECT ?wiki WHERE { ?wiki wdt:P31/wdt:P279* wd:Q33120876 . ?wiki wdt:P856 ?site . FILTER REGEX(STR(?site), "https://${location.host}/") }`;
 	const data: SparqlResponse = await sparqlRequest( sparql );
 	if ( data.results.bindings.length === 0 ) {
 		return;
 	}
 
 	// Add current wiki project as "imported from Wikimedia project"
-	const projectId = data.results.bindings[ 0 ].wiki.value.replace( 'http://www.wikidata.org/entity/', '' );
+	const projectId: ItemId = data.results.bindings[ 0 ].wiki.value.replace( 'http://www.wikidata.org/entity/', '' ) as ItemId;
 	setConfig( 'references.P143', [ {
 		property: 'P143',
 		snaktype: 'value',

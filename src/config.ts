@@ -1,9 +1,9 @@
 import { getMonths, getMonthsGen } from './months';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
 import { Config, KeyValue, Property, Translations } from './types/main';
-import { wdApiRequest } from './api';
-import { get, getLabelValue, set, unique, uppercaseFirst, queryIndexedDB } from './utils';
-import { ApiResponse, IndexedDbData } from './types/api';
+import { ApiResponse, IndexedDbData, SparqlUnitBindings, SparqlUnitsResponse } from './types/api';
+import { sparqlRequest, wdApiRequest } from './api';
+import { prepareSearchString, get, getLabelValue, set, unique, uppercaseFirst, queryIndexedDB } from './utils';
 import { ItemId, PropertyId } from './types/wikidata/types';
 import { Statement } from './types/wikidata/main';
 import { StringDataValue } from './types/wikidata/datavalues';
@@ -35,6 +35,7 @@ const i18nConfig: Translations = {
 	tr: require( './config/tr.json' )
 };
 
+const defaultUnitTypeIds: ItemId[] = [ 'Q47574', 'Q29479187' ];
 const propertiesStore: string = 'infoboxExportProperties';
 const unitsStore: string = 'infoboxExportUnits';
 
@@ -150,12 +151,12 @@ async function loadUnit( unitId: ItemId, unitData: any ): Promise<void> {
 	}
 
 	if ( unitData.labels && unitData.labels[ contentLanguage ] ) {
-		unit.push( unitData.labels[ contentLanguage ].value.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
+		unit.push( prepareSearchString( unitData.labels[ contentLanguage ].value ) );
 	}
 
 	if ( unitData.aliases && unitData.aliases[ contentLanguage ] ) {
 		for ( const i in unitData.aliases[ contentLanguage ] ) {
-			unit.push( unitData.aliases[ contentLanguage ][ i ].value.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
+			unit.push( prepareSearchString( unitData.aliases[ contentLanguage ][ i ].value ) );
 		}
 	}
 
@@ -166,7 +167,7 @@ async function loadUnit( unitId: ItemId, unitData: any ): Promise<void> {
 				claim.mainsnak.datavalue &&
 				claim.mainsnak.datavalue.value
 			) {
-				unit.push( claim.mainsnak.datavalue.value.text.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' ) );
+				unit.push( prepareSearchString( claim.mainsnak.datavalue.value.text ) );
 			}
 		}
 	}
@@ -191,7 +192,54 @@ async function loadUnits( units: ItemId[] ): Promise<void> {
 			await loadUnit( unitId as ItemId, unitData.entities[ unitId ] );
 		}
 	}
+}
 
+async function loadUnitsSparql( typeIds: ItemId[], onlyUnitIds?: ItemId[] ): Promise<ItemId[]> {
+	const sparql: string = `SELECT ?unit ?unitLabel ?unitAltLabel ?code WHERE {\
+		{ ?unit wdt:P31/wdt:P279* wd:${typeIds.join( ' } UNION { ?unit wdt:P31/wdt:P279* wd:' )} }.\
+		OPTIONAL { ?unit wdt:P5061 ?code }.\
+		${onlyUnitIds?.length ? `FILTER( ?unit IN (wd:${onlyUnitIds.join( ',wd:' )}) )` : ''}\
+		SERVICE wikibase:label { bd:serviceParam wikibase:language "${contentLanguage}" }
+	}`;
+	const data: SparqlUnitsResponse = await sparqlRequest( sparql ) as SparqlUnitsResponse;
+	if ( !data?.results?.bindings?.length ) {
+		return [];
+	}
+	const unitIds: ItemId[] = [];
+	for ( let i = 0; i < data.results.bindings.length; i++ ) {
+		const bindings: SparqlUnitBindings = data.results.bindings[ i ];
+		const unitId: ItemId = bindings.unit.value.replace( 'http://www.wikidata.org/entity/', '' ) as ItemId;
+
+		let unit: string[] | undefined = await getUnit( unitId );
+		if ( typeof unit !== 'undefined' ) {
+			if ( unit.length ) {
+				unitIds.push( unitId );
+			}
+			continue;
+		}
+		unit = getI18nConfig( `units.${unitId}` ) || [];
+
+		if ( bindings.unitLabel?.value !== unitId ) {
+			unit.push( prepareSearchString( bindings.unitLabel?.value ) );
+		}
+		unit.push( prepareSearchString( bindings.code?.value ) );
+		if ( bindings.unitAltLabel?.value ) {
+			bindings.unitAltLabel.value.split( ',' ).forEach( function ( alias: string ) {
+				unit.push( prepareSearchString( alias ) );
+			} );
+		}
+
+		unit = unique( unit.filter( ( x: string | undefined ) => x ) );
+		await setUnit( unitId, unit );
+		if ( unit.length ) {
+			unitIds.push( unitId );
+			console.debug( `Unit ${unitId} loaded.` );
+		} else {
+			console.debug( `Unit ${unitId} has no search strings.` );
+		}
+	}
+
+	return unitIds;
 }
 
 /**
@@ -298,13 +346,33 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 			}
 		}
 
+		// Type of unit
+		if ( entity.claims && entity.claims.P2876 ) {
+			console.debug( 'entity.claims.P2876', entity.claims.P2876 );
+			const typeIds: ItemId[] = [];
+			for ( const i in entity.claims.P2876 ) {
+				const type: ItemId | undefined = entity.claims.P2876[ i ]?.mainsnak?.datavalue?.value?.id;
+				if ( !type ) {
+					if ( entity.claims.P2302[ i ]?.mainsnak?.snaktype === 'novalue' ) {
+						propertyData.constraints.unitOptional = true;
+					}
+					continue;
+				}
+				typeIds.push( type );
+			}
+			if ( typeIds.length ) {
+				const unitIds: ItemId[] = await loadUnitsSparql( typeIds );
+				propertyData.units.push( ...unitIds );
+			}
+		}
+
 		propertyData.units = unique( propertyData.units );
 		await setProperty( propertyId, propertyData );
 		console.debug( `Property ${propertyId} loaded.` );
 	}
 
 	if ( unitIds.length ) {
-		await loadUnits( unitIds );
+		await loadUnitsSparql( defaultUnitTypeIds, unitIds );
 	}
 }
 
@@ -378,6 +446,6 @@ export async function preloadUnits( units: KeyValue ): Promise<void> {
 		}
 	}
 	if ( unitIds.length ) {
-		await loadUnits( unitIds );
+		await loadUnitsSparql( defaultUnitTypeIds, unitIds );
 	}
 }
