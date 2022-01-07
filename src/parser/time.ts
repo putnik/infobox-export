@@ -43,7 +43,6 @@ export function guessDateAndPrecision( timestamp: string ): TimeGuess {
 
 	dateParts = timestamp.match( getConfig( 're-month-dot-year' ) );
 	if ( dateParts ) {
-		console.log( parseInt( dateParts[ 2 ], 10 ), parseInt( dateParts[ 1 ], 10 ) );
 		isoDate = new Date( Date.UTC( parseInt( dateParts[ 2 ], 10 ), parseInt( dateParts[ 1 ], 10 ) - 1 ) );
 		return {
 			type: 'value',

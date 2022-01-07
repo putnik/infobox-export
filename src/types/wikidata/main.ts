@@ -11,12 +11,12 @@ export interface Snak {
 }
 
 export type SnaksObject = {
-	[ key: string ]: Snak[]
+	[ key: string ]: Snak[];
 };
 
 export interface Reference {
 	hash?: string;
-	snaks: SnaksObject
+	snaks: SnaksObject;
 	'snaks-order'?: string[];
 }
 
@@ -38,5 +38,5 @@ export interface Statement {
 }
 
 export interface ClaimsObject {
-	[ key: string ]: Statement[]
+	[ key: string ]: Statement[];
 }
