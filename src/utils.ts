@@ -2,6 +2,8 @@
  * Returns an array of elements with duplicate values deleted
  */
 import { KeyValue } from './types/main';
+import { getConfig } from './config';
+import { IndexedDbData } from './types/api';
 
 export function unique( array: any[] ): any[] {
 	const $ = require( 'jquery' );
@@ -73,4 +75,45 @@ export function getLabelValue( labels: KeyValue, languages: string[], defaultVal
 export async function sleep( milliseconds: number ): Promise<void> {
 	// eslint-disable-next-line
 	return new Promise<void>( resolve => setTimeout( resolve, milliseconds ) );
+}
+
+export async function queryIndexedDB( storeName: string, key: string, value?: any ): Promise<IndexedDbData | undefined> {
+	// eslint-disable-next-line
+	return new Promise(
+		function ( resolve, reject ) {
+			const version: number = parseInt( getConfig( 'version' ).replace( /[^\d]/g, '' ), 10 );
+			const openRequest: IDBOpenDBRequest = indexedDB.open( storeName, version );
+
+			openRequest.onerror = function () {
+				reject( Error( 'IndexedDB error: ' + openRequest.error ) );
+			};
+
+			openRequest.onupgradeneeded = function () {
+				const db: IDBDatabase = openRequest.result;
+				if ( !db.objectStoreNames.contains( storeName ) ) {
+					db.createObjectStore( storeName, { keyPath: 'key' } );
+				}
+			};
+
+			openRequest.onsuccess = function () {
+				const db: IDBDatabase = openRequest.result;
+				const transaction: IDBTransaction = db.transaction( [ storeName ], 'readwrite' );
+				const objectStore: IDBObjectStore = transaction.objectStore( storeName );
+				let objectRequest: IDBRequest | undefined;
+				if ( value ) {
+					objectRequest = objectStore.put( { key, value } );
+				} else {
+					objectRequest = objectStore.get( key );
+				}
+
+				objectRequest.onerror = function () {
+					reject( Error( 'IDBObjectStore error: ' + objectRequest.error ) );
+				};
+
+				objectRequest.onsuccess = function () {
+					resolve( objectRequest.result );
+				};
+			};
+		}
+	);
 }

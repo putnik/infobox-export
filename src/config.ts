@@ -1,9 +1,9 @@
 import { getMonths, getMonthsGen } from './months';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
 import { Config, KeyValue, Property, Translations } from './types/main';
-import { ApiResponse } from './types/api';
 import { wdApiRequest } from './api';
-import { get, getLabelValue, set, unique, uppercaseFirst } from './utils';
+import { get, getLabelValue, set, unique, uppercaseFirst, queryIndexedDB } from './utils';
+import { ApiResponse, IndexedDbData } from './types/api';
 import { ItemId, PropertyId } from './types/wikidata/types';
 import { Statement } from './types/wikidata/main';
 import { StringDataValue } from './types/wikidata/datavalues';
@@ -34,6 +34,9 @@ const i18nConfig: Translations = {
 	tg: require( './config/tg.json' ),
 	tr: require( './config/tr.json' )
 };
+
+const propertiesStore: string = 'infoboxExportProperties';
+const unitsStore: string = 'infoboxExportUnits';
 
 function getI18nConfig( path: string ): any {
 	let result: any;
@@ -118,7 +121,25 @@ export function loadConfig(): void {
 	}
 }
 
-function loadUnit( unitId: ItemId, unitData: any ): void {
+export async function getProperty( propertyId: PropertyId ): Promise<Property | undefined> {
+	const result: IndexedDbData | undefined = await queryIndexedDB( propertiesStore, propertyId );
+	return result?.value;
+}
+
+export async function setProperty( propertyId: PropertyId, propertyData: Property ): Promise<void> {
+	await queryIndexedDB( propertiesStore, propertyId, propertyData );
+}
+
+export async function getUnit( unitId: ItemId ): Promise<string[]> {
+	const result: IndexedDbData | undefined = await queryIndexedDB( unitsStore, unitId );
+	return result?.value;
+}
+
+export async function setUnit( unitId: ItemId, search: string[] ): Promise<void> {
+	await queryIndexedDB( unitsStore, unitId, search );
+}
+
+async function loadUnit( unitId: ItemId, unitData: any ): Promise<void> {
 	let unit: string[] = get( config, `units.${unitId}` ) || [];
 	if ( unit.length ) {
 		return;
@@ -150,7 +171,7 @@ function loadUnit( unitId: ItemId, unitData: any ): void {
 		}
 	}
 
-	setConfig( `units.${unitId}`, unique( unit ) );
+	await setUnit( unitId, unique( unit ) );
 	console.debug( `Unit ${unitId} loaded.` );
 }
 
@@ -167,11 +188,10 @@ async function loadUnits( units: ItemId[] ): Promise<void> {
 		}
 
 		for ( const unitId in unitData.entities ) {
-			loadUnit( unitId as ItemId, unitData.entities[ unitId ] );
+			await loadUnit( unitId as ItemId, unitData.entities[ unitId ] );
 		}
 	}
 
-	saveConfig();
 }
 
 /**
@@ -182,7 +202,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 		return;
 	}
 
-	const units: ItemId[] = [];
+	const unitIds: ItemId[] = [];
 	const data: ApiResponse = await wdApiRequest( {
 		action: 'wbgetentities',
 		languages: allLanguages,
@@ -268,7 +288,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 							const unitId: ItemId = qualifiers[ idx ]?.datavalue?.value?.id;
 							if ( unitId ) {
 								propertyData.units.push( unitId );
-								units.push( unitId );
+								unitIds.push( unitId );
 							} else if ( qualifiers[ idx ]?.snaktype === 'novalue' ) {
 								propertyData.constraints.unitOptional = true;
 							}
@@ -277,13 +297,15 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 				}
 			}
 		}
-		setConfig( `properties.${propertyId}`, propertyData );
+
+		propertyData.units = unique( propertyData.units );
+		await setProperty( propertyId, propertyData );
 		console.debug( `Property ${propertyId} loaded.` );
 	}
 
-	saveConfig();
-
-	await loadUnits( units );
+	if ( unitIds.length ) {
+		await loadUnits( unitIds );
+	}
 }
 
 /**
@@ -294,44 +316,68 @@ export async function loadProperties( propertyIds: PropertyId[] ): Promise<void>
 		return;
 	}
 
-	const realPropertyIds: PropertyId[] = [];
+	const neededPropertyIds: PropertyId[] = [];
 	for ( const i in propertyIds ) {
 		const propertyId: PropertyId = propertyIds[ i ];
-		if ( propertyId && get( config, `properties.${propertyId}` ) === undefined ) {
-			realPropertyIds.push( propertyId );
+		if ( !propertyId ) {
+			continue;
+		}
+		const property: Property | undefined = await getProperty( propertyId );
+		if ( property === undefined ) {
+			neededPropertyIds.push( propertyId );
 		}
 	}
 
-	if ( realPropertyIds.length ) {
-		await realLoadProperties( realPropertyIds );
+	if ( neededPropertyIds.length ) {
+		await realLoadProperties( neededPropertyIds );
 	}
 }
 
-export async function getProperty( propertyId: PropertyId, field: string | void ): Promise<any> {
-	await loadProperties( [ propertyId ] );
+export async function getOrLoadProperty( propertyId: PropertyId, field: string | void ): Promise<Property | any | undefined> {
+	let result: Property | undefined = await getProperty( propertyId );
 
-	let result: any;
+	if ( typeof result === 'undefined' ) {
+		await realLoadProperties( [ propertyId ] );
+		result = await getProperty( propertyId );
+		if ( typeof result === 'undefined' ) {
+			console.debug( `Data missed for property ${propertyId}` );
+			return undefined;
+		}
+	}
+
 	if ( field ) {
-		result = get( config, `properties.${propertyId}.${field}` );
-	} else {
-		result = get( config, `properties.${propertyId}` );
-	}
-	if ( result === undefined ) {
-		console.debug( `Config missed for property ${propertyId}` + ( field ? `, field ${field}` : '' ) );
+		result = get( result, field );
+		if ( typeof result === 'undefined' ) {
+			console.debug( `Data missed for property ${propertyId}, field ${field}` );
+		}
 	}
 
 	return result;
 }
 
-export async function getUnit( unitId: ItemId ): Promise<string[]> {
-	if ( !get( config, `units.${unitId}` ) ) {
-		await loadUnits( [ unitId ] );
-	}
+export async function getOrLoadUnit( unitId: ItemId ): Promise<string[]> {
+	let result: string[] | undefined = await getUnit( unitId );
 
-	const result: string[] = get( config, `units.${unitId}` );
-	if ( !result && !result.length ) {
-		console.debug( `Config missed for unit ${unitId}` );
+	if ( typeof result === 'undefined' ) {
+		await loadUnits( [ unitId ] );
+		result = await getUnit( unitId );
+		if ( typeof result === 'undefined' ) {
+			console.debug( `Data missed for unit ${unitId}` );
+		}
 	}
 
 	return result;
+}
+
+export async function preloadUnits( units: KeyValue ): Promise<void> {
+	const unitIds: ItemId[] = [];
+	for ( const idx in units ) {
+		const unitId: ItemId = parseInt( idx, 10 ) >= 0 ? units[ idx ] : idx;
+		if ( !await getUnit( unitId ) ) {
+			unitIds.push( unitId );
+		}
+	}
+	if ( unitIds.length ) {
+		await loadUnits( unitIds );
+	}
 }

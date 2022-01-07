@@ -8,7 +8,7 @@ import {
 	prepareString
 } from './parser';
 import { getI18n } from './i18n';
-import { getProperty, loadConfig, loadProperties, saveConfig, setConfig } from './config';
+import { getOrLoadProperty, loadConfig, loadProperties, saveConfig, setConfig } from './config';
 import { showDialog } from './ui';
 import { loadMonths } from './months';
 import { ApiResponse, SparqlResponse } from './types/api';
@@ -30,7 +30,7 @@ const propertyIds: PropertyId[] = [ 'P2076', 'P2077' ]; // Temperature and press
  */
 async function parseField( $field: JQuery ): Promise<Statement[]> {
 	const propertyId = $field.data( 'wikidata-property-id' );
-	const datatype: DataType = await getProperty( propertyId, 'datatype' );
+	const datatype: DataType = await getOrLoadProperty( propertyId, 'datatype' );
 
 	const context: Context = {
 		propertyId: propertyId,
