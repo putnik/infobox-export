@@ -1,4 +1,4 @@
-.infobox:not(.vertical-navbox):not([data-from]) .no-wikidata {
+.infobox:not(.vertical-navbox, .ve-ce-leafNode):not([data-from]) .no-wikidata {
     display: block !important;
     background-color: #fee7e6;
     border: 1px solid #f6bab9;
@@ -6,12 +6,12 @@
     padding: 3px 6px;
 }
 
-.infobox:not(.vertical-navbox):not([data-from]) .no-wikidata.partial-wikidata {
+.infobox:not(.vertical-navbox, .ve-ce-leafNode):not([data-from]) .no-wikidata.partial-wikidata {
     background-color: #fef6e7;
     border-color: #ffd760;
 }
 
-.infobox:not(.vertical-navbox):not([data-from]) .no-wikidata .no-wikidata {
+.infobox:not(.vertical-navbox, .ve-ce-leafNode):not([data-from]) .no-wikidata .no-wikidata {
     margin: -3px -6px;
     border: 0;
     background: transparent;
