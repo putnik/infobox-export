@@ -12,7 +12,7 @@ import { convertStatementsToClaimsObject, createClaim, stringifyStatement } from
 import { formatItemValue, formatReferences, formatSnak } from './formatter';
 import { ClaimsObject, Snak, SnaksObject, Statement } from './types/wikidata/main';
 import { PropertyId } from './types/wikidata/types';
-import { KeyValue } from './types/main';
+import { KeyValue, Property } from './types/main';
 import { alreadyExistingItems } from './parser/item';
 import { sleep, unique } from './utils';
 
@@ -27,7 +27,8 @@ async function getQualifierFields( qualifiers: SnaksObject ): Promise<JQuery> {
 
 		for ( const i in qualifiers[ qualifierPropertyId ] ) {
 			const qualifierSnak: Snak = qualifiers[ qualifierPropertyId ][ i ];
-			const qualifierPropertyLabel: string = await getOrLoadProperty( qualifierPropertyId as PropertyId, 'label' );
+			const qualifierProperty: Property | undefined = await getOrLoadProperty( qualifierPropertyId as PropertyId );
+			const qualifierPropertyLabel: string = qualifierProperty?.label || qualifierPropertyId;
 			const $qualifierPropertyLabel = $( '<span>' ).text( qualifierPropertyLabel );
 			const $qualifierLabel: JQuery = await formatSnak( qualifierSnak );
 
@@ -45,7 +46,8 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 		PopupButtonWidget
 	} = require( 'ooui' );
 
-	const label: string = await getOrLoadProperty( propertyId, 'label' );
+	const property: Property | undefined = await getOrLoadProperty( propertyId );
+	const label: string = property?.label || propertyId;
 	const $labelLink: JQuery = $( '<a>' )
 		.attr( 'href', `https://wikidata.org/wiki/Property:${propertyId}` )
 		.attr( 'rel', 'noopener noreferrer' )
@@ -83,15 +85,17 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 			indeterminate: isAlreadyInWikidata
 		} );
 		if ( !checkbox.isDisabled() ) {
-			const isUnique: boolean = await getOrLoadProperty( propertyId, 'constraints.unique' );
+			const property: Property | undefined = await getOrLoadProperty( propertyId );
+			const isUnique: boolean | undefined = property?.constraints?.unique;
 			if ( !( firstSelected && isUnique ) && !hasSubclassEntity ) {
 				firstSelected = true;
 				checkbox.setSelected( true );
 			}
 
 			if ( $label[ 0 ].innerText.match( new RegExp( getI18n( 'already-used-in' ) ) ) &&
-				await getOrLoadProperty( propertyId, 'constraints.unique' ) &&
-				await getOrLoadProperty( propertyId, 'datatype' ) === 'external-id' ) {
+				isUnique &&
+				property?.datatype === 'external-id'
+			) {
 				checkbox.setSelected( false );
 			}
 		}

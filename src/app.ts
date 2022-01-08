@@ -14,9 +14,9 @@ import { loadMonths } from './months';
 import { ApiResponse, SparqlResponse } from './types/api';
 import { prepareQuantity } from './parser/quantity';
 import { Statement } from './types/wikidata/main';
-import { DataType, ItemId, PropertyId } from './types/wikidata/types';
+import { ItemId, PropertyId } from './types/wikidata/types';
 import { prepareTime } from './parser/time';
-import { Context } from './types/main';
+import { Context, Property } from './types/main';
 import { parseItem } from './parser/item';
 import { prepareUrl } from './parser/url';
 
@@ -30,7 +30,14 @@ const propertyIds: PropertyId[] = [ 'P2076', 'P2077' ]; // Temperature and press
  */
 async function parseField( $field: JQuery ): Promise<Statement[]> {
 	const propertyId = $field.data( 'wikidata-property-id' );
-	const datatype: DataType = await getOrLoadProperty( propertyId, 'datatype' );
+	const property: Property | undefined = await getOrLoadProperty( propertyId );
+	if ( typeof property === 'undefined' ) {
+		mw.notify( getI18n( 'no-property-data' ).replace( '$1', propertyId ), {
+			type: 'error',
+			tag: 'wikidataInfoboxExport-error'
+		} );
+		return [];
+	}
 
 	const context: Context = {
 		propertyId: propertyId,
@@ -50,7 +57,7 @@ async function parseField( $field: JQuery ): Promise<Statement[]> {
 		context.$wrapper = $row.clone();
 	}
 
-	switch ( datatype ) {
+	switch ( property.datatype ) {
 		case 'commonsMedia':
 			return prepareCommonsMedia( context );
 
@@ -76,7 +83,7 @@ async function parseField( $field: JQuery ): Promise<Statement[]> {
 			return prepareUrl( context );
 	}
 
-	mw.notify( getI18n( 'unknown-datatype' ).replace( '$1', datatype ), {
+	mw.notify( getI18n( 'unknown-datatype' ).replace( '$1', property.datatype ), {
 		type: 'error',
 		tag: 'wikidataInfoboxExport-error'
 	} );

@@ -1,4 +1,4 @@
-import { Context, KeyValue } from '../types/main';
+import { Context, KeyValue, Property } from '../types/main';
 import { getConfig, getOrLoadUnit, getOrLoadProperty, preloadUnits } from '../config';
 import { QuantityValue, TimeValue } from '../types/wikidata/values';
 import { getI18n } from '../i18n';
@@ -238,13 +238,14 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 		text = amount + getI18n( 'unit-sec' );
 	}
 
-	const foundUnits: Unit[] = await recognizeUnits( text, await getOrLoadProperty( context.propertyId, 'units' ), thText );
-	const isUnitOptional: boolean = await getOrLoadProperty( context.propertyId, 'constraints.unitOptional' );
+	const property: Property | undefined = await getOrLoadProperty( context.propertyId );
+	const foundUnits: Unit[] = await recognizeUnits( text, property?.units || [], thText );
+	const isUnitOptional: boolean = property?.constraints?.unitOptional || false;
 	if ( isUnitOptional ) {
 		foundUnits.push( NoUnit );
 	}
 
-	const forceInteger: boolean = await getOrLoadProperty( context.propertyId, 'constraints.integer' );
+	const forceInteger: boolean = property?.constraints?.integer || false;
 	for ( let u = 0; u < foundUnits.length; u++ ) {
 		const textWithoutUnit: string = await removeUnitString( text, foundUnits[ u ] );
 		let statement: Statement | void = parseQuantity( textWithoutUnit, context.propertyId, forceInteger );
@@ -260,7 +261,7 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 
 		statement = await addQualifiers( context.$field, statement );
 
-		if ( ( await getOrLoadProperty( context.propertyId, 'constraints.qualifier' ) ).indexOf( 'P585' ) !== -1 ) {
+		if ( ( property?.constraints?.qualifier || [] ).indexOf( 'P585' ) !== -1 ) {
 			let yearMatch: string[] = context.text.match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
 			if ( !yearMatch ) {
 				yearMatch = thText.match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
@@ -291,9 +292,10 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 				const qualifierQuantity: QuantityValue = qualifierQuantitySnak.datavalue.value as QuantityValue;
 				const supportedProperties: PropertyId[] = [ 'P2076', 'P2077' ];
 				for ( let j = 0; j < supportedProperties.length; j++ ) {
-					const units: Unit[] = await recognizeUnits( qualifierMatch[ 1 ], await getOrLoadProperty( supportedProperties[ j ], 'units' ) );
+					const supportedProperty: Property | undefined = await getOrLoadProperty( supportedProperties[ j ] );
+					const units: ItemId[] = supportedProperty?.units || [];
 					if ( units.length === 1 ) {
-						qualifierQuantity.unit = units[ 0 ];
+						qualifierQuantity.unit = `http://www.wikidata.org/entity/${units[ 0 ]}`;
 						if ( !statement.qualifiers ) {
 							statement.qualifiers = {};
 						}

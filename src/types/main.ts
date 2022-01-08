@@ -1,4 +1,4 @@
-import { ItemId, PropertyId, SnakType, Unit } from './wikidata/types';
+import { DataType, ItemId, PropertyId, SnakType, Unit } from './wikidata/types';
 import { Reference, SnaksObject } from './wikidata/main';
 
 export interface KeyValue {
@@ -44,7 +44,7 @@ export interface Constraints {
 }
 
 export interface Property {
-	datatype: string;
+	datatype: DataType;
 	label: string;
 	constraints: Constraints;
 	formatter: string;
@@ -57,6 +57,7 @@ export interface Config {
 	'storage-key': string;
 	references: { [ key: string ]: Reference };
 	units: { [ key: string ]: Unit[] };
+	fixedValues: FixedValue[];
 	centuries: string[];
 	properties: { [ key: string ]: Property };
 }

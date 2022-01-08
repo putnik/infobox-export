@@ -2,7 +2,7 @@ import { getOrLoadProperty } from './config';
 import { checkForMissedLanguage, contentLanguage } from './languages';
 import { convertSnakToStatement } from './wikidata';
 import { sparqlRequest } from './api';
-import { Context, KeyValue } from './types/main';
+import { Context, KeyValue, Property } from './types/main';
 import { MonolingualTextValue, Value } from './types/wikidata/values';
 import { SparqlResponse } from './types/api';
 import { canExportQuantity } from './parser/quantity';
@@ -55,7 +55,8 @@ export async function addQualifiers( $field: JQuery, statement: Statement ): Pro
 		const $qualifier: JQuery = $( $qualifiers[ q ] );
 		const qualifierId: PropertyId = $qualifier.data( 'wikidata-qualifier-id' );
 		let qualifierValue: Value | void = $qualifier.text().replace( /\n/g, ' ' ).trim();
-		const datatype: DataType = await getOrLoadProperty( qualifierId, 'datatype' ) as DataType;
+		const property: Property | undefined = await getOrLoadProperty( qualifierId );
+		const datatype: DataType | undefined = property?.datatype;
 		switch ( datatype ) {
 			case 'monolingualtext':
 				qualifierValue = {

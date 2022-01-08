@@ -18,6 +18,7 @@ let config: Config = {
 	'storage-key': 'infoboxExportConfig',
 	references: {},
 	units: {},
+	fixedValues: [],
 	centuries: [ 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII',
 		'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV',
 		'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII' ],
@@ -131,7 +132,7 @@ export async function setProperty( propertyId: PropertyId, propertyData: Propert
 	await queryIndexedDB( propertiesStore, propertyId, propertyData );
 }
 
-export async function getUnit( unitId: ItemId ): Promise<string[]> {
+export async function getUnit( unitId: ItemId ): Promise<string[] | undefined> {
 	const result: IndexedDbData | undefined = await queryIndexedDB( unitsStore, unitId );
 	return result?.value;
 }
@@ -141,7 +142,7 @@ export async function setUnit( unitId: ItemId, search: string[] ): Promise<void>
 }
 
 async function loadUnit( unitId: ItemId, unitData: any ): Promise<void> {
-	let unit: string[] = get( config, `units.${unitId}` ) || [];
+	let unit: string[] = config?.units?.[ unitId ] || [];
 	if ( unit.length ) {
 		return;
 	}
@@ -401,7 +402,7 @@ export async function loadProperties( propertyIds: PropertyId[] ): Promise<void>
 	}
 }
 
-export async function getOrLoadProperty( propertyId: PropertyId, field: string | void ): Promise<Property | any | undefined> {
+export async function getOrLoadProperty( propertyId: PropertyId ): Promise<Property | undefined> {
 	let result: Property | undefined = await getProperty( propertyId );
 
 	if ( typeof result === 'undefined' ) {
@@ -413,17 +414,10 @@ export async function getOrLoadProperty( propertyId: PropertyId, field: string |
 		}
 	}
 
-	if ( field ) {
-		result = get( result, field );
-		if ( typeof result === 'undefined' ) {
-			console.debug( `Data missed for property ${propertyId}, field ${field}` );
-		}
-	}
-
 	return result;
 }
 
-export async function getOrLoadUnit( unitId: ItemId ): Promise<string[]> {
+export async function getOrLoadUnit( unitId: ItemId ): Promise<string[] | undefined> {
 	let result: string[] | undefined = await getUnit( unitId );
 
 	if ( typeof result === 'undefined' ) {

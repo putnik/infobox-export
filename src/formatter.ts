@@ -3,7 +3,7 @@ import { wbFormatValue } from './wikidata';
 import { ExternalIdValue, ItemValue, StringValue, TimeValue, UrlValue } from './types/wikidata/values';
 import { ApiResponse } from './types/api';
 import { wdApiRequest } from './api';
-import { KeyValue } from './types/main';
+import { KeyValue, Property } from './types/main';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
 import { getConfig, getOrLoadProperty } from './config';
 import { Reference, Snak } from './types/wikidata/main';
@@ -56,7 +56,8 @@ export async function formatExternalId( value: ExternalIdValue | StringValue, pr
 		.text( value );
 	const $label: JQuery = $( '<span>' ).append( $mainLabel );
 	if ( propertyId ) {
-		const formatter: string | undefined = await getOrLoadProperty( propertyId, 'formatter' );
+		const property: Property | undefined = await getOrLoadProperty( propertyId );
+		const formatter: string | undefined = property?.formatter;
 		if ( formatter ) {
 			const $link = $( '<a>' )
 				.addClass( 'infobox-export-external-link' )
