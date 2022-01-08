@@ -2,7 +2,6 @@
  * Returns an array of elements with duplicate values deleted
  */
 import { KeyValue } from './types/main';
-import { getConfig } from './config';
 import { IndexedDbData } from './types/api';
 
 export function unique( array: any[] ): any[] {
@@ -88,8 +87,7 @@ export async function queryIndexedDB( storeName: string, key: string, value?: an
 	// eslint-disable-next-line
 	return new Promise(
 		function ( resolve, reject ) {
-			const version: number = parseInt( getConfig( 'version' ).replace( /[^\d]/g, '' ), 10 );
-			const openRequest: IDBOpenDBRequest = indexedDB.open( storeName, version );
+			const openRequest: IDBOpenDBRequest = indexedDB.open( storeName, 1 );
 
 			openRequest.onerror = function () {
 				reject( Error( 'IndexedDB error: ' + openRequest.error ) );
