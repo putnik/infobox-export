@@ -60,3 +60,8 @@ export interface Config {
 	centuries: string[];
 	properties: { [ key: string ]: Property };
 }
+
+export interface ItemLabel {
+	label: string;
+	description: string;
+}

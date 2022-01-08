@@ -2,6 +2,7 @@ import { unique } from './utils';
 import { MonolingualTextValue } from './types/wikidata/values';
 import { Statement } from './types/wikidata/main';
 import { generateItemSnak } from './wikidata';
+import { ItemId } from './types/wikidata/types';
 
 const mw = require( 'mw' );
 
@@ -14,7 +15,7 @@ export const allLanguages: string[] = unique( [
 	'en'
 ] );
 
-export const missedLanguages: {[key: string]: string} = {
+export const missedLanguages: { [ key: string ]: ItemId } = {
 	ain: 'Q20968488',
 	akk: 'Q32332',
 	atv: 'Q2640863',

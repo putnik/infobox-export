@@ -1,4 +1,4 @@
-import { Entity, Unit } from './types';
+import { Entity, ItemId, Unit } from './types';
 
 export type CommonsMediaValue = string;
 
@@ -13,7 +13,7 @@ export type ExternalIdValue = string;
 export interface ItemValue {
 	'entity-type': 'item';
 	'numeric-id': number;
-	id: string;
+	id: ItemId;
 }
 
 export interface MonolingualTextValue {

@@ -1,7 +1,7 @@
 import { getLabelValue, getRandomHex, clone, unique } from './utils';
 import { getWdApi, wdApiRequest } from './api';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
-import { Title } from './types/main';
+import { ItemLabel, KeyValue, Title } from './types/main';
 import { ItemValue } from './types/wikidata/values';
 import { ApiResponse } from './types/api';
 import { Entity, ItemId, PropertyId } from './types/wikidata/types';
@@ -16,6 +16,7 @@ export const julianCalendar: Entity = 'http://www.wikidata.org/entity/Q1985786';
 
 let baseRevId: string;
 const entityId: string = mw.config.get( 'wgWikibaseItemId' );
+const itemLabels: { [ key: string ]: ItemLabel } = {};
 
 export function setBaseRevId( value: string ): void {
 	baseRevId = value;
@@ -55,7 +56,7 @@ export function stringifyStatement( statement: Statement ): string {
 	return JSON.stringify( rawStatement );
 }
 
-export function generateItemSnak( propertyId: PropertyId, entityId: string ): Snak {
+export function generateItemSnak( propertyId: PropertyId, entityId: ItemId ): Snak {
 	const value: ItemValue = {
 		'entity-type': 'item',
 		'numeric-id': parseInt( entityId.replace( 'Q', '' ), 10 ),
@@ -83,6 +84,37 @@ export function convertSnakToStatement( snak: Snak, references: Reference[] ): S
 	};
 }
 
+function setItemLabel( itemId: ItemId, itemData: KeyValue ): void {
+	itemLabels[ itemId ] = {
+		label: getLabelValue( itemData?.labels, [ userLanguage, contentLanguage ], itemId ),
+		description: getLabelValue( itemData?.descriptions, [ userLanguage, contentLanguage ] )
+	};
+}
+
+export async function loadItemLabels( itemIds: ItemId[] ): Promise<void> {
+	const missedItemIds: ItemId[] = itemIds.filter( ( itemId: ItemId ) => !itemLabels[ itemId ] );
+	if ( !missedItemIds.length ) {
+		return;
+	}
+	const data: ApiResponse = await wdApiRequest( {
+		action: 'wbgetentities',
+		ids: missedItemIds,
+		languages: allLanguages,
+		props: [ 'labels', 'descriptions' ]
+	} );
+	for ( let i = 0; i < missedItemIds.length; i++ ) {
+		const itemId: ItemId = itemIds[ i ];
+		setItemLabel( itemId, data.entities[ itemId ] );
+	}
+}
+
+export async function getItemLabel( itemId: ItemId ): Promise<ItemLabel> {
+	if ( !itemLabels[ itemId ] ) {
+		await loadItemLabels( [ itemId ] );
+	}
+	return itemLabels[ itemId ];
+}
+
 export async function getStatements( propertyId: PropertyId, titles: Title[], references: Reference[] ): Promise<Statement[]> {
 	if ( !titles.length ) {
 		return [];
@@ -102,7 +134,7 @@ export async function getStatements( propertyId: PropertyId, titles: Title[], re
 		action: 'wbgetentities',
 		sites: sites,
 		languages: languages,
-		props: [ 'labels', 'claims', 'sitelinks' ],
+		props: [ 'labels', 'descriptions', 'claims', 'sitelinks' ],
 		titles: titles.map( function ( title: Title ) {
 			return title.label;
 		} ),
@@ -122,6 +154,8 @@ export async function getStatements( propertyId: PropertyId, titles: Title[], re
 		if ( entity?.claims?.P31?.[ 0 ]?.mainsnak?.datavalue?.value?.id === 'Q4167410' ) {
 			continue; // skip disambigs
 		}
+
+		setItemLabel( entityId as ItemId, entity );
 
 		let subclassFound: boolean | string = false;
 		let subclassEntity: any;
@@ -150,7 +184,7 @@ export async function getStatements( propertyId: PropertyId, titles: Title[], re
 			}
 		}
 
-		const snak: Snak = generateItemSnak( propertyId, entityId );
+		const snak: Snak = generateItemSnak( propertyId, entityId as ItemId );
 		const statement: Statement = convertSnakToStatement( snak, references );
 
 		if ( subclassFound && subclassEntity ) {

@@ -1,13 +1,10 @@
 import { getI18n } from './i18n';
-import { wbFormatValue } from './wikidata';
+import { getItemLabel, wbFormatValue } from './wikidata';
 import { ExternalIdValue, ItemValue, StringValue, TimeValue, UrlValue } from './types/wikidata/values';
-import { ApiResponse } from './types/api';
-import { wdApiRequest } from './api';
-import { KeyValue, Property } from './types/main';
-import { allLanguages, contentLanguage, userLanguage } from './languages';
+import { ItemLabel, KeyValue, Property } from './types/main';
+import { userLanguage } from './languages';
 import { getConfig, getOrLoadProperty } from './config';
 import { Reference, Snak } from './types/wikidata/main';
-import { getLabelValue } from './utils';
 import { PropertyId } from './types/wikidata/types';
 
 function getRefSup( url: string, text: string ): JQuery {
@@ -71,23 +68,14 @@ export async function formatExternalId( value: ExternalIdValue | StringValue, pr
 }
 
 export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
-	const data: ApiResponse = await wdApiRequest( {
-		action: 'wbgetentities',
-		ids: value.id,
-		languages: allLanguages,
-		props: [ 'labels', 'descriptions' ]
-	} );
-	const itemData: KeyValue = data.entities[ value.id ];
-	const label: string = getLabelValue( itemData.labels, [ userLanguage, contentLanguage ], value.id );
-	const description: string = getLabelValue( itemData.descriptions, [ userLanguage, contentLanguage ] );
-
+	const itemLabel: ItemLabel = await getItemLabel( value.id );
 	const $mainLabel: JQuery = $( '<span>' )
 		.addClass( 'infobox-export-main-label' )
-		.text( label );
+		.text( itemLabel?.label || '' );
 	const $wdLink: JQuery = getRefSup( `https://wikidata.org/wiki/${value.id}`, 'd' );
 	const $label: JQuery = $( '<span>' ).append( $mainLabel, $wdLink );
-	if ( description ) {
-		$label.append( $( '<span>' ).text( ' — ' + description ) );
+	if ( itemLabel?.description ) {
+		$label.append( $( '<span>' ).text( ' — ' + itemLabel.description ) );
 	}
 	return $label;
 }
