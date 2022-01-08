@@ -148,6 +148,7 @@ export async function parseItem( context: Context ): Promise<Statement[]> {
 					const lcTitle: string = lowercaseFirst( titles[ j ].label );
 					const lcRedirect: string = lowercaseFirst( data.query.redirects[ i ].from );
 					if ( lcTitle === lcRedirect ) {
+						titles[ j ].redirect = data.query.redirects[ i ].to;
 						titles.splice( j + 1, 0, {
 							label: data.query.redirects[ i ].to,
 							language: contentLanguage,

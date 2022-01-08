@@ -1,6 +1,7 @@
 import { DataType, PropertyId, Rank, SnakType } from './types';
 import { DataValue } from './datavalues';
 import { ItemValue } from './values';
+import { Title } from '../main';
 
 export interface Snak {
 	snaktype: SnakType;
@@ -22,6 +23,7 @@ export interface Reference {
 
 export interface StatementMeta {
 	subclassItem?: ItemValue;
+	title?: Title;
 	$checkbox?: JQuery;
 }
 

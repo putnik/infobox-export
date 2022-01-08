@@ -80,7 +80,8 @@ export function convertSnakToStatement( snak: Snak, references: Reference[] ): S
 		type: 'statement',
 		id: randomEntityGuid(),
 		rank: 'normal',
-		references: references
+		references: references,
+		meta: {}
 	};
 }
 
@@ -144,7 +145,7 @@ export async function getStatements( propertyId: PropertyId, titles: Title[], re
 		return [];
 	}
 
-	const statements: Statement[] = [];
+	let statements: Statement[] = [];
 	for ( const entityId in data.entities ) {
 		if ( !data.entities.hasOwnProperty( entityId ) || !entityId.match( /^Q/ ) ) {
 			continue;
@@ -188,12 +189,10 @@ export async function getStatements( propertyId: PropertyId, titles: Title[], re
 		const statement: Statement = convertSnakToStatement( snak, references );
 
 		if ( subclassFound && subclassEntity ) {
-			statement.meta = {
-				subclassItem: {
-					'entity-type': 'item',
-					'numeric-id': parseInt( subclassEntityId.replace( 'Q', '' ), 10 ),
-					id: subclassEntityId
-				}
+			statement.meta.subclassItem = {
+				'entity-type': 'item',
+				'numeric-id': parseInt( subclassEntityId.replace( 'Q', '' ), 10 ),
+				id: subclassEntityId
 			};
 		}
 
@@ -214,11 +213,31 @@ export async function getStatements( propertyId: PropertyId, titles: Title[], re
 		} );
 
 		if ( relatedTitles.length === 1 ) {
-			statement.qualifiers = relatedTitles.shift().qualifiers;
+			statement.meta.title = relatedTitles.shift();
+			statement.qualifiers = statement.meta.title.qualifiers;
 		}
 
 		statements.push( statement );
 	}
+
+	const badRedirectItemIds: ItemId[] = [];
+	for ( let i = 0; i < statements.length; i++ ) {
+		const title: Title | undefined = statements[ i ]?.meta?.title;
+		if ( !title?.redirect ) {
+			continue;
+		}
+		statements.forEach( function ( statement: Statement ) {
+			if ( statement?.meta?.title?.label === title?.redirect &&
+				statement?.meta?.title?.project === title.project &&
+				statement.mainsnak.snaktype === 'value'
+			) {
+				badRedirectItemIds.push( ( statement.mainsnak.datavalue.value as ItemValue ).id );
+			}
+		} );
+	}
+	statements = statements.filter( ( statement: Statement ) => (
+		!badRedirectItemIds.includes( ( statement.mainsnak.datavalue.value as ItemValue ).id )
+	) );
 
 	return statements;
 }

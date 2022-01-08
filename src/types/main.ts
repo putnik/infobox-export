@@ -16,6 +16,7 @@ export interface Title {
 	language: string;
 	project: string;
 	qualifiers?: SnaksObject;
+	redirect?: string;
 }
 
 export interface Translations {
