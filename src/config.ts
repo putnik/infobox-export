@@ -196,10 +196,13 @@ async function loadUnits( units: ItemId[] ): Promise<void> {
 }
 
 async function loadUnitsSparql( typeIds: ItemId[], onlyUnitIds?: ItemId[] ): Promise<ItemId[]> {
-	const sparql: string = `SELECT ?unit ?unitLabel ?unitAltLabel ?code WHERE {\
+	const sparql: string = `SELECT DISTINCT ?unit ?unitLabel ?unitAltLabel ?code WITH {\
+	SELECT DISTINCT ?unit {\
+		${onlyUnitIds?.length ? `VALUES ?unit {wd:${onlyUnitIds.join( ' wd:' )}}` : ''}\
 		{ ?unit wdt:P31/wdt:P279* wd:${typeIds.join( ' } UNION { ?unit wdt:P31/wdt:P279* wd:' )} }.\
+	}} AS %Q {\
+		INCLUDE %Q\
 		OPTIONAL { ?unit wdt:P5061 ?code }.\
-		${onlyUnitIds?.length ? `FILTER( ?unit IN (wd:${onlyUnitIds.join( ',wd:' )}) )` : ''}\
 		SERVICE wikibase:label { bd:serviceParam wikibase:language "${contentLanguage}" }
 	}`;
 	const data: SparqlUnitsResponse = await sparqlRequest( sparql ) as SparqlUnitsResponse;
