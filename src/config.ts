@@ -15,7 +15,6 @@ declare let __VERSION__: string;
 let config: Config = {
 	version: __VERSION__,
 	project: mw.config.get( 'wgDBname' ),
-	'storage-key': 'infoboxExportConfig',
 	references: {},
 	units: {},
 	fixedValues: [],
@@ -39,6 +38,7 @@ const i18nConfig: Translations = {
 const defaultUnitTypeIds: ItemId[] = [ 'Q47574', 'Q29479187' ];
 const propertiesStore: string = 'infoboxExportProperties';
 const unitsStore: string = 'infoboxExportUnits';
+const localStorageKey: string = 'infoboxExportConfig';
 
 function getI18nConfig( path: string ): any {
 	let result: any;
@@ -95,7 +95,7 @@ export function saveConfig(): void {
 		}
 	}
 
-	localStorage.setItem( configForSave[ 'storage-key' ], JSON.stringify( configForSave ) );
+	localStorage.setItem( localStorageKey, JSON.stringify( configForSave ) );
 }
 
 /**
@@ -104,7 +104,7 @@ export function saveConfig(): void {
 export function loadConfig(): void {
 	let loadedConfig;
 	try {
-		loadedConfig = JSON.parse( localStorage.getItem( getConfig( 'storage-key' ) ) );
+		loadedConfig = JSON.parse( localStorage.getItem( localStorageKey ) );
 	} catch ( e ) {
 	}
 

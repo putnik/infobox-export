@@ -54,7 +54,6 @@ export interface Property {
 export interface Config {
 	version: string;
 	project: string;
-	'storage-key': string;
 	references: { [ key: string ]: Reference };
 	units: { [ key: string ]: Unit[] };
 	fixedValues: FixedValue[];
