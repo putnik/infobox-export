@@ -6,4 +6,3 @@ Gadget for export information from infoboxes to Wikidata.
 The export window is shown by double-clicking.
 
 See [full documentation](https://www.wikidata.org/wiki/Special:MyLanguage/Help:Infobox_export_gadget) in Wikidata.
-

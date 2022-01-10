@@ -1,5 +1,6 @@
 const path = require("path");
 const webpack = require("webpack");
+
 const APP_SOURCE = path.join(__dirname, "src");
 
 module.exports = {
@@ -32,22 +33,6 @@ module.exports = {
 		path: path.resolve(__dirname, "dist"),
 	},
 	target: ['web', 'es5'],
-	mode: 'production',
-	devServer: {
-		contentBase: APP_SOURCE,
-		port: 8080,
-		sockPort: 8080,
-		liveReload: false,
-
-		// Fixes "GET https://localhost:8080/sockjs-node/info?t=... net::ERR_SSL_PROTOCOL_ERROR".
-		public: '127.0.0.1',
-
-		// Fixes "Invalid Host/Origin header".
-		disableHostCheck: true,
-
-		// To use in a DevTools snippet.
-		writeToDisk: true,
-	},
 	plugins: [
 		new webpack.DefinePlugin({
 			__VERSION__: JSON.stringify(require("./package.json").version),
