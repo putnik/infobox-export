@@ -195,7 +195,7 @@ export function prepareMonolingualText( context: Context ): Statement[] {
 		if ( text ) {
 			$items = mw.util.$content.find( 'span[lang]' );
 			$items.each( function () {
-				const $item = $( this );
+				const $item: JQuery = $( this );
 				if ( $item.text().trim().startsWith( text ) ) {
 					const language: string = $item.attr( 'lang' ).trim();
 					values[ language ] = {

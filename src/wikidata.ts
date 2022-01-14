@@ -161,15 +161,15 @@ export async function getStatements( propertyId: PropertyId, titles: Title[], re
 		let subclassFound: boolean | string = false;
 		let subclassEntity: any;
 		let subclassEntityId: ItemId;
-		const subclassPropertyIds: string[] = [ 'P17', 'P31', 'P131', 'P279', 'P361' ];
+		const subclassPropertyIds: PropertyId[] = [ 'P17', 'P31', 'P131', 'P279', 'P361' ];
 		for ( const candidateId in data.entities ) {
 			if ( !data.entities.hasOwnProperty( candidateId ) || !candidateId.match( /^Q/ ) || entityId === candidateId ) {
 				continue;
 			}
 
-			subclassFound = subclassPropertyIds.find( function ( propertyId: PropertyId ) {
+			subclassFound = subclassPropertyIds.find( function ( propertyId: PropertyId ): boolean {
 				const values = data.entities[ candidateId ]?.claims?.[ propertyId ] || [];
-				return values.find( function ( statement: Statement ) {
+				return values.find( function ( statement: Statement ): boolean {
 					const value: ItemValue = ( statement.mainsnak?.datavalue?.value || {} ) as ItemValue;
 					const result: boolean = value.id === entityId;
 					if ( result ) {

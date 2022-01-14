@@ -118,7 +118,7 @@ async function clickEvent(): Promise<void> {
 async function loadDefaultReference(): Promise<void> {
 	const sparql: string = `SELECT ?wiki WHERE { ?wiki wdt:P31/wdt:P279* wd:Q33120876 . ?wiki wdt:P856 ?site . FILTER REGEX(STR(?site), "https://${location.host}/") }`;
 	const data: SparqlResponse = await sparqlRequest( sparql );
-	if ( data.results.bindings.length === 0 ) {
+	if ( !data?.results?.bindings?.length ) {
 		return;
 	}
 
