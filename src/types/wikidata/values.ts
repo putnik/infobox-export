@@ -1,4 +1,4 @@
-import { Entity, ItemId, Unit } from './types';
+import { Entity, ItemId, PropertyId, Unit } from './types';
 
 export type CommonsMediaValue = string;
 
@@ -10,17 +10,35 @@ export interface EntityIdValue {
 
 export type ExternalIdValue = string;
 
+// https://www.mediawiki.org/wiki/Wikibase/DataModel#Wikidata_items
 export interface ItemValue {
 	'entity-type': 'item';
 	'numeric-id': number;
 	id: ItemId;
 }
 
+// https://www.mediawiki.org/wiki/Wikibase/DataModel#Monolingual_texts
 export interface MonolingualTextValue {
 	language: string;
 	text: string;
 }
 
+// https://www.mediawiki.org/wiki/Wikibase/DataModel#Wikidata_properties
+export interface PropertyValue {
+	'entity-type': 'item';
+	'numeric-id': number;
+	id: PropertyId;
+}
+
+// https://www.mediawiki.org/wiki/Wikibase/DataModel#Quantities
+export interface QuantityValue {
+	amount: string;
+	lowerBound?: string;
+	upperBound?: string;
+	unit: Unit;
+}
+
+// https://www.mediawiki.org/wiki/Wikibase/DataModel#Strings_that_are_not_translated
 export type StringValue = string;
 
 // https://www.mediawiki.org/wiki/Wikibase/DataModel#Dates_and_times
@@ -31,14 +49,6 @@ export interface TimeValue {
 	after?: number;
 	precision: number;
 	calendarmodel: Entity;
-}
-
-// https://www.mediawiki.org/wiki/Wikibase/DataModel#Quantities
-export interface QuantityValue {
-	amount: string;
-	lowerBound?: string;
-	upperBound?: string;
-	unit: Unit;
 }
 
 export type UrlValue = string;

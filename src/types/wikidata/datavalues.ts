@@ -3,7 +3,10 @@ import {
 	ExternalIdValue,
 	ItemValue,
 	MonolingualTextValue,
-	QuantityValue, StringValue, TimeValue,
+	PropertyValue,
+	QuantityValue,
+	StringValue,
+	TimeValue,
 	UrlValue,
 	Value
 } from './values';
@@ -32,6 +35,11 @@ export interface ItemDataValue {
 export interface MonolingualTextDataValue {
 	value: MonolingualTextValue;
 	type: 'monolingualtext';
+}
+
+export interface PropertyDataValue {
+	value: PropertyValue;
+	type: 'wikibase-entityid';
 }
 
 export interface QuantityDataValue {

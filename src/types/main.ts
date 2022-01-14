@@ -42,6 +42,7 @@ export interface Constraints {
 	unique: boolean;
 	unitOptional: boolean;
 	qualifier: PropertyId[];
+	format?: string;
 }
 
 export interface Property {

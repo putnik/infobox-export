@@ -11,8 +11,7 @@ import { DataType, PropertyId, typesMapping } from './types/wikidata/types';
 import {
 	CommonsMediaDataValue,
 	ExternalIdDataValue,
-	MonolingualTextDataValue,
-	StringDataValue
+	MonolingualTextDataValue
 } from './types/wikidata/datavalues';
 import { getReferences } from './parser/utils';
 import { createTimeValue } from './parser/time';
@@ -226,50 +225,6 @@ export function prepareMonolingualText( context: Context ): Statement[] {
 		let statement: Statement = convertSnakToStatement( snak, references );
 		statement = checkForMissedLanguage( statement );
 		statements.push( statement );
-	}
-
-	return statements;
-}
-
-export function prepareString( context: Context ): Statement[] {
-	const statements: Statement[] = [];
-	let text: string = context.$field.data( 'wikidata-external-id' );
-	if ( !text ) {
-		text = context.text;
-	}
-	let strings: string[] = text.toString().trim().split( /[\n,;]+/ );
-
-	// Commons category
-	if ( context.propertyId === 'P373' ) {
-		const $link: JQuery = context.$field.find( 'a[class="extiw"]' ).first();
-		if ( $link.length ) {
-			const url: string = $link.attr( 'href' );
-			let value = url.substr( url.indexOf( '/wiki/' ) + 6 )
-				.replace( /_/g, ' ' )
-				.replace( /^[Cc]ategory:/, '' )
-				.replace( /\?.*$/, '' );
-			value = decodeURIComponent( value );
-			strings = [ value ];
-		}
-	}
-
-	const references: Reference[] = getReferences( context.$wrapper );
-	for ( const i in strings ) {
-		const s: string = strings[ i ].replace( /\n/g, ' ' ).trim();
-		if ( s ) {
-			const dataValue: StringDataValue = {
-				value: s,
-				type: 'string'
-			};
-			const snak: Snak = {
-				snaktype: 'value',
-				property: context.propertyId,
-				datavalue: dataValue,
-				datatype: 'string'
-			};
-			const statement: Statement = convertSnakToStatement( snak, references );
-			statements.push( statement );
-		}
 	}
 
 	return statements;

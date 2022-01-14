@@ -5,8 +5,8 @@ import { ApiResponse, IndexedDbData, SparqlUnitBindings, SparqlUnitsResponse } f
 import { sparqlRequest, wdApiRequest } from './api';
 import { prepareSearchString, get, getLabelValue, set, unique, uppercaseFirst, queryIndexedDB } from './utils';
 import { ItemId, PropertyId } from './types/wikidata/types';
-import { Statement } from './types/wikidata/main';
-import { StringDataValue } from './types/wikidata/datavalues';
+import { Snak, Statement } from './types/wikidata/main';
+import { ItemDataValue, PropertyDataValue, StringDataValue } from './types/wikidata/datavalues';
 
 const mw = require( 'mw' );
 declare let __VERSION__: string;
@@ -246,6 +246,25 @@ async function loadUnitsSparql( typeIds: ItemId[], onlyUnitIds?: ItemId[] ): Pro
 	return unitIds;
 }
 
+function getBestStatement( statements: Statement[] ): Statement | undefined {
+	let bestStatement: Statement | undefined;
+	for ( const i in statements ) {
+		const statement: Statement = statements[ i ];
+		if ( statement.rank === 'deprecated' || statement.mainsnak.snaktype !== 'value' ) {
+			continue;
+		}
+		if ( !bestStatement ) {
+			bestStatement = statement;
+			continue;
+		}
+		if ( statement.rank === 'preferred' ) {
+			bestStatement = statement;
+			break;
+		}
+	}
+	return bestStatement;
+}
+
 /**
  * Preload information on all properties
  */
@@ -290,34 +309,29 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 			propertyData.constraints.integer = true;
 		}
 
-		// Formatter
-		if ( entity.claims && entity.claims.P1630 ) {
+		// URL formatter
+		if ( entity.claims?.P1630 ) {
 			console.debug( 'entity.claims.P1630', entity.claims.P1630 );
-			let bestStatement: Statement | undefined;
-			for ( const i in entity.claims.P1630 ) {
-				const statement: Statement = entity.claims.P1630[ i ];
-				if ( statement.rank === 'deprecated' || statement.mainsnak.snaktype !== 'value' ) {
-					continue;
-				}
-				if ( !bestStatement ) {
-					bestStatement = statement;
-					continue;
-				}
-				if ( statement.rank === 'preferred' ) {
-					bestStatement = statement;
-					break;
-				}
-			}
+			const bestStatement: Statement | undefined = getBestStatement( entity.claims.P1630 );
 			if ( bestStatement ) {
 				propertyData.formatter = ( bestStatement.mainsnak.datavalue as StringDataValue ).value;
 			}
 		}
 
+		// Value format
+		if ( entity.claims?.P1793 ) {
+			console.debug( 'entity.claims.P1793', entity.claims.P1793 );
+			const bestStatement: Statement | undefined = getBestStatement( entity.claims.P1793 );
+			if ( bestStatement ) {
+				propertyData.constraints.format = ( bestStatement.mainsnak.datavalue as StringDataValue ).value;
+			}
+		}
+
 		// Property restrictions
-		if ( entity.claims && entity.claims.P2302 ) {
+		if ( entity.claims?.P2302 ) {
 			for ( const i in entity.claims.P2302 ) {
 				const type: ItemId = entity.claims.P2302[ i ]?.mainsnak?.datavalue?.value?.id;
-				let qualifiers;
+				let qualifiers: Snak[];
 				switch ( type ) {
 					case 'Q19474404':
 					case 'Q21502410':
@@ -327,9 +341,9 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 					case 'Q21510856': // Required
 						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P2306 || [];
 						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
-							const qualifierId = qualifiers[ idx ]?.datavalue?.value?.id;
+							const qualifierId: PropertyId | undefined = ( qualifiers[ idx ]?.datavalue as PropertyDataValue | undefined )?.value?.id;
 							if ( qualifierId ) {
-								propertyData.constraints.qualifier.push( qualifierId.toString() );
+								propertyData.constraints.qualifier.push( qualifierId );
 							}
 						}
 						break;
@@ -337,7 +351,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 					case 'Q21514353': // Units
 						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P2305 || [];
 						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
-							const unitId: ItemId = qualifiers[ idx ]?.datavalue?.value?.id;
+							const unitId: ItemId = ( qualifiers[ idx ]?.datavalue as ItemDataValue | undefined )?.value?.id;
 							if ( unitId ) {
 								propertyData.units.push( unitId );
 								unitIds.push( unitId );
@@ -346,12 +360,18 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 							}
 						}
 						break;
+
+					case 'Q21502404': // Value format
+						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P1793 || [];
+						if ( qualifiers.length ) {
+							propertyData.constraints.format = ( qualifiers[ 0 ].datavalue as StringDataValue | undefined )?.value;
+						}
 				}
 			}
 		}
 
 		// Type of unit
-		if ( entity.claims && entity.claims.P2876 ) {
+		if ( entity.claims?.P2876 ) {
 			console.debug( 'entity.claims.P2876', entity.claims.P2876 );
 			const typeIds: ItemId[] = [];
 			for ( const i in entity.claims.P2876 ) {

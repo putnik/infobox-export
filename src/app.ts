@@ -4,8 +4,7 @@ import {
 	canExportValue,
 	prepareCommonsMedia,
 	prepareExternalId,
-	prepareMonolingualText,
-	prepareString
+	prepareMonolingualText
 } from './parser';
 import { getI18n } from './i18n';
 import { getOrLoadProperty, loadConfig, loadProperties, saveConfig, setConfig } from './config';
@@ -19,6 +18,7 @@ import { prepareTime } from './parser/time';
 import { Context, Property } from './types/main';
 import { parseItem } from './parser/item';
 import { prepareUrl } from './parser/url';
+import { prepareString } from './parser/string';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
