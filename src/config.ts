@@ -304,11 +304,6 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 			units: []
 		};
 
-		// Don't float people
-		if ( [ 'P1082', 'P1128', 'P2196' ].includes( propertyId ) ) {
-			propertyData.constraints.integer = true;
-		}
-
 		// URL formatter
 		if ( entity.claims?.P1630 ) {
 			console.debug( 'entity.claims.P1630', entity.claims.P1630 );
@@ -366,6 +361,11 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 						if ( qualifiers.length ) {
 							propertyData.constraints.format = ( qualifiers[ 0 ].datavalue as StringDataValue | undefined )?.value;
 						}
+						break;
+
+					case 'Q52848401': // Integer constraint
+						propertyData.constraints.integer = true;
+						break;
 				}
 			}
 		}
