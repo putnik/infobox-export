@@ -30,7 +30,7 @@ function formatReference( reference: Reference ): JQuery | void {
 		.replace( 'https://', '' )
 		.replace( 'www.', '' );
 	if ( domain.indexOf( '/' ) > 0 ) {
-		domain = domain.substr( 0, domain.indexOf( '/' ) );
+		domain = domain.substring( 0, domain.indexOf( '/' ) );
 	}
 
 	return getRefSup( url, domain );
@@ -86,7 +86,7 @@ function formatTimeValue( value: TimeValue ): JQuery {
 
 	let dateString: string;
 	if ( value.precision === 7 ) {
-		const century: number = Math.floor( ( parseInt( value.time.substr( 1, 4 ), 10 ) - 1 ) / 100 );
+		const century: number = Math.floor( ( parseInt( value.time.substring( 1, 5 ), 10 ) - 1 ) / 100 );
 		dateString = getConfig( `centuries.${century}` ) + getI18n( 'age-postfix' ) + bceMark;
 	} else {
 		const options: KeyValue = {

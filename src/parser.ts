@@ -145,7 +145,7 @@ export async function prepareExternalId( context: Context ): Promise<Statement[]
 		if ( !externalId ) {
 			return [];
 		}
-		externalId = externalId.substr( externalId.lastIndexOf( '/', externalId.length - 2 ) ).replace( /\//g, '' );
+		externalId = externalId.substring( externalId.lastIndexOf( '/', externalId.length - 2 ) ).replace( /\//g, '' );
 	} else {
 		externalId = externalId.toString().replace( /^ID\s/, '' ).replace( /\s/g, '' );
 	}
