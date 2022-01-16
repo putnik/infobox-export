@@ -3,7 +3,7 @@ import { checkForMissedLanguage, contentLanguage } from './languages';
 import { convertSnakToStatement } from './wikidata';
 import { sparqlRequest } from './api';
 import { Context, KeyValue, Property } from './types/main';
-import { MonolingualTextValue, Value } from './types/wikidata/values';
+import { MonolingualTextValue, TimeValue, Value } from './types/wikidata/values';
 import { SparqlResponse } from './types/api';
 import { canExportQuantity } from './parser/quantity';
 import { Reference, Snak, Statement } from './types/wikidata/main';
@@ -14,7 +14,7 @@ import {
 	MonolingualTextDataValue
 } from './types/wikidata/datavalues';
 import { getReferences } from './parser/utils';
-import { createTimeValue } from './parser/time';
+import { createTimeValue, prepareTime } from './parser/time';
 import { canExportItem, parseItem } from './parser/item';
 
 export function addQualifierValue(
@@ -41,6 +41,37 @@ export function addQualifierValue(
 			value: qualifierValue
 		}
 	} );
+
+	return statement;
+}
+
+export async function addPointInTimeQualifier( $field: JQuery, statement: Statement ): Promise<Statement> {
+	if ( statement.qualifiers.P585 ) {
+		return statement;
+	}
+
+	let matches: RegExpMatchArray;
+	const pointInTimeRegex: RegExp = /\(([^()]+)\)/g;
+	while ( ( matches = pointInTimeRegex.exec( $field.text() ) ) ) {
+		const fakeContext: Context = {
+			propertyId: 'P585',
+			text: matches[ 1 ].trim(),
+			$field: $( '<span>' ),
+			$wrapper: $( '<span>' )
+		};
+
+		const qualifierStatements: Statement[] = prepareTime( fakeContext );
+		if ( !qualifierStatements.length ) {
+			continue;
+		}
+		if ( qualifierStatements.length > 1 ) {
+			return statement;
+		}
+
+		const qualifierValue: TimeValue = ( qualifierStatements[ 0 ].mainsnak.datavalue.value ) as TimeValue;
+		statement = addQualifierValue( statement, 'P585', 'time', qualifierValue );
+		break;
+	}
 
 	return statement;
 }

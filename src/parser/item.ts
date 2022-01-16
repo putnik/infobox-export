@@ -10,7 +10,7 @@ import { prepareTime } from './time';
 import { ApiResponse } from '../types/api';
 import { apiRequest } from '../api';
 import { PropertyId } from '../types/wikidata/types';
-import { addQualifiers } from '../parser';
+import { addPointInTimeQualifier, addQualifiers } from '../parser';
 
 export const alreadyExistingItems: KeyValue = {};
 
@@ -164,6 +164,7 @@ export async function parseItem( context: Context ): Promise<Statement[]> {
 	const statements = await getStatements( context.propertyId, titles, references );
 	if ( statements.length === 1 ) {
 		statements[ 0 ] = await addQualifiers( context.$field, statements[ 0 ] );
+		statements[ 0 ] = await addPointInTimeQualifier( context.$field, statements[ 0 ] );
 	}
 
 	return statements;
