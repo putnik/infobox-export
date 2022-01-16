@@ -89,6 +89,10 @@ export function prepareUnitSearchString( search: string | undefined ): string {
 }
 
 export async function queryIndexedDB( storeName: string, id: ItemId | PropertyId, value?: any ): Promise<any | undefined> {
+	if ( typeof id === 'undefined' ) {
+		console.debug( 'queryIndexedDB() with empty ID', storeName );
+		return undefined;
+	}
 	// eslint-disable-next-line
 	return new Promise(
 		function ( resolve, reject ) {

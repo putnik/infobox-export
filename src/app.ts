@@ -19,6 +19,7 @@ import { Context, Property } from './types/main';
 import { parseItem } from './parser/item';
 import { prepareUrl } from './parser/url';
 import { prepareString } from './parser/string';
+import { guessPropertyIdByLabel, preloadAvailableProperties } from './property';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
@@ -189,10 +190,38 @@ export async function init(): Promise<any> {
 		return;
 	}
 
-	const $fields = $( '.infobox:not(.vertical-navbox):not([data-from]) .no-wikidata' );
+	let $fields = $( '.infobox:not(.vertical-navbox):not([data-from]) .no-wikidata' );
+	if ( !$fields.length ) {
+		$fields = $( '.infobox:not(.vertical-navbox):not([data-from]) th + td' );
+		await preloadAvailableProperties();
+	}
 	$fields.each( async function () {
 		const $field: JQuery = $( this );
-		const propertyId: PropertyId = $field.attr( 'data-wikidata-property-id' ) as PropertyId;
+		let propertyId: PropertyId | undefined = $field.attr( 'data-wikidata-property-id' ) as ( PropertyId | undefined );
+		if ( typeof propertyId === 'undefined' ) {
+			const $label: JQuery = $field.parent().children( 'th' ).first();
+			const guessedPropertyIds: PropertyId[] = await guessPropertyIdByLabel( $label );
+			if ( !guessedPropertyIds.length ) {
+				return;
+			}
+			propertyId = guessedPropertyIds[ 0 ];
+			$field.attr( 'data-wikidata-property-id', propertyId );
+			for ( let i = 1; i < guessedPropertyIds.length; i++ ) {
+				const alterPropertyId: PropertyId = guessedPropertyIds[ i ];
+				const canExport: boolean = await canExportValue( alterPropertyId, $field, claims[ alterPropertyId ] );
+				if ( canExport ) {
+					const $wrapper: JQuery = $( '<span>' )
+						.addClass( 'no-wikidata' )
+						.attr( 'data-wikidata-property-id', alterPropertyId );
+					$field.contents().wrapAll( $wrapper );
+					propertyIds.push( alterPropertyId );
+					if ( claims[ alterPropertyId ] && claims[ alterPropertyId ].length ) {
+						$wrapper.addClass( 'partial-wikidata' );
+					}
+					$wrapper.on( 'dblclick', clickEvent );
+				}
+			}
+		}
 
 		$field
 			.removeClass( 'no-wikidata' )

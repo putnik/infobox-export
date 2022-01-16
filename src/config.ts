@@ -195,13 +195,13 @@ async function loadUnits( units: ItemId[] ): Promise<void> {
 }
 
 async function loadUnitsSparql( typeIds: ItemId[], onlyUnitIds?: ItemId[] ): Promise<ItemId[]> {
-	const sparql: string = `SELECT DISTINCT ?unit ?unitLabel ?unitAltLabel ?code WITH {\
-	SELECT DISTINCT ?unit {\
-		${onlyUnitIds?.length ? `VALUES ?unit {wd:${onlyUnitIds.join( ' wd:' )}}` : ''}\
-		{ ?unit wdt:P31/wdt:P279* wd:${typeIds.join( ' } UNION { ?unit wdt:P31/wdt:P279* wd:' )} }.\
-	}} AS %Q {\
-		INCLUDE %Q\
-		OPTIONAL { ?unit wdt:P5061 ?code. FILTER(lang(?code) IN ("${contentLanguage}","mul")) }.\
+	const sparql: string = `SELECT DISTINCT ?unit ?unitLabel ?unitAltLabel ?code WITH {
+	SELECT DISTINCT ?unit {
+		${onlyUnitIds?.length ? `VALUES ?unit {wd:${onlyUnitIds.join( ' wd:' )}}` : ''}
+		{ ?unit wdt:P31/wdt:P279* wd:${typeIds.join( ' } UNION { ?unit wdt:P31/wdt:P279* wd:' )} }.
+	}} AS %Q {
+		INCLUDE %Q
+		OPTIONAL { ?unit wdt:P5061 ?code. FILTER(lang(?code) IN ("${contentLanguage}","mul")) }.
 		SERVICE wikibase:label { bd:serviceParam wikibase:language "${contentLanguage}" }
 	}`;
 	const data: SparqlUnitsResponse = await sparqlRequest( sparql ) as SparqlUnitsResponse;
@@ -444,7 +444,11 @@ export async function loadProperties( propertyIds: PropertyId[] ): Promise<void>
 	}
 
 	if ( neededPropertyIds.length ) {
-		await realLoadProperties( neededPropertyIds );
+		const apiChunkSize: number = 50;
+		for ( let i = 0; i < neededPropertyIds.length; i += apiChunkSize ) {
+			const propertyIdsChunk: PropertyId[] = neededPropertyIds.slice( i, i + apiChunkSize );
+			await realLoadProperties( propertyIdsChunk );
+		}
 	}
 }
 
