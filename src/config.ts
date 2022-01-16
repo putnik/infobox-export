@@ -3,7 +3,7 @@ import { allLanguages, contentLanguage, userLanguage } from './languages';
 import { Config, KeyValue, Property, Translations } from './types/main';
 import { ApiResponse, IndexedDbData, SparqlUnitBindings, SparqlUnitsResponse } from './types/api';
 import { sparqlRequest, wdApiRequest } from './api';
-import { prepareSearchString, get, getLabelValue, set, unique, uppercaseFirst, queryIndexedDB } from './utils';
+import { prepareUnitSearchString, get, getLabelValue, set, unique, uppercaseFirst, queryIndexedDB } from './utils';
 import { ItemId, PropertyId } from './types/wikidata/types';
 import { Snak, Statement } from './types/wikidata/main';
 import { ItemDataValue, PropertyDataValue, StringDataValue } from './types/wikidata/datavalues';
@@ -152,12 +152,12 @@ async function loadUnit( unitId: ItemId, unitData: any ): Promise<void> {
 	}
 
 	if ( unitData.labels && unitData.labels[ contentLanguage ] ) {
-		unit.push( prepareSearchString( unitData.labels[ contentLanguage ].value ) );
+		unit.push( prepareUnitSearchString( unitData.labels[ contentLanguage ].value ) );
 	}
 
 	if ( unitData.aliases && unitData.aliases[ contentLanguage ] ) {
 		for ( const i in unitData.aliases[ contentLanguage ] ) {
-			unit.push( prepareSearchString( unitData.aliases[ contentLanguage ][ i ].value ) );
+			unit.push( prepareUnitSearchString( unitData.aliases[ contentLanguage ][ i ].value ) );
 		}
 	}
 
@@ -168,7 +168,7 @@ async function loadUnit( unitId: ItemId, unitData: any ): Promise<void> {
 				claim.mainsnak.datavalue &&
 				claim.mainsnak.datavalue.value
 			) {
-				unit.push( prepareSearchString( claim.mainsnak.datavalue.value.text ) );
+				unit.push( prepareUnitSearchString( claim.mainsnak.datavalue.value.text ) );
 			}
 		}
 	}
@@ -224,12 +224,12 @@ async function loadUnitsSparql( typeIds: ItemId[], onlyUnitIds?: ItemId[] ): Pro
 		unit = getI18nConfig( `units.${unitId}` ) || [];
 
 		if ( bindings.unitLabel?.value !== unitId ) {
-			unit.push( prepareSearchString( bindings.unitLabel?.value ) );
+			unit.push( prepareUnitSearchString( bindings.unitLabel?.value ) );
 		}
-		unit.push( prepareSearchString( bindings.code?.value ) );
+		unit.push( prepareUnitSearchString( bindings.code?.value ) );
 		if ( bindings.unitAltLabel?.value ) {
 			bindings.unitAltLabel.value.split( ',' ).forEach( function ( alias: string ) {
-				unit.push( prepareSearchString( alias ) );
+				unit.push( prepareUnitSearchString( alias ) );
 			} );
 		}
 

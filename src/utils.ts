@@ -76,11 +76,16 @@ export async function sleep( milliseconds: number ): Promise<void> {
 	return new Promise<void>( resolve => setTimeout( resolve, milliseconds ) );
 }
 
-export function prepareSearchString( search: string | undefined ): string {
-	if ( !search ) {
+export function prepareUnitSearchString( search: string | undefined ): string {
+	if ( !search || /^\s+$/.test( search ) ) {
 		return '';
 	}
-	return search.trim().replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' );
+	search = search.trim();
+	// 25 minutes shouldn't be parsed as 2 <5 minutes>
+	if ( /\d/.test( search[ 0 ] ) ) {
+		search = ' ' + search;
+	}
+	return search.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' );
 }
 
 export async function queryIndexedDB( storeName: string, key: string, value?: any ): Promise<IndexedDbData | undefined> {
