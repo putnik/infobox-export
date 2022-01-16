@@ -86,7 +86,7 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 		} );
 		if ( !checkbox.isDisabled() ) {
 			const property: Property | undefined = await getOrLoadProperty( propertyId );
-			const isUnique: boolean | undefined = property?.constraints?.unique;
+			const isUnique: boolean = property?.constraints?.unique || ( property?.datatype === 'quantity' );
 			if ( !( firstSelected && isUnique ) && !hasSubclassEntity ) {
 				firstSelected = true;
 				checkbox.setSelected( true );
