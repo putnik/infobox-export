@@ -2,7 +2,7 @@
  * Returns an array of elements with duplicate values deleted
  */
 import { KeyValue } from './types/main';
-import { IndexedDbData } from './types/api';
+import { ItemId, PropertyId } from './types/wikidata/types';
 
 export function unique( array: any[] ): any[] {
 	const $ = require( 'jquery' );
@@ -88,11 +88,11 @@ export function prepareUnitSearchString( search: string | undefined ): string {
 	return search.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' );
 }
 
-export async function queryIndexedDB( storeName: string, key: string, value?: any ): Promise<IndexedDbData | undefined> {
+export async function queryIndexedDB( storeName: string, id: ItemId | PropertyId, value?: any ): Promise<any | undefined> {
 	// eslint-disable-next-line
 	return new Promise(
 		function ( resolve, reject ) {
-			const openRequest: IDBOpenDBRequest = indexedDB.open( storeName, 1 );
+			const openRequest: IDBOpenDBRequest = indexedDB.open( storeName, 2 );
 
 			openRequest.onerror = function () {
 				reject( Error( 'IndexedDB error: ' + openRequest.error ) );
@@ -100,9 +100,11 @@ export async function queryIndexedDB( storeName: string, key: string, value?: an
 
 			openRequest.onupgradeneeded = function () {
 				const db: IDBDatabase = openRequest.result;
-				if ( !db.objectStoreNames.contains( storeName ) ) {
-					db.createObjectStore( storeName, { keyPath: 'key' } );
+				if ( db.objectStoreNames.contains( storeName ) ) {
+					db.deleteObjectStore( storeName );
 				}
+				// eslint-disable-next-line
+				const store: IDBObjectStore = db.createObjectStore( storeName, { keyPath: 'id' } );
 			};
 
 			openRequest.onsuccess = function () {
@@ -111,9 +113,9 @@ export async function queryIndexedDB( storeName: string, key: string, value?: an
 				const objectStore: IDBObjectStore = transaction.objectStore( storeName );
 				let objectRequest: IDBRequest | undefined;
 				if ( value ) {
-					objectRequest = objectStore.put( { key, value } );
+					objectRequest = objectStore.put( value );
 				} else {
-					objectRequest = objectStore.get( key );
+					objectRequest = objectStore.get( id );
 				}
 
 				objectRequest.onerror = function () {

@@ -1,7 +1,7 @@
 import { getMonths, getMonthsGen } from './months';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
 import { Config, KeyValue, Property, Translations } from './types/main';
-import { ApiResponse, IndexedDbData, SparqlUnitBindings, SparqlUnitsResponse } from './types/api';
+import { ApiResponse, SparqlUnitBindings, SparqlUnitsResponse } from './types/api';
 import { sparqlRequest, wdApiRequest } from './api';
 import { prepareUnitSearchString, get, getLabelValue, set, unique, uppercaseFirst, queryIndexedDB } from './utils';
 import { ItemId, PropertyId } from './types/wikidata/types';
@@ -124,8 +124,7 @@ export function loadConfig(): void {
 }
 
 export async function getProperty( propertyId: PropertyId ): Promise<Property | undefined> {
-	const result: IndexedDbData | undefined = await queryIndexedDB( propertiesStore, propertyId );
-	return result?.value;
+	return await queryIndexedDB( propertiesStore, propertyId ) as ( Property | undefined );
 }
 
 export async function setProperty( propertyId: PropertyId, propertyData: Property ): Promise<void> {
@@ -133,12 +132,12 @@ export async function setProperty( propertyId: PropertyId, propertyData: Propert
 }
 
 export async function getUnit( unitId: ItemId ): Promise<string[] | undefined> {
-	const result: IndexedDbData | undefined = await queryIndexedDB( unitsStore, unitId );
-	return result?.value;
+	const result: any | undefined = await queryIndexedDB( unitsStore, unitId );
+	return result?.search as ( string[] | undefined );
 }
 
 export async function setUnit( unitId: ItemId, search: string[] ): Promise<void> {
-	await queryIndexedDB( unitsStore, unitId, search );
+	await queryIndexedDB( unitsStore, unitId, { id: unitId, search } );
 }
 
 async function loadUnit( unitId: ItemId, unitData: any ): Promise<void> {

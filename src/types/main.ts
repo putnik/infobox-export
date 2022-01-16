@@ -5,6 +5,10 @@ export interface KeyValue {
 	[ key: string ]: any;
 }
 
+export interface IdKeyValue extends KeyValue {
+	id: ItemId | PropertyId;
+}
+
 export interface TimeGuess {
 	type: SnakType;
 	isoDate?: Date;
