@@ -195,13 +195,12 @@ export async function canExportItem( propertyId: PropertyId, wikidataStatements:
 	}
 	if ( invalidValues.size < localStatements.length ) {
 		if ( invalidValues.size > 0 ) {
-			const propertyId: PropertyId = wikidataStatements[ 0 ].mainsnak.property;
 			if ( propertyId === 'P166' && localStatements.length === wikidataStatements.length ) {
 				return false;
 			}
 		}
 		if ( Object.keys( wikidataStatements ).length > 0 ) {
-			if ( [ 'P19', 'P20' ].includes( wikidataStatements[ 0 ].mainsnak.property ) ) {
+			if ( [ 'P19', 'P20' ].includes( propertyId ) ) {
 				return false;
 			}
 		}

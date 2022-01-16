@@ -292,6 +292,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 		const entity: KeyValue = data.entities[ propertyId ];
 		const label: string = getLabelValue( entity.labels, [ userLanguage, contentLanguage ], propertyId );
 		const propertyData: Property = {
+			id: propertyId,
 			datatype: entity.datatype,
 			label: uppercaseFirst( label ),
 			constraints: {

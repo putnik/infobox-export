@@ -46,6 +46,7 @@ export interface Constraints {
 }
 
 export interface Property {
+	id: PropertyId;
 	datatype: DataType;
 	label: string;
 	constraints: Constraints;
