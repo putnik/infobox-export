@@ -46,7 +46,7 @@ export function addQualifierValue(
 }
 
 export async function addPointInTimeQualifier( $field: JQuery, statement: Statement ): Promise<Statement> {
-	if ( statement.qualifiers.P585 ) {
+	if ( statement.qualifiers?.P585 ) {
 		return statement;
 	}
 
