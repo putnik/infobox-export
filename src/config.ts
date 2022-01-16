@@ -297,8 +297,10 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 			label: uppercaseFirst( label ),
 			constraints: {
 				integer: false,
+				noneOfValues: {},
 				unique: false,
 				unitOptional: false,
+				valueType: [],
 				qualifier: []
 			},
 			formatter: '',
@@ -361,6 +363,27 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P1793 || [];
 						if ( qualifiers.length ) {
 							propertyData.constraints.format = ( qualifiers[ 0 ].datavalue as StringDataValue | undefined )?.value;
+						}
+						break;
+
+					case 'Q21510865': // Value-type constraint
+						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P2308 || [];
+						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
+							const itemTypeId: ItemId | undefined = ( qualifiers[ idx ]?.datavalue as ItemDataValue | undefined )?.value?.id;
+							if ( itemTypeId ) {
+								propertyData.constraints.valueType.push( itemTypeId );
+							}
+						}
+						break;
+
+					case 'Q52558054': // None-of constraint
+						const replacementId: ItemId | null = entity.claims.P2302[ i ]?.qualifiers?.P9729?.[ 0 ] || null;
+						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P2306 || [];
+						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
+							const qualifierId: ItemId | undefined = ( qualifiers[ idx ]?.datavalue as ItemDataValue | undefined )?.value?.id;
+							if ( qualifierId ) {
+								propertyData.constraints.noneOfValues[ qualifierId ] = replacementId;
+							}
 						}
 						break;
 

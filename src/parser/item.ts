@@ -1,15 +1,15 @@
-import { Context, FixedValue, KeyValue, Title } from '../types/main';
+import { Context, FixedValue, KeyValue, Property, Title } from '../types/main';
 import { Reference, Snak, SnaksObject, Statement } from '../types/wikidata/main';
-import { getConfig } from '../config';
+import { getConfig, getProperty } from '../config';
 import { getReferences } from './utils';
 import { convertSnakToStatement, generateItemSnak, getStatements } from '../wikidata';
 import { lowercaseFirst, unique, uppercaseFirst } from '../utils';
 import { contentLanguage } from '../languages';
 import { ItemValue } from '../types/wikidata/values';
 import { prepareTime } from './time';
-import { ApiResponse } from '../types/api';
-import { apiRequest } from '../api';
-import { PropertyId } from '../types/wikidata/types';
+import { ApiResponse, SparqlResponse } from '../types/api';
+import { apiRequest, sparqlRequest } from '../api';
+import { ItemId, PropertyId } from '../types/wikidata/types';
 import { addPointInTimeQualifier, addQualifiers } from '../parser';
 
 export const alreadyExistingItems: KeyValue = {};
@@ -49,6 +49,40 @@ function getTimeSnaks( text: string ): SnaksObject {
 	}
 
 	return snaks;
+}
+
+export async function filterItemStatements( propertyId: PropertyId, statements: Statement[] ): Promise<Statement[]> {
+	const property: Property | undefined = await getProperty( propertyId );
+	if ( typeof property === 'undefined' ) {
+		return [];
+	}
+
+	if ( property.constraints.noneOfValues ) {
+		const noneOfValues: ItemId[] = Object.keys( property.constraints.noneOfValues ) as ItemId[];
+		statements = statements.filter( ( statement: Statement ) => (
+			!noneOfValues.includes( ( statement.mainsnak.datavalue.value as ItemValue ).id )
+		) );
+	}
+
+	if ( property.constraints.valueType && property.constraints.valueType.length ) {
+		const statementItemIds: ItemId[] = statements.map( ( statement: Statement ) => (
+			( statement.mainsnak.datavalue.value as ItemValue ).id
+		) );
+		const sparql: string = `SELECT DISTINCT ?item{ VALUES ?item {wd:${statementItemIds.join( ' wd:' )}}.\
+			{{ ?item wdt:P31/wdt:P279* wd:${property.constraints.valueType.join( ' } UNION { ?item wdt:P31/wdt:P279* wd:' )} }} }`;
+		const data: SparqlResponse = await sparqlRequest( sparql );
+		const validItemIds: ItemId[] = [];
+
+		for ( let i = 0; i < data.results.bindings.length; i++ ) {
+			const itemId: ItemId = data.results.bindings[ i ].item.value.replace( /^.+\/(Q\d+)$/, '$1' ) as ItemId;
+			validItemIds.push( itemId );
+		}
+		statements = statements.filter( ( statement: Statement ) => (
+			validItemIds.includes( ( statement.mainsnak.datavalue.value as ItemValue ).id )
+		) );
+	}
+
+	return statements;
 }
 
 export async function parseItem( context: Context ): Promise<Statement[]> {
@@ -161,7 +195,8 @@ export async function parseItem( context: Context ): Promise<Statement[]> {
 		}
 	}
 
-	const statements = await getStatements( context.propertyId, titles, references );
+	let statements = await getStatements( context.propertyId, titles, references );
+	statements = await filterItemStatements( context.propertyId, statements );
 	if ( statements.length === 1 ) {
 		statements[ 0 ] = await addQualifiers( context.$field, statements[ 0 ] );
 		statements[ 0 ] = await addPointInTimeQualifier( context.$field, statements[ 0 ] );
@@ -179,7 +214,7 @@ export async function canExportItem( propertyId: PropertyId, wikidataStatements:
 	};
 	const localStatements: Statement[] = await parseItem( context );
 	alreadyExistingItems[ propertyId ] = [];
-	const invalidValues: Set<string> = new Set();
+	const invalidValues: Set<ItemId> = new Set();
 	for ( let i = 0; i < localStatements.length; i++ ) {
 		const localValue: ItemValue = localStatements[ i ].mainsnak.datavalue.value as ItemValue;
 		if ( localStatements[ i ].meta?.subclassItem ) {

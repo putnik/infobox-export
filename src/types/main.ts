@@ -38,11 +38,15 @@ export interface Context {
 }
 
 export interface Constraints {
+	format?: string;
 	integer: boolean;
+	noneOfValues: {
+		[ key: ItemId ]: ItemId | null;
+	};
+	qualifier: PropertyId[];
 	unique: boolean;
 	unitOptional: boolean;
-	qualifier: PropertyId[];
-	format?: string;
+	valueType: ItemId[];
 }
 
 export interface Property {
