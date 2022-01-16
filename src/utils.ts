@@ -80,7 +80,7 @@ export function prepareSearchString( search: string | undefined ): string {
 	if ( !search ) {
 		return '';
 	}
-	return search.trim().toLowerCase().replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' );
+	return search.trim().replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' );
 }
 
 export async function queryIndexedDB( storeName: string, key: string, value?: any ): Promise<IndexedDbData | undefined> {
