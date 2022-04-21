@@ -58,10 +58,17 @@ export async function filterItemStatements( propertyId: PropertyId, statements: 
 	}
 
 	if ( property.constraints.noneOfValues ) {
-		const noneOfValues: ItemId[] = Object.keys( property.constraints.noneOfValues ) as ItemId[];
-		statements = statements.filter( ( statement: Statement ) => (
-			!noneOfValues.includes( ( statement.mainsnak.datavalue.value as ItemValue ).id )
-		) );
+		statements = statements.map( ( statement: Statement ) => {
+			const itemId: ItemId = ( statement.mainsnak.datavalue.value as ItemValue ).id;
+			if ( typeof property.constraints.noneOfValues[ itemId ] === 'undefined' ) {
+				return statement;
+			}
+			if ( property.constraints.noneOfValues[ itemId ] === null ) {
+				return null;
+			}
+			statement.mainsnak = generateItemSnak( propertyId, property.constraints.noneOfValues[ itemId ] );
+			return statement;
+		} ).filter( ( statement: Statement | null ) => ( statement !== null ) );
 	}
 
 	if ( property.constraints.valueType && property.constraints.valueType.length ) {

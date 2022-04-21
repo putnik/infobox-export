@@ -376,8 +376,10 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 						break;
 
 					case 'Q52558054': // None-of constraint
-						const replacementId: ItemId | null = entity.claims.P2302[ i ]?.qualifiers?.P9729?.[ 0 ] || null;
-						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P2306 || [];
+						const replacementId: ItemId | null = entity.claims.P2302[ i ]?.qualifiers?.P9729?.[ 0 ]?.datavalue?.value?.id || null;
+						console.log( 'replacementId', replacementId );
+						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P2305 || [];
+						console.log( 'qualifiers', qualifiers );
 						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
 							const qualifierId: ItemId | undefined = ( qualifiers[ idx ]?.datavalue as ItemDataValue | undefined )?.value?.id;
 							if ( qualifierId ) {
