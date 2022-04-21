@@ -16,11 +16,11 @@ export function getRandomHex( min: number, max: number ): string {
 }
 
 export function lowercaseFirst( value: string ): string {
-	return value.substring( 0, 1 ).toLowerCase() + value.substring( 1 );
+	return value.slice( 0, 1 ).toLowerCase() + value.slice( 1 );
 }
 
 export function uppercaseFirst( value: string ): string {
-	return value.substring( 0, 1 ).toUpperCase() + value.substring( 1 );
+	return value.slice( 0, 1 ).toUpperCase() + value.slice( 1 );
 }
 
 export function clone( value: any ): any {

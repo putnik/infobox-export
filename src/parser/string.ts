@@ -12,7 +12,7 @@ function getCommonsCategoryName( $field: JQuery ): string | undefined {
 	}
 
 	const url: string = $link.attr( 'href' );
-	let value = url.substring( url.indexOf( '/wiki/' ) + 6 )
+	let value = url.slice( url.indexOf( '/wiki/' ) + 6 )
 		.replace( /_/g, ' ' )
 		.replace( /^[Cc]ategory:/, '' )
 		.replace( /\?.*$/, '' );
