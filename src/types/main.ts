@@ -47,6 +47,7 @@ export interface Constraints {
 	noneOfValues: {
 		[ key: ItemId ]: ItemId | null;
 	};
+	oneOfValues: ItemId[];
 	qualifier: PropertyId[];
 	unique: boolean;
 	unitOptional: boolean;

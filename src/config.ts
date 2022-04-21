@@ -297,6 +297,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 			constraints: {
 				integer: false,
 				noneOfValues: {},
+				oneOfValues: [],
 				unique: false,
 				unitOptional: false,
 				valueType: [],
@@ -362,6 +363,16 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P1793 || [];
 						if ( qualifiers.length ) {
 							propertyData.constraints.format = ( qualifiers[ 0 ].datavalue as StringDataValue | undefined )?.value;
+						}
+						break;
+
+					case 'Q21510859': // One-of constraint
+						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P2305 || [];
+						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
+							const qualifierId: ItemId | undefined = ( qualifiers[ idx ]?.datavalue as ItemDataValue | undefined )?.value?.id;
+							if ( qualifierId ) {
+								propertyData.constraints.oneOfValues.push( qualifierId );
+							}
 						}
 						break;
 

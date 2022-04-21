@@ -71,6 +71,12 @@ export async function filterItemStatements( propertyId: PropertyId, statements: 
 		} ).filter( ( statement: Statement | null ) => ( statement !== null ) );
 	}
 
+	if ( property.constraints.oneOfValues && property.constraints.oneOfValues.length ) {
+		statements = statements.filter( ( statement: Statement ) => (
+			property.constraints.oneOfValues.includes( ( statement.mainsnak.datavalue.value as ItemValue ).id )
+		) );
+	}
+
 	if ( property.constraints.valueType && property.constraints.valueType.length ) {
 		const statementItemIds: ItemId[] = statements.map( ( statement: Statement ) => (
 			( statement.mainsnak.datavalue.value as ItemValue ).id
