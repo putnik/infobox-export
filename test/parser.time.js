@@ -176,7 +176,7 @@ describe( 'guessDateAndPrecision()', function () {
 		const result = guessDateAndPrecision( 'XIV' );
 		assert.deepStrictEqual( result, {
 			type: 'value',
-			isoDate: new Date( '1301-01-01 00:00:00Z' ),
+			isoDate: new Date( '1400-01-01 00:00:00Z' ),
 			precision: 7
 		} );
 	} );

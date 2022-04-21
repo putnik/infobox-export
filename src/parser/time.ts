@@ -19,7 +19,7 @@ export function guessDateAndPrecision( timestamp: string ): TimeGuess {
 	let isoDate;
 	if ( dateParts ) {
 		isoDate = new Date( 0 );
-		isoDate.setFullYear( getConfig( 'centuries' ).indexOf( dateParts[ 1 ].toUpperCase() ) * 100 + 1 );
+		isoDate.setFullYear( getConfig( 'centuries' ).indexOf( dateParts[ 1 ].toUpperCase() ) * 100 + 100 );
 		isoDate.setUTCHours( 0 );
 		isoDate.setUTCMinutes( 0 );
 		isoDate.setUTCSeconds( 0 );
