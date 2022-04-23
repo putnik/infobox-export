@@ -261,7 +261,7 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 
 		statement = await addQualifiers( context.$field, statement );
 
-		if ( ( property?.constraints?.qualifier || [] ).indexOf( 'P585' ) !== -1 ) {
+		if ( ( property?.constraints?.qualifier || [] ).includes( 'P585' ) ) {
 			let yearMatch: string[] = context.text.match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
 			if ( !yearMatch ) {
 				yearMatch = thText.match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );

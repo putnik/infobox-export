@@ -1,58 +1,57 @@
-import { set } from "../src/utils";
+import { set } from '../src/utils';
 
-const assert = require( "assert" );
+const assert = require( 'assert' );
 
-describe( "set() should set the value ", function () {
-	it( "for simple path", function () {
+describe( 'set() should set the value ', function () {
+	it( 'for simple path', function () {
 		const testObject = {};
 		set( testObject, 'simplePath', 'simpleValue' );
 		assert.deepStrictEqual( testObject, {
-			"simplePath": "simpleValue"
+			simplePath: 'simpleValue'
 		} );
 	} );
-	it( "for dot-separated path", function () {
+	it( 'for dot-separated path', function () {
 		const testObject = {};
 		set( testObject, 'dot.separated.path', 'simpleValue' );
 		assert.deepStrictEqual( testObject, {
-			"dot": {
-				"separated": {
-					"path": "simpleValue"
+			dot: {
+				separated: {
+					path: 'simpleValue'
 				}
 			}
 		} );
 	} );
-	it( "even if the inner object already contains a value", function () {
+	it( 'even if the inner object already contains a value', function () {
 		const testObject = {
-			"value": {
-				"object": {
-					"stringValue": "simpleValue"
+			value: {
+				object: {
+					stringValue: 'simpleValue'
 				}
 			}
 		};
 		set( testObject, 'value.object.numericValue', 2000 );
 		assert.deepStrictEqual( testObject, {
-			"value": {
-				"object": {
-					"stringValue": "simpleValue",
-					"numericValue": 2000
+			value: {
+				object: {
+					stringValue: 'simpleValue',
+					numericValue: 2000
 				}
 			}
 		} );
 	} );
-	it( "even if there is conflict in the path", function () {
+	it( 'even if there is conflict in the path', function () {
 		const testObject = {
-			"value": {
-				"object": 1000
+			value: {
+				object: 1000
 			}
 		};
 		set( testObject, 'value.object.numericValue', 2000 );
 		assert.deepStrictEqual( testObject, {
-			"value": {
-				"object": {
-					"numericValue": 2000
+			value: {
+				object: {
+					numericValue: 2000
 				}
 			}
 		} );
 	} );
 } );
-

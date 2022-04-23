@@ -30,7 +30,7 @@ function formatReference( reference: Reference ): JQuery | void {
 		.replace( 'https://', '' )
 		.replace( 'www.', '' );
 	if ( domain.indexOf( '/' ) > 0 ) {
-		domain = domain.substring( 0, domain.indexOf( '/' ) );
+		domain = domain.slice( 0, domain.indexOf( '/' ) );
 	}
 
 	return getRefSup( url, domain );
@@ -86,7 +86,7 @@ function formatTimeValue( value: TimeValue ): JQuery {
 
 	let dateString: string;
 	if ( value.precision === 7 ) {
-		const century: number = Math.floor( ( parseInt( value.time.substring( 1, 5 ), 10 ) - 1 ) / 100 );
+		const century: number = Math.floor( ( parseInt( value.time.slice( 1, 5 ), 10 ) - 1 ) / 100 );
 		dateString = getConfig( `centuries.${century}` ) + getI18n( 'age-postfix' ) + bceMark;
 	} else {
 		const options: KeyValue = {
@@ -101,7 +101,7 @@ function formatTimeValue( value: TimeValue ): JQuery {
 		if ( value.precision > 10 ) {
 			options.day = 'numeric';
 		}
-		const parsedDate = new Date( Date.parse( value.time.substring( 1 ).replace( /-00/g, '-01' ) ) );
+		const parsedDate = new Date( Date.parse( value.time.slice( 1 ).replace( /-00/g, '-01' ) ) );
 		dateString = parsedDate.toLocaleString( userLanguage, options ) + ( value.precision === 8 ? getI18n( 'decade-postfix' ) : '' ) + bceMark;
 	}
 	const calendar = value.calendarmodel.includes( '1985727' ) ? getI18n( 'grigorian-calendar' ) : getI18n( 'julian-calendar' );

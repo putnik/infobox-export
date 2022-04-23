@@ -1,9 +1,9 @@
 const config: {[key: string]: string} = {
-	'wgContentLanguage': 'de'
+	wgContentLanguage: 'de'
 };
 
 const userOptions: {[key: string]: string} = {
-	'language': 'ru'
+	language: 'ru'
 };
 
 export default {
