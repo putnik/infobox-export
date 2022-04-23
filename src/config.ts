@@ -7,6 +7,7 @@ import { prepareUnitSearchString, get, getLabelValue, set, unique, uppercaseFirs
 import { ItemId, PropertyId } from './types/wikidata/types';
 import { Snak, Statement } from './types/wikidata/main';
 import { ItemDataValue, PropertyDataValue, StringDataValue } from './types/wikidata/datavalues';
+import { ItemValue } from './types/wikidata/values';
 
 const mw = require( 'mw' );
 declare let __VERSION__: string;
@@ -325,10 +326,14 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 			}
 		}
 
-		// Property restrictions
+		// Property constraints
 		if ( entity.claims?.P2302 ) {
 			for ( const i in entity.claims.P2302 ) {
-				const type: ItemId = entity.claims.P2302[ i ]?.mainsnak?.datavalue?.value?.id;
+				const constraint: Statement | undefined = entity.claims.P2302[ i ];
+				if ( typeof constraint === 'undefined' || constraint.rank === 'deprecated' || constraint.mainsnak.snaktype !== 'value' ) {
+					continue;
+				}
+				const type: ItemId = ( constraint.mainsnak.datavalue.value as ItemValue ).id;
 				let qualifiers: Snak[];
 				switch ( type ) {
 					case 'Q19474404':
@@ -337,7 +342,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 						break;
 
 					case 'Q21510856': // Required
-						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P2306 || [];
+						qualifiers = constraint.qualifiers?.P2306 || [];
 						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
 							const qualifierId: PropertyId | undefined = ( qualifiers[ idx ]?.datavalue as PropertyDataValue | undefined )?.value?.id;
 							if ( qualifierId ) {
@@ -347,7 +352,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 						break;
 
 					case 'Q21514353': // Units
-						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P2305 || [];
+						qualifiers = constraint.qualifiers?.P2305 || [];
 						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
 							const unitId: ItemId = ( qualifiers[ idx ]?.datavalue as ItemDataValue | undefined )?.value?.id;
 							if ( unitId ) {
@@ -360,14 +365,14 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 						break;
 
 					case 'Q21502404': // Value format
-						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P1793 || [];
+						qualifiers = constraint.qualifiers?.P1793 || [];
 						if ( qualifiers.length ) {
 							propertyData.constraints.format = ( qualifiers[ 0 ].datavalue as StringDataValue | undefined )?.value;
 						}
 						break;
 
 					case 'Q21510859': // One-of constraint
-						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P2305 || [];
+						qualifiers = constraint.qualifiers?.P2305 || [];
 						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
 							const qualifierId: ItemId | undefined = ( qualifiers[ idx ]?.datavalue as ItemDataValue | undefined )?.value?.id;
 							if ( qualifierId ) {
@@ -377,7 +382,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 						break;
 
 					case 'Q21510865': // Value-type constraint
-						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P2308 || [];
+						qualifiers = constraint.qualifiers?.P2308 || [];
 						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
 							const itemTypeId: ItemId | undefined = ( qualifiers[ idx ]?.datavalue as ItemDataValue | undefined )?.value?.id;
 							if ( itemTypeId ) {
@@ -387,10 +392,8 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 						break;
 
 					case 'Q52558054': // None-of constraint
-						const replacementId: ItemId | null = entity.claims.P2302[ i ]?.qualifiers?.P9729?.[ 0 ]?.datavalue?.value?.id || null;
-						console.log( 'replacementId', replacementId );
-						qualifiers = entity.claims.P2302[ i ]?.qualifiers?.P2305 || [];
-						console.log( 'qualifiers', qualifiers );
+						const replacementId: ItemId | undefined = ( constraint.qualifiers?.P9729?.[ 0 ]?.datavalue?.value as ItemValue | undefined )?.id;
+						qualifiers = constraint.qualifiers?.P2305 || [];
 						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
 							const qualifierId: ItemId | undefined = ( qualifiers[ idx ]?.datavalue as ItemDataValue | undefined )?.value?.id;
 							if ( qualifierId ) {
