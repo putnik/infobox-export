@@ -152,7 +152,8 @@ async function loadDefaultReference(): Promise<void> {
  * Initializing the gadget
  */
 export async function init(): Promise<any> {
-	if ( mw.config.get( 'wgWikibaseItemId' ) === null ||
+	const itemId: ItemId | null = mw.config.get( 'wgWikibaseItemId' );
+	if ( itemId === null ||
 		mw.config.get( 'wgAction' ) !== 'view' ||
 		mw.util.getParamValue( 'veaction' ) !== null ||
 		// @ts-ignore
@@ -193,14 +194,14 @@ export async function init(): Promise<any> {
 	let $fields = $( '.infobox:not(.vertical-navbox):not([data-from]) .no-wikidata' );
 	if ( !$fields.length ) {
 		$fields = $( '.infobox:not(.vertical-navbox):not([data-from]) th + td' );
-		await preloadAvailableProperties();
+		await preloadAvailableProperties( itemId );
 	}
 	$fields.each( async function () {
 		const $field: JQuery = $( this );
 		let propertyId: PropertyId | undefined = $field.attr( 'data-wikidata-property-id' ) as ( PropertyId | undefined );
 		if ( typeof propertyId === 'undefined' ) {
 			const $label: JQuery = $field.parent().children( 'th' ).first();
-			const guessedPropertyIds: PropertyId[] = await guessPropertyIdByLabel( $label );
+			const guessedPropertyIds: PropertyId[] = await guessPropertyIdByLabel( $label, itemId );
 			if ( !guessedPropertyIds.length ) {
 				return;
 			}
