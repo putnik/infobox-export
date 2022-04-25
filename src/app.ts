@@ -204,6 +204,16 @@ export async function init(): Promise<any> {
 			if ( !guessedPropertyIds.length ) {
 				return;
 			}
+
+			// If at least one of these properties with same name already filled,
+			// then we think that it is the correct one.
+			for ( let i = 0; i < guessedPropertyIds.length; i++ ) {
+				const guessedPropertyId: PropertyId = guessedPropertyIds[ i ];
+				if ( claims[ guessedPropertyId ] && claims[ guessedPropertyId ].length ) {
+					return;
+				}
+			}
+
 			propertyId = guessedPropertyIds[ 0 ];
 			$field.attr( 'data-wikidata-property-id', propertyId );
 			for ( let i = 1; i < guessedPropertyIds.length; i++ ) {
