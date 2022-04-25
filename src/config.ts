@@ -3,7 +3,16 @@ import { allLanguages, contentLanguage, userLanguage } from './languages';
 import { Config, KeyValue, Property, Translations } from './types/main';
 import { ApiResponse, SparqlUnitBindings, SparqlUnitsResponse } from './types/api';
 import { sparqlRequest, wdApiRequest } from './api';
-import { prepareUnitSearchString, get, getLabelValue, set, unique, uppercaseFirst, queryIndexedDB } from './utils';
+import {
+	prepareUnitSearchString,
+	get,
+	getLabelValue,
+	set,
+	unique,
+	uppercaseFirst,
+	queryIndexedDB,
+	getAliases
+} from './utils';
 import { ItemId, PropertyId } from './types/wikidata/types';
 import { Snak, Statement } from './types/wikidata/main';
 import { ItemDataValue, PropertyDataValue, StringDataValue } from './types/wikidata/datavalues';
@@ -277,7 +286,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 	const data: ApiResponse = await wdApiRequest( {
 		action: 'wbgetentities',
 		languages: allLanguages,
-		props: [ 'labels', 'datatype', 'claims' ],
+		props: [ 'labels', 'aliases', 'datatype', 'claims' ],
 		ids: propertyIds
 	} );
 	if ( !data.success ) {
@@ -291,10 +300,12 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 		const propertyId: PropertyId = key as PropertyId;
 		const entity: KeyValue = data.entities[ propertyId ];
 		const label: string = getLabelValue( entity.labels, [ userLanguage, contentLanguage ], propertyId );
+		const aliases: string[] = getAliases( entity.labels, entity.aliases, contentLanguage );
 		const propertyData: Property = {
 			id: propertyId,
 			datatype: entity.datatype,
 			label: uppercaseFirst( label ),
+			aliases: aliases,
 			constraints: {
 				integer: false,
 				noneOfValues: {},

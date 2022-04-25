@@ -58,6 +58,7 @@ export interface Property {
 	id: PropertyId;
 	datatype: DataType;
 	label: string;
+	aliases: string[];
 	constraints: Constraints;
 	formatter: string;
 	units: ItemId[];

@@ -71,6 +71,14 @@ export function getLabelValue( labels: KeyValue, languages: string[], defaultVal
 	return '';
 }
 
+export function getAliases( labels: KeyValue, aliases: KeyValue, language: string ): string[] {
+	const data: KeyValue[] = aliases[ language ] || [];
+	if ( labels[ language ] ) {
+		data.push( labels[ language ] );
+	}
+	return data.map( ( label: KeyValue ) => label.value.toLowerCase() );
+}
+
 export async function sleep( milliseconds: number ): Promise<void> {
 	// eslint-disable-next-line
 	return new Promise<void>( resolve => setTimeout( resolve, milliseconds ) );
