@@ -83,7 +83,7 @@ export async function filterItemStatements( propertyId: PropertyId, statements: 
 		) );
 		const sparql: string = `SELECT DISTINCT ?item { VALUES ?item {wd:${statementItemIds.join( ' wd:' )}}.\
 			VALUES ?class {wd:${property.constraints.valueType.join( ' wd:' )}}.\
-			?item wdt:P31/wdt:P279* ?class }`;
+			?item wdt:P31?/wdt:P279* ?class }`;
 		const data: SparqlResponse = await sparqlRequest( sparql );
 		const validItemIds: ItemId[] = [];
 
