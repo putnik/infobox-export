@@ -40,5 +40,6 @@ export type SparqlUnitsResponse = {
 export interface MediaWikiApi {
 	get: ( params: KeyValue ) => Promise<ApiResponse>;
 	getMessages: ( messageKeys: string[], params: KeyValue ) => Promise<ApiResponse>;
+	post: ( params: KeyValue ) => Promise<ApiResponse>;
 	postWithToken: ( token: string, params: KeyValue ) => any;
 }

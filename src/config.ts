@@ -40,6 +40,7 @@ const i18nConfig: Translations = {
 	de: require( './config/de.json' ),
 	en: require( './config/en.json' ),
 	hy: require( './config/hy.json' ),
+	lt: require( './config/lt.json' ),
 	ru: require( './config/ru.json' ),
 	tg: require( './config/tg.json' ),
 	tr: require( './config/tr.json' )
@@ -67,9 +68,14 @@ function getI18nConfig( path: string ): any {
 		if ( result === '' ) {
 			result = '^@{999}$'; // impossible regexp
 		}
+		let flags: string = '';
+		if ( Array.isArray( result ) ) {
+			flags = result[ 1 ];
+			result = result[ 0 ];
+		}
 		result = result.replace( '%months%', getMonths().join( '|' ) );
 		result = result.replace( '%months-gen%', getMonthsGen().join( '|' ) );
-		return new RegExp( result );
+		return new RegExp( result, flags );
 	}
 
 	return result;
@@ -207,8 +213,9 @@ async function loadUnits( units: ItemId[] ): Promise<void> {
 async function loadUnitsSparql( typeIds: ItemId[], onlyUnitIds?: ItemId[] ): Promise<ItemId[]> {
 	const sparql: string = `SELECT DISTINCT ?unit ?unitLabel ?unitAltLabel ?code WITH {
 	SELECT DISTINCT ?unit {
-		${onlyUnitIds?.length ? `VALUES ?unit {wd:${onlyUnitIds.join( ' wd:' )}}` : ''}
-		{ ?unit wdt:P31/wdt:P279* wd:${typeIds.join( ' } UNION { ?unit wdt:P31/wdt:P279* wd:' )} }.
+		${onlyUnitIds?.length ? `VALUES ?unit {wd:${onlyUnitIds.join( ' wd:' )}}.` : ''}
+		VALUES ?type {wd:${typeIds.join( ' wd:' )}}.
+		?unit wdt:P31?/wdt:P279* ?type.
 	}} AS %Q {
 		INCLUDE %Q
 		OPTIONAL { ?unit wdt:P5061 ?code. FILTER(lang(?code) IN ("${contentLanguage}","mul")) }.

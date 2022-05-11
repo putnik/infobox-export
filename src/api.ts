@@ -21,11 +21,19 @@ export function getWdApi(): MediaWikiApi {
 }
 
 export async function apiRequest( params: KeyValue ): Promise<ApiResponse> {
-	return getApi().get( params );
+	if ( params.titles && params.titles.length > 20 ) {
+		return getApi().post( params );
+	} else {
+		return getApi().get( params );
+	}
 }
 
 export async function wdApiRequest( params: KeyValue ): Promise<ApiResponse> {
-	return getWdApi().get( params );
+	if ( params.titles && params.titles.length > 20 ) {
+		return getWdApi().post( params );
+	} else {
+		return getWdApi().get( params );
+	}
 }
 
 export async function getMessages( messageKeys: string[], language: string ): Promise<ApiResponse> {

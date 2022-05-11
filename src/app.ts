@@ -19,6 +19,7 @@ import { Context, Property } from './types/main';
 import { parseItem } from './parser/item';
 import { prepareUrl } from './parser/url';
 import { prepareString } from './parser/string';
+import { prepareGlobeCoordinate } from './parser/coordinates';
 import { guessPropertyIdByLabel, preloadAvailableProperties } from './property';
 
 const $ = require( 'jquery' );
@@ -64,6 +65,9 @@ async function parseField( $field: JQuery ): Promise<Statement[]> {
 
 		case 'external-id':
 			return prepareExternalId( context );
+
+		case 'globe-coordinate':
+			return prepareGlobeCoordinate( context );
 
 		case 'monolingualtext':
 			return prepareMonolingualText( context );

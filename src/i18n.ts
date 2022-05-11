@@ -7,6 +7,7 @@ const i18n: Translations = {
 	de: require( './i18n/de.json' ),
 	en: require( './i18n/en.json' ),
 	hy: require( './i18n/hy.json' ),
+	lt: require( './i18n/lt.json' ),
 	ru: require( './i18n/ru.json' ),
 	tg: require( './i18n/tg.json' )
 };
