@@ -31,6 +31,7 @@ const i18nConfig: Translations = {
 	de: require( './config/de.json' ),
 	en: require( './config/en.json' ),
 	hy: require( './config/hy.json' ),
+	lt: require( './config/lt.json' ),
 	ru: require( './config/ru.json' ),
 	tg: require( './config/tg.json' ),
 	tr: require( './config/tr.json' )
@@ -58,9 +59,14 @@ function getI18nConfig( path: string ): any {
 		if ( result === '' ) {
 			result = '^@{999}$'; // impossible regexp
 		}
+		let flags: string = '';
+		if ( Array.isArray( result ) ) {
+			flags = result[ 1 ];
+			result = result[ 0 ];
+		}
 		result = result.replace( '%months%', getMonths().join( '|' ) );
 		result = result.replace( '%months-gen%', getMonthsGen().join( '|' ) );
-		return new RegExp( result );
+		return new RegExp( result, flags );
 	}
 
 	return result;

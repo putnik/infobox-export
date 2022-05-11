@@ -1,0 +1,23 @@
+{
+	"re-circa": "(?:~|≈|[Aa]pie)",
+	"re-century": "^([IVXivx]{1,5})\\s*(?:amžius)?$",
+	"re-month-dot-year": "^(\\d{1,2})\\.(\\d{3,4})(?:\\s*m\\.)?$",
+	"re-text-date": ["(?<y>\\d{2,4})\\s*m\\.\\s+(?<m>%months-gen%)\\s+(?<d>\\d{1,2})\\s*d\\.", "i"],
+	"re-dot-date": "^(\\d{1,2})\\.(\\d{1,2})\\.(\\d{2,4})(?:\\s*г\\.?)?$",
+	"re-decade": "(\\d{3,4})-as",
+	"re-year-postfix": "\\s+(m\\.?)$",
+	"re-since-year": "(\\d{4})\\s*(?:m\\.)?",
+	"re-bce": "pr\\.\\s+Kr\\.?\\s*e\\.?\\s*$",
+	"re-ce": "Kr\\.?\\s*e\\.?\\s*$",
+	"re-present": "^(?:iki )?(?:(?:esamasis|šiais)\\s+laikai?s|dabar|nau)$",
+	"re-unknown": "^(?:\\?|nežinomas)$",
+	"re-min-sec": "^(\\d+)\\s*(?:m|min|minutės)\\.?\\s*(\\d+)\\s*(?:s|sek|sekundes)\\.?$",
+	"re-10_3": "tūkstantis",
+	"re-10_6": "\\dM(?:\\s|$)|milijonas",
+	"re-10_9": "milijardo",
+	"re-10_12": "trilijonas",
+	"mark-checked": "Patikrinta",
+	"mark-archived": "Suarchyvuota",
+	"mark-julian": "Julijone",
+	"units": {}
+}
