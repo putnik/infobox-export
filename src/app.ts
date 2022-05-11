@@ -191,9 +191,14 @@ export async function init(): Promise<any> {
 		return;
 	}
 
-	let $fields = $( '.infobox:not(.vertical-navbox):not([data-from]) .no-wikidata' );
+	$( '.infobox, table.toccolours, table.vcard, table.vevent, #mw-parser-output > table:first-child' ).addClass( 'infobox-export' );
+	$( '.infobox-export' ).find( 'tr > td > b' ).each( function () {
+		const $td: JQuery = $( this ).parent();
+		$td.replaceWith( $( '<th>' ).html( $td.html() ) );
+	} );
+	let $fields = $( '.infobox-export:not(.vertical-navbox):not([data-from]) .no-wikidata' );
 	if ( !$fields.length ) {
-		$fields = $( '.infobox:not(.vertical-navbox):not([data-from]) th + td' );
+		$fields = $( '.infobox-export:not(.vertical-navbox):not([data-from]) th + td' );
 		await preloadAvailableProperties( itemId );
 	}
 	$fields.each( async function () {
