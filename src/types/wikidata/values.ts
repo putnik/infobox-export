@@ -10,6 +10,15 @@ export interface EntityIdValue {
 
 export type ExternalIdValue = string;
 
+// https://www.mediawiki.org/wiki/Wikibase/DataModel#Geographic_locations
+export interface GlobeCoordinateValue {
+	latitude: number;
+	longitude: number;
+	altitude: null;
+	precision: number;
+	globe: Entity;
+}
+
 // https://www.mediawiki.org/wiki/Wikibase/DataModel#Wikidata_items
 export interface ItemValue {
 	'entity-type': 'item';
@@ -56,6 +65,7 @@ export type UrlValue = string;
 export type Value =
 	CommonsMediaValue
 	| EntityIdValue
+	| GlobeCoordinateValue
 	| ItemValue
 	| MonolingualTextValue
 	| StringValue

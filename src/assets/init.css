@@ -66,6 +66,10 @@
     display: none;
 }
 
+.infobox-export-dialog .wikibase-kartographer-caption {
+    float: left;
+}
+
 @keyframes infobox-export-spin {
     from {
         transform: rotate(0deg);

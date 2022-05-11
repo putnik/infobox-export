@@ -1,6 +1,7 @@
 import {
 	CommonsMediaValue,
 	ExternalIdValue,
+	GlobeCoordinateValue,
 	ItemValue,
 	MonolingualTextValue,
 	PropertyValue,
@@ -25,6 +26,11 @@ export interface CommonsMediaDataValue {
 export interface ExternalIdDataValue {
 	value: ExternalIdValue;
 	type: 'string';
+}
+
+export interface GlobeCoordinateDataValue {
+	value: GlobeCoordinateValue;
+	type: 'globecoordinate';
 }
 
 export interface ItemDataValue {
