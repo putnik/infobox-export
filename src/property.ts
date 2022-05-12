@@ -7,7 +7,7 @@ import { Property } from './types/main';
 let availableProperties: PropertyId[] | undefined;
 
 export async function preloadAvailableProperties( itemId: ItemId ): Promise<void> {
-	const sparql: string = `SELECT DISTINCT ?property {
+	const sparql: string = `SELECT DISTINCT (SUBSTR(STR(?property), 32) as ?pid) {
 		?property rdf:type wikibase:Property.
 		?property p:P2302 ?scopeConstraint.
 		?scopeConstraint ps:P2302 wd:Q53869507;
@@ -32,7 +32,7 @@ export async function preloadAvailableProperties( itemId: ItemId ): Promise<void
 
 	for ( let i = 0; i < data.results.bindings.length; i++ ) {
 		const bindings: SparqlBindings = data.results.bindings[ i ];
-		const propertyId: PropertyId = bindings.property.value.replace( 'http://www.wikidata.org/entity/', '' ) as PropertyId;
+		const propertyId: PropertyId = bindings.pid.value as PropertyId;
 		availableProperties.push( propertyId );
 	}
 	await loadProperties( availableProperties );
