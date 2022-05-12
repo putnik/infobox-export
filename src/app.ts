@@ -196,8 +196,8 @@ export async function init(): Promise<any> {
 	}
 
 	$( '.infobox, table.toccolours, table.vcard, table.vevent, #mw-parser-output > table:first-child' ).addClass( 'infobox-export' );
-	$( '.infobox-export' ).find( 'tr > td > b' ).each( function () {
-		const $td: JQuery = $( this ).parent();
+	$( '.infobox-export' ).find( 'tr > td + td' ).each( function () {
+		const $td: JQuery = $( this ).prev();
 		$td.replaceWith( $( '<th>' ).html( $td.html() ) );
 	} );
 	let $fields = $( '.infobox-export:not(.vertical-navbox):not([data-from]) .no-wikidata' );

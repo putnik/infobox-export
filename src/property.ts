@@ -43,11 +43,12 @@ export async function guessPropertyIdByLabel( $label: JQuery, itemId: ItemId ): 
 		await preloadAvailableProperties( itemId );
 	}
 	const propertyIds: PropertyId[] = [];
-	const label: string = $label.text().trim().toLowerCase();
+	const label: string = $label.text().replace( /:$/, '' ).trim().toLowerCase();
+	const baseLabel: string = label.replace( /\(.+?\)/, '' ).trim();
 
 	for ( const propertyId of availableProperties ) {
 		const property: Property = await getProperty( propertyId );
-		if ( property.aliases && property.aliases.includes( label ) ) {
+		if ( property.aliases && ( property.aliases.includes( label ) || property.aliases.includes( baseLabel ) ) ) {
 			propertyIds.push( propertyId as PropertyId );
 		}
 	}
