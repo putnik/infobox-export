@@ -21,17 +21,16 @@ export function getMonthsGen(): string[] {
  */
 export async function loadMonths(): Promise<void> {
 	const messageKeys: string[] = [];
-	for ( const i in months ) {
-		messageKeys.push( months[ i ] );
-		messageKeys.push( months[ i ] + '-gen' );
+	for ( const month of months ) {
+		messageKeys.push( month === 'may' ? 'may long' : month );
+		messageKeys.push( month + '-gen' );
 	}
 	const messages: KeyValue = await getMessages( messageKeys, contentLanguage );
 	const monthLocal: string[] = [];
 	const monthLocalGen: string[] = [];
-	for ( const pos in months ) {
-		const key: string = months[ pos ];
-		monthLocal.push( messages[ key ] );
-		monthLocalGen.push( messages[ key + '-gen' ] );
+	for ( const month of months ) {
+		monthLocal.push( messages[ month === 'may' ? 'may long' : month ] );
+		monthLocalGen.push( messages[ month + '-gen' ] );
 	}
 	months = monthLocal;
 	monthsGen = monthLocalGen;
