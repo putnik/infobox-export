@@ -53,11 +53,18 @@ export function guessDateAndPrecision( timestamp: string ): TimeGuess {
 
 	dateParts = timestamp.match( getConfig( 're-text-date' ) );
 	if ( dateParts ) {
+		const monthString: string = ( dateParts.groups?.m || dateParts[ 2 ] ).toLowerCase();
+		let monthNumber: number = getMonthsGen().findIndex( ( month: string ) => (
+			month.toLowerCase() === monthString
+		) );
+		if ( monthNumber === -1 ) {
+			monthNumber = getMonths().findIndex( ( month: string ) => (
+				month.toLowerCase() === monthString
+			) );
+		}
 		isoDate = new Date( Date.UTC(
 			parseInt( dateParts.groups?.y || dateParts[ 3 ], 10 ),
-			getMonthsGen().findIndex( ( month: string ) => (
-				month.toLowerCase() === ( dateParts.groups?.m || dateParts[ 2 ] ).toLowerCase()
-			) ),
+			monthNumber,
 			parseInt( dateParts.groups?.d || dateParts[ 1 ], 10 )
 		) );
 		return {
