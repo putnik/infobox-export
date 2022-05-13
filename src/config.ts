@@ -451,10 +451,6 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 		await setProperty( propertyId, propertyData );
 		console.debug( `Property ${propertyId} loaded.` );
 	}
-
-	if ( unitIds.length ) {
-		await loadUnitsSparql( defaultUnitTypeIds, unitIds );
-	}
 }
 
 /**
