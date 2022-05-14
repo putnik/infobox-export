@@ -6,6 +6,11 @@ import { Property } from './types/main';
 
 let availableProperties: PropertyId[] | undefined;
 
+const propertyReplacements: { [key: PropertyId]: PropertyId } = {
+	P276: 'P131',
+	P6375: 'P669'
+};
+
 export async function preloadAvailableProperties( itemId: ItemId ): Promise<void> {
 	const sparql: string = `SELECT DISTINCT (SUBSTR(STR(?property), 32) as ?pid) {
 		?property rdf:type wikibase:Property.
@@ -49,7 +54,7 @@ export async function guessPropertyIdByLabel( $label: JQuery, itemId: ItemId ): 
 	for ( const propertyId of availableProperties ) {
 		const property: Property = await getProperty( propertyId );
 		if ( property.aliases && ( property.aliases.includes( label ) || property.aliases.includes( baseLabel ) ) ) {
-			propertyIds.push( propertyId as PropertyId );
+			propertyIds.push( propertyReplacements[ propertyId ] ? propertyReplacements[ propertyId ] : propertyId );
 		}
 	}
 	return propertyIds;
