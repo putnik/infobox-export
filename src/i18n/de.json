@@ -24,6 +24,5 @@
 	"no-value": "Kein Wert",
 	"unknown-value": "Unbekannter Wert",
 	"grigorian-calendar": "gregorianisch",
-	"julian-calendar": "julianisch",
-	"unit-sec": " sek."
+	"julian-calendar": "julianisch"
 }

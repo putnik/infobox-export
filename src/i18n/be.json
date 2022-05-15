@@ -22,6 +22,5 @@
 	"unknown-datatype": "Невядомы тып дадзеных ўласцівасці: $1",
 	"value-prefix": "Значэнне ",
 	"no-value": "адсутнічае",
-	"unknown-value": "невядома",
-	"unit-sec": " сек."
+	"unknown-value": "невядома"
 }

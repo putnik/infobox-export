@@ -1,7 +1,6 @@
 import { Context, KeyValue, Property } from '../types/main';
 import { getConfig, getOrLoadUnit, getOrLoadProperty, preloadUnits } from '../config';
 import { QuantityValue, TimeValue } from '../types/wikidata/values';
-import { getI18n } from '../i18n';
 import { randomEntityGuid, generateItemSnak } from '../wikidata';
 import { addQualifiers } from '../parser';
 import { DataValue } from '../types/wikidata/datavalues';
@@ -235,7 +234,7 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 			}
 		}
 
-		text = amount + getI18n( 'unit-sec' );
+		text = amount + getConfig( 'unit-sec' );
 	}
 
 	const property: Property | undefined = await getOrLoadProperty( context.propertyId );
