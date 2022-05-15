@@ -78,3 +78,7 @@ export interface ItemLabel {
 	label: string;
 	description: string;
 }
+
+export interface UnitsData {
+	[ key: ItemId ]: string[];
+}

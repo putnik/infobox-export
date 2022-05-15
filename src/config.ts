@@ -1,17 +1,18 @@
 import { getMonths, getMonthsGen } from './months';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
-import { Config, KeyValue, Property, Translations } from './types/main';
+import { Config, KeyValue, Property, Translations, UnitsData } from './types/main';
 import { ApiResponse, SparqlUnitBindings, SparqlUnitsResponse } from './types/api';
 import { sparqlRequest, wdApiRequest } from './api';
 import {
-	prepareUnitSearchString,
+	bulkInsertIndexedDB,
 	get,
+	getAliases,
 	getLabelValue,
+	prepareUnitSearchString,
+	queryIndexedDB,
 	set,
 	unique,
-	uppercaseFirst,
-	queryIndexedDB,
-	getAliases
+	uppercaseFirst
 } from './utils';
 import { ItemId, PropertyId } from './types/wikidata/types';
 import { Snak, Statement } from './types/wikidata/main';
@@ -143,8 +144,9 @@ export async function getProperty( propertyId: PropertyId ): Promise<Property | 
 	return await queryIndexedDB( propertiesStore, propertyId ) as ( Property | undefined );
 }
 
-export async function setProperty( propertyId: PropertyId, propertyData: Property ): Promise<void> {
-	await queryIndexedDB( propertiesStore, propertyId, propertyData );
+export async function setProperties( properties: Property[] ): Promise<void> {
+	await bulkInsertIndexedDB( propertiesStore, properties );
+	console.debug( `${properties.length} properties saved.` );
 }
 
 export async function getUnit( unitId: ItemId ): Promise<string[] | undefined> {
@@ -152,14 +154,19 @@ export async function getUnit( unitId: ItemId ): Promise<string[] | undefined> {
 	return result?.search as ( string[] | undefined );
 }
 
-export async function setUnit( unitId: ItemId, search: string[] ): Promise<void> {
-	await queryIndexedDB( unitsStore, unitId, { id: unitId, search } );
+export async function setUnits( units: UnitsData ): Promise<void> {
+	const data: any[] = Object.keys( units ).map( ( unitId: string ) => ( {
+		id: unitId,
+		search: units[ unitId as ItemId ]
+	} ) );
+	await bulkInsertIndexedDB( unitsStore, data );
+	console.debug( `${data.length} units saved.` );
 }
 
-async function loadUnit( unitId: ItemId, unitData: any ): Promise<void> {
+function prepareUnit( unitId: ItemId, unitData: any ): string[] {
 	let unit: string[] = config?.units?.[ unitId ] || [];
 	if ( unit.length ) {
-		return;
+		return [];
 	}
 
 	if ( getI18nConfig( `units.${unitId}` ) ) {
@@ -188,8 +195,7 @@ async function loadUnit( unitId: ItemId, unitData: any ): Promise<void> {
 		}
 	}
 
-	await setUnit( unitId, unique( unit ) );
-	console.debug( `Unit ${unitId} loaded.` );
+	return unit;
 }
 
 async function loadUnits( units: ItemId[] ): Promise<void> {
@@ -204,9 +210,11 @@ async function loadUnits( units: ItemId[] ): Promise<void> {
 			return;
 		}
 
+		const unitsData: { [ key: ItemId ]: string[] } = {};
 		for ( const unitId in unitData.entities ) {
-			await loadUnit( unitId as ItemId, unitData.entities[ unitId ] );
+			unitsData[ unitId as ItemId ] = prepareUnit( unitId as ItemId, unitData.entities[ unitId ] );
 		}
+		await setUnits( unitsData );
 	}
 }
 
@@ -226,6 +234,7 @@ async function loadUnitsSparql( typeIds: ItemId[], onlyUnitIds?: ItemId[] ): Pro
 		return [];
 	}
 	const unitIds: ItemId[] = [];
+	const unitsData: UnitsData = {};
 	for ( let i = 0; i < data.results.bindings.length; i++ ) {
 		const bindings: SparqlUnitBindings = data.results.bindings[ i ];
 		const unitId: ItemId = bindings.unit.value.replace( 'http://www.wikidata.org/entity/', '' ) as ItemId;
@@ -250,7 +259,7 @@ async function loadUnitsSparql( typeIds: ItemId[], onlyUnitIds?: ItemId[] ): Pro
 		}
 
 		unit = unique( unit.filter( ( x: string | undefined ) => x ) );
-		await setUnit( unitId, unit );
+		unitsData[ unitId ] = unit;
 		if ( unit.length ) {
 			unitIds.push( unitId );
 			console.debug( `Unit ${unitId} loaded.` );
@@ -258,6 +267,7 @@ async function loadUnitsSparql( typeIds: ItemId[], onlyUnitIds?: ItemId[] ): Pro
 			console.debug( `Unit ${unitId} has no search strings.` );
 		}
 	}
+	await setUnits( unitsData );
 
 	return unitIds;
 }
@@ -300,6 +310,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 		return;
 	}
 
+	const properties: Property[] = [];
 	for ( const key in data.entities ) {
 		if ( !data.entities.hasOwnProperty( key ) ) {
 			continue;
@@ -448,9 +459,9 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 		}
 
 		propertyData.units = unique( propertyData.units );
-		await setProperty( propertyId, propertyData );
-		console.debug( `Property ${propertyId} loaded.` );
+		properties.push( propertyData );
 	}
+	await setProperties( properties );
 }
 
 /**

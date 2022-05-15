@@ -96,7 +96,7 @@ export function prepareUnitSearchString( search: string | undefined ): string {
 	return search.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' );
 }
 
-export async function queryIndexedDB( storeName: string, id: ItemId | PropertyId, value?: any ): Promise<any | undefined> {
+export async function queryIndexedDB( storeName: string, id: ItemId | PropertyId ): Promise<undefined> {
 	if ( typeof id === 'undefined' ) {
 		console.debug( 'queryIndexedDB() with empty ID', storeName );
 		return undefined;
@@ -123,11 +123,49 @@ export async function queryIndexedDB( storeName: string, id: ItemId | PropertyId
 				const db: IDBDatabase = openRequest.result;
 				const transaction: IDBTransaction = db.transaction( [ storeName ], 'readwrite' );
 				const objectStore: IDBObjectStore = transaction.objectStore( storeName );
+				const objectRequest: IDBRequest | undefined = objectStore.get( id );
+
+				objectRequest.onerror = function () {
+					reject( Error( 'IDBObjectStore error: ' + objectRequest.error ) );
+				};
+
+				objectRequest.onsuccess = function () {
+					resolve( objectRequest.result );
+				};
+			};
+		}
+	);
+}
+
+export async function bulkInsertIndexedDB( storeName: string, data: any[] ): Promise<any | undefined> {
+	if ( !data.length ) {
+		return;
+	}
+	// eslint-disable-next-line
+	return new Promise(
+		function ( resolve, reject ) {
+			const openRequest: IDBOpenDBRequest = indexedDB.open( storeName, 2 );
+
+			openRequest.onerror = function () {
+				reject( Error( 'IndexedDB error: ' + openRequest.error ) );
+			};
+
+			openRequest.onupgradeneeded = function () {
+				const db: IDBDatabase = openRequest.result;
+				if ( db.objectStoreNames.contains( storeName ) ) {
+					db.deleteObjectStore( storeName );
+				}
+				// eslint-disable-next-line
+				const store: IDBObjectStore = db.createObjectStore( storeName, { keyPath: 'id' } );
+			};
+
+			openRequest.onsuccess = function () {
+				const db: IDBDatabase = openRequest.result;
+				const transaction: IDBTransaction = db.transaction( [ storeName ], 'readwrite' );
+				const objectStore: IDBObjectStore = transaction.objectStore( storeName );
 				let objectRequest: IDBRequest | undefined;
-				if ( value ) {
+				for ( const value of data ) {
 					objectRequest = objectStore.put( value );
-				} else {
-					objectRequest = objectStore.get( id );
 				}
 
 				objectRequest.onerror = function () {
