@@ -217,7 +217,7 @@ async function removeUnitString( text: string, unit: Unit ): Promise<string> {
 
 export async function prepareQuantity( context: Context ): Promise<Statement[]> {
 	const statements: Statement[] = [];
-	const thText: string = context.$wrapper.closest( 'tr' ).find( 'th' ).first().text().trim();
+	const thText: string = context.$wrapper.closest( 'tr' ).find( 'th, .infobox-export-label' ).first().text().trim();
 	let text: string = context.text
 		.replace( /[\u00a0\u25bc\u25b2]/g, ' ' )
 		.replace( /\s*\(([^)]*\))/g, '' )
