@@ -195,7 +195,7 @@ export async function init(): Promise<any> {
 		return;
 	}
 
-	$( '.infobox, table.toccolours, table.vcard, table.vevent, #mw-parser-output > table:first-child' ).addClass( 'infobox-export' );
+	$( '.infobox, .sinottico, table.toccolours, table.vcard, table.vevent, #mw-parser-output > table:first-child' ).addClass( 'infobox-export' );
 	let $fields = $( '.infobox-export:not(.vertical-navbox):not([data-from]) .no-wikidata' );
 	if ( !$fields.length ) {
 		$( '.infobox-export' ).find( 'tr > th + td, tr > td + td' ).each( function () {
