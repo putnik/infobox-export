@@ -25,7 +25,7 @@ export type SparqlResponse = {
 }
 
 export type SparqlUnitBindings = {
-	unit: SparqlBinding;
+	unitId: SparqlBinding;
 	unitLabel?: SparqlBinding;
 	unitAltLabel?: SparqlBinding;
 	code?: SparqlBinding;

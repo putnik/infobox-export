@@ -219,7 +219,7 @@ async function loadUnits( units: ItemId[] ): Promise<void> {
 }
 
 async function loadUnitsSparql( typeIds: ItemId[], onlyUnitIds?: ItemId[] ): Promise<ItemId[]> {
-	const sparql: string = `SELECT DISTINCT ?unit ?unitLabel ?unitAltLabel ?code WITH {
+	const sparql: string = `SELECT DISTINCT (SUBSTR(STR(?unit), 32) as ?unitId) ?unitLabel ?unitAltLabel ?code WITH {
 	SELECT DISTINCT ?unit {
 		${onlyUnitIds?.length ? `VALUES ?unit {wd:${onlyUnitIds.join( ' wd:' )}}.` : ''}
 		VALUES ?type {wd:${typeIds.join( ' wd:' )}}.
@@ -237,7 +237,7 @@ async function loadUnitsSparql( typeIds: ItemId[], onlyUnitIds?: ItemId[] ): Pro
 	const unitsData: UnitsData = {};
 	for ( let i = 0; i < data.results.bindings.length; i++ ) {
 		const bindings: SparqlUnitBindings = data.results.bindings[ i ];
-		const unitId: ItemId = bindings.unit.value.replace( 'http://www.wikidata.org/entity/', '' ) as ItemId;
+		const unitId: ItemId = bindings.unitId.value as ItemId;
 
 		let unit: string[] | undefined = await getUnit( unitId );
 		if ( typeof unit !== 'undefined' ) {
