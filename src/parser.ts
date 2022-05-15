@@ -212,7 +212,7 @@ export function prepareMonolingualText( context: Context ): Statement[] {
 	const mw = require( 'mw' );
 	const values: { [ key: string ]: MonolingualTextValue } = {};
 	const statements: Statement[] = [];
-	let $items: JQuery = context.$field.find( 'span[lang]' );
+	let $items: JQuery = context.$field.find( 'span[lang], i[lang]' );
 	$items.each( function () {
 		const $item: JQuery = $( this );
 		const language: string = $item.attr( 'lang' ).trim();
