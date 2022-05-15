@@ -196,20 +196,20 @@ export async function init(): Promise<any> {
 	}
 
 	$( '.infobox, table.toccolours, table.vcard, table.vevent, #mw-parser-output > table:first-child' ).addClass( 'infobox-export' );
-	$( '.infobox-export' ).find( 'tr > td + td' ).each( function () {
-		const $td: JQuery = $( this ).prev();
-		$td.replaceWith( $( '<th>' ).html( $td.html() ) );
-	} );
 	let $fields = $( '.infobox-export:not(.vertical-navbox):not([data-from]) .no-wikidata' );
 	if ( !$fields.length ) {
-		$fields = $( '.infobox-export:not(.vertical-navbox):not([data-from]) th + td' );
+		$( '.infobox-export' ).find( 'tr > th + td, tr > td + td' ).each( function () {
+			const $label: JQuery = $( this ).prev();
+			$label.addClass( 'infobox-export-label' );
+		} );
+		$fields = $( '.infobox-export:not(.vertical-navbox):not([data-from]) .infobox-export-label + td' );
 		await preloadAvailableProperties( itemId );
 	}
 	$fields.each( async function () {
 		const $field: JQuery = $( this );
 		const propertyId: PropertyId | undefined = $field.attr( 'data-wikidata-property-id' ) as ( PropertyId | undefined );
 		if ( typeof propertyId === 'undefined' ) {
-			const $label: JQuery = $field.parent().children( 'th' ).first();
+			const $label: JQuery = $field.parent().children( 'th, .infobox-export-label' ).first();
 			const guessedPropertyIds: PropertyId[] = await guessPropertyIdByLabel( $label, itemId );
 			let guessedProperties: Property[] = await Promise.all( guessedPropertyIds.map(
 				async ( propertyId: PropertyId ) => await getProperty( propertyId )
