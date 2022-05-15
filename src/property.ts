@@ -12,8 +12,21 @@ const propertyReplacements: { [key: PropertyId]: PropertyId } = {
 };
 
 export async function preloadAvailableProperties( itemId: ItemId ): Promise<void> {
+	const supportedTypes: string[] = [
+		'CommonsMedia',
+		'ExternalId',
+		'GlobeCoordinate',
+		'Monolingualtext',
+		'Quantity',
+		'String',
+		'Time',
+		'WikibaseItem',
+		'Url'
+	];
 	const sparql: string = `SELECT DISTINCT (SUBSTR(STR(?property), 32) as ?pid) {
 		?property rdf:type wikibase:Property.
+		VALUES ?supportedTypes {wikibase:${supportedTypes.join( ' wikibase:' )}}.
+		?property  wikibase:propertyType ?supportedTypes.
 		?property p:P2302 ?scopeConstraint.
 		?scopeConstraint ps:P2302 wd:Q53869507;
 			pq:P5314 wd:Q54828448.
