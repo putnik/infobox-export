@@ -7,13 +7,13 @@ import {
 	prepareMonolingualText
 } from './parser';
 import { getI18n } from './i18n';
-import { getOrLoadProperty, loadConfig, loadProperties, saveConfig, setConfig } from './config';
+import { getOrLoadProperty, getProperty, loadConfig, loadProperties, saveConfig, setConfig } from './config';
 import { showDialog } from './ui';
 import { loadMonths } from './months';
 import { ApiResponse, SparqlResponse } from './types/api';
 import { prepareQuantity } from './parser/quantity';
 import { Statement } from './types/wikidata/main';
-import { ItemId, PropertyId } from './types/wikidata/types';
+import { DataType, ItemId, PropertyId } from './types/wikidata/types';
 import { prepareTime } from './parser/time';
 import { Context, Property } from './types/main';
 import { parseItem } from './parser/item';
@@ -207,35 +207,47 @@ export async function init(): Promise<any> {
 	}
 	$fields.each( async function () {
 		const $field: JQuery = $( this );
-		let propertyId: PropertyId | undefined = $field.attr( 'data-wikidata-property-id' ) as ( PropertyId | undefined );
+		const propertyId: PropertyId | undefined = $field.attr( 'data-wikidata-property-id' ) as ( PropertyId | undefined );
 		if ( typeof propertyId === 'undefined' ) {
 			const $label: JQuery = $field.parent().children( 'th' ).first();
 			const guessedPropertyIds: PropertyId[] = await guessPropertyIdByLabel( $label, itemId );
-			if ( !guessedPropertyIds.length ) {
-				return;
-			}
+			let guessedProperties: Property[] = await Promise.all( guessedPropertyIds.map(
+				async ( propertyId: PropertyId ) => await getProperty( propertyId )
+			) );
 
-			// If at least one of these properties with same name already filled,
+			// If at least one of these properties with same name and datatype already filled,
 			// then we think that it is the correct one.
-			for ( let i = 0; i < guessedPropertyIds.length; i++ ) {
-				const guessedPropertyId: PropertyId = guessedPropertyIds[ i ];
-				if ( claims[ guessedPropertyId ] && claims[ guessedPropertyId ].length ) {
-					return;
+			const alreadyFilledDataTypes: DataType[] = [];
+			for ( const guessedProperty of guessedProperties ) {
+				if ( claims[ guessedProperty.id ] && claims[ guessedProperty.id ].length ) {
+					alreadyFilledDataTypes.push( guessedProperty.datatype );
 				}
 			}
 
-			propertyId = guessedPropertyIds[ 0 ];
-			$field.attr( 'data-wikidata-property-id', propertyId );
-			for ( let i = 1; i < guessedPropertyIds.length; i++ ) {
-				const alterPropertyId: PropertyId = guessedPropertyIds[ i ];
-				const canExport: boolean = await canExportValue( alterPropertyId, $field, claims[ alterPropertyId ] );
+			guessedProperties = guessedProperties.filter(
+				( property: Property ) => !alreadyFilledDataTypes.includes( property.datatype )
+			);
+			if ( !guessedProperties.length ) {
+				return;
+			}
+
+			for ( const guessedProperty of guessedProperties ) {
+				if ( alreadyFilledDataTypes.includes( guessedProperty.datatype ) ) {
+					continue;
+				}
+				const canExport: boolean = await canExportValue( guessedProperty.id, $field, claims[ guessedProperty.id ] );
 				if ( canExport ) {
+					if ( !$field.attr( 'data-wikidata-property-id' ) ) {
+						$field.attr( 'data-wikidata-property-id', guessedProperty.id );
+						continue;
+					}
+
 					const $wrapper: JQuery = $( '<span>' )
 						.addClass( 'no-wikidata' )
-						.attr( 'data-wikidata-property-id', alterPropertyId );
+						.attr( 'data-wikidata-property-id', guessedProperty.id );
 					$field.contents().wrapAll( $wrapper );
-					propertyIds.push( alterPropertyId );
-					if ( claims[ alterPropertyId ] && claims[ alterPropertyId ].length ) {
+					propertyIds.push( guessedProperty.id );
+					if ( claims[ guessedProperty.id ] && claims[ guessedProperty.id ].length ) {
 						$wrapper.addClass( 'partial-wikidata' );
 					}
 					$wrapper.on( 'dblclick', clickEvent );
