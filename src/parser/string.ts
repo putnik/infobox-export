@@ -49,7 +49,7 @@ export async function prepareString( context: Context ): Promise<Statement[]> {
 		const property: Property | undefined = await getProperty( context.propertyId );
 		if (
 			property?.constraints?.format &&
-			!s.match( new RegExp( '^' + property.constraints.format + '$' ) )
+			!s.match( new RegExp( '^(' + property.constraints.format + ')$' ) )
 		) {
 			continue;
 		}

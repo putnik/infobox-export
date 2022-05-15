@@ -1,4 +1,4 @@
-import { getOrLoadProperty } from './config';
+import { getOrLoadProperty, getProperty } from './config';
 import { checkForMissedLanguage, contentLanguage } from './languages';
 import { convertSnakToStatement } from './wikidata';
 import { sparqlRequest } from './api';
@@ -179,6 +179,14 @@ export async function prepareExternalId( context: Context ): Promise<Statement[]
 		externalId = externalId.slice( externalId.lastIndexOf( '/', externalId.length - 2 ) ).replace( /\//g, '' );
 	} else {
 		externalId = externalId.toString().replace( /^ID\s/, '' ).replace( /\s/g, '' );
+	}
+
+	const property: Property | undefined = await getProperty( context.propertyId );
+	if (
+		property?.constraints?.format &&
+		!externalId.match( new RegExp( '^(' + property.constraints.format + ')$' ) )
+	) {
+		return [];
 	}
 
 	const sparql = `SELECT ?item WHERE { ?item wdt:${context.propertyId} "${externalId}" } LIMIT 1`;
