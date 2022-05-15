@@ -1,6 +1,7 @@
 import { getMessages } from './api';
 import { contentLanguage } from './languages';
 import { KeyValue } from './types/main';
+import { getConfig, saveConfig, setConfig } from './config';
 
 let months: string[] = [
 	'january', 'february', 'march', 'april', 'may', 'june',
@@ -20,6 +21,15 @@ export function getMonthsGen(): string[] {
  * Load local month names from messages API
  */
 export async function loadMonths(): Promise<void> {
+	const monthConfig: string[] | undefined = getConfig( 'months' );
+	const monthConfigGen: string[] | undefined = getConfig( 'monthsGen' );
+
+	if ( monthConfig !== undefined && monthConfigGen !== undefined ) {
+		months = monthConfig;
+		monthsGen = monthConfigGen;
+		return;
+	}
+
 	const messageKeys: string[] = [];
 	for ( const month of months ) {
 		messageKeys.push( month === 'may' ? 'may long' : month );
@@ -32,6 +42,11 @@ export async function loadMonths(): Promise<void> {
 		monthLocal.push( messages[ month === 'may' ? 'may long' : month ] );
 		monthLocalGen.push( messages[ month + '-gen' ] );
 	}
+
 	months = monthLocal;
 	monthsGen = monthLocalGen;
+
+	setConfig( 'months', months );
+	setConfig( 'monthsGen', monthsGen );
+	saveConfig();
 }

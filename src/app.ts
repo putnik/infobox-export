@@ -7,7 +7,7 @@ import {
 	prepareMonolingualText
 } from './parser';
 import { getI18n } from './i18n';
-import { getOrLoadProperty, getProperty, loadConfig, loadProperties, saveConfig, setConfig } from './config';
+import { getConfig, getOrLoadProperty, getProperty, loadConfig, loadProperties, saveConfig, setConfig } from './config';
 import { showDialog } from './ui';
 import { loadMonths } from './months';
 import { ApiResponse, SparqlResponse } from './types/api';
@@ -121,6 +121,10 @@ async function clickEvent(): Promise<void> {
 }
 
 async function loadDefaultReference(): Promise<void> {
+	if ( getConfig( 'references' ) !== undefined ) {
+		return;
+	}
+
 	const sparql: string = `SELECT ?wiki WHERE { ?wiki wdt:P31/wdt:P279* wd:Q33120876 . ?wiki wdt:P856 ?site . FILTER REGEX(STR(?site), "https://${location.host}/") }`;
 	const data: SparqlResponse = await sparqlRequest( sparql );
 	if ( !data?.results?.bindings?.length ) {
