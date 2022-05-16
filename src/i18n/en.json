@@ -23,7 +23,7 @@
 	"value-prefix": "",
 	"no-value": "No value",
 	"unknown-value": "Unknown value",
-	"grigorian-calendar": "Grigorian",
+	"grigorian-calendar": "Gregorian",
 	"julian-calendar": "Julian",
 	"export-all": "Export all values to Wikidata"
 }
