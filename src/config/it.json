@@ -1,3 +1,5 @@
 {
-	"re-text-date": ["(?<d>\\d{1,2})º\\s+(?<m>%months%|%months-gen%)\\s+(?<y>[12]\\d{3})\\.?$", "i"]
+	"re-dates": [
+		{"re": "(?<d>\\d{1,2})º\\s+(?<mm>%months%|%months-gen%)\\s+(?<y>[12]\\d{3})\\.?$", "flags": "i"}
+	]
 }

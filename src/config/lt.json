@@ -2,7 +2,9 @@
 	"re-circa": "(?:~|≈|[Aa]pie)",
 	"re-century": "^([IVXivx]{1,5})\\s*(?:amžius)?$",
 	"re-month-dot-year": "^(\\d{1,2})\\.(\\d{3,4})(?:\\s*m\\.)?$",
-	"re-text-date": ["(?<y>\\d{2,4})\\s*m\\.\\s+(?<m>%months%)\\s+(?<d>\\d{1,2})\\s*d\\.", "i"],
+	"re-dates": [
+		{"re": "(?<y>\\d{2,4})\\s*m\\.\\s+(?<mm>%months%)\\s+(?<d>\\d{1,2})\\s*d\\.", "flags": "i"}
+	],
 	"re-dot-date": "^(\\d{1,2})\\.(\\d{1,2})\\.(\\d{2,4})(?:\\s*m\\.?)?$",
 	"re-decade": "(\\d{3,4})-as",
 	"re-year-postfix": "\\s+(m\\.?)$",

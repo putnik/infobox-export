@@ -42,6 +42,7 @@ const i18nConfig: Translations = {
 	en: require( './config/en.json' ),
 	hy: require( './config/hy.json' ),
 	it: require( './config/it.json' ),
+	ko: require( './config/ko.json' ),
 	lt: require( './config/lt.json' ),
 	mul: require( './config/mul.json' ),
 	ru: require( './config/ru.json' ),
@@ -53,6 +54,20 @@ const defaultUnitTypeIds: ItemId[] = [ 'Q47574', 'Q29479187' ];
 const propertiesStore: string = 'infoboxExportProperties';
 const unitsStore: string = 'infoboxExportUnits';
 const localStorageKey: string = 'infoboxExportConfig';
+
+function getRegex( result: string | { re: string, flags: string } ): RegExp {
+	if ( result === '' ) {
+		result = '^@{999}$'; // impossible regexp
+	}
+	let flags: string = '';
+	if ( typeof result !== 'string' ) {
+		flags = result.flags;
+		result = result.re;
+	}
+	result = result.replace( '%months%', getMonths().join( '|' ) );
+	result = result.replace( '%months-gen%', getMonthsGen().join( '|' ) );
+	return new RegExp( result, flags );
+}
 
 function getI18nConfig( path: string ): any {
 	let result: any;
@@ -68,17 +83,11 @@ function getI18nConfig( path: string ): any {
 	}
 
 	if ( path.match( /^re-/ ) ) {
-		if ( result === '' ) {
-			result = '^@{999}$'; // impossible regexp
-		}
-		let flags: string = '';
 		if ( Array.isArray( result ) ) {
-			flags = result[ 1 ];
-			result = result[ 0 ];
+			result = result.map( ( item: string | { re: string, flags: string } ) => getRegex( item ) );
+		} else {
+			result = getRegex( result );
 		}
-		result = result.replace( '%months%', getMonths().join( '|' ) );
-		result = result.replace( '%months-gen%', getMonthsGen().join( '|' ) );
-		return new RegExp( result, flags );
 	}
 
 	return result;

@@ -51,29 +51,6 @@ export function guessDateAndPrecision( timestamp: string ): TimeGuess {
 		};
 	}
 
-	dateParts = timestamp.match( getConfig( 're-text-date' ) );
-	if ( dateParts ) {
-		const monthString: string = ( dateParts.groups?.m || dateParts[ 2 ] ).toLowerCase();
-		let monthNumber: number = getMonthsGen().findIndex( ( month: string ) => (
-			month.toLowerCase() === monthString
-		) );
-		if ( monthNumber === -1 ) {
-			monthNumber = getMonths().findIndex( ( month: string ) => (
-				month.toLowerCase() === monthString
-			) );
-		}
-		isoDate = new Date( Date.UTC(
-			parseInt( dateParts.groups?.y || dateParts[ 3 ], 10 ),
-			monthNumber,
-			parseInt( dateParts.groups?.d || dateParts[ 1 ], 10 )
-		) );
-		return {
-			type: 'value',
-			isoDate: isoDate,
-			precision: 11
-		};
-	}
-
 	dateParts = timestamp.match( getConfig( 're-dot-date' ) );
 	if ( dateParts ) {
 		isoDate = new Date( Date.UTC(
@@ -98,6 +75,41 @@ export function guessDateAndPrecision( timestamp: string ): TimeGuess {
 				parseInt( dateParts[ 1 ], 10 ),
 			parseInt( dateParts[ 2 ], 10 ) - 1,
 			parseInt( dateParts[ 3 ], 10 )
+		) );
+		return {
+			type: 'value',
+			isoDate: isoDate,
+			precision: 11
+		};
+	}
+
+	const dateRegExps: RegExp[] = getConfig( 're-dates' );
+	for ( const dateRegExp of dateRegExps ) {
+		dateParts = timestamp.match( dateRegExp );
+		if ( !dateParts ) {
+			continue;
+		}
+		let monthNumber: number;
+		if ( dateParts.groups.m !== undefined ) {
+			monthNumber = parseInt( dateParts.groups.m, 10 ) - 1;
+		} else if ( dateParts.groups.mm !== undefined ) {
+			const monthString: string = dateParts.groups.mm.toLowerCase();
+			monthNumber = getMonthsGen().findIndex( ( month: string ) => (
+				month.toLowerCase() === monthString
+			) );
+			if ( monthNumber === -1 ) {
+				monthNumber = getMonths().findIndex( ( month: string ) => (
+					month.toLowerCase() === monthString
+				) );
+			}
+			if ( monthNumber === -1 ) {
+				continue;
+			}
+		}
+		isoDate = new Date( Date.UTC(
+			parseInt( dateParts.groups.y, 10 ),
+			monthNumber,
+			parseInt( dateParts.groups.d, 10 )
 		) );
 		return {
 			type: 'value',

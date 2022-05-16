@@ -1,7 +1,9 @@
 {
 	"re-circa": "(?:~|≈|təq\\.|təqribən|təx\\.|təxminən)",
 	"re-century": "^([IVXivx]{1,5})\\s*(əsr?|ə\\.)?$",
-	"re-text-date": "(\\d{1,2})\\s+(%months-gen%)[,\\s]+([12]\\d{3})\\.?$",
+	"re-dates": [
+		"(?<d>\\d{1,2})\\s+(?<mm>%months-gen%)[,\\s]+(?<y>[12]\\d{3})\\.?$"
+	],
 	"re-decade": "(\\d{3,4})-[lər]",
 	"re-since-year": "(\\d{4})",
 	"re-bce": "b\\.\\e\\.\\ə\\.?\\s*$",
