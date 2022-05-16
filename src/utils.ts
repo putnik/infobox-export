@@ -55,8 +55,7 @@ export function set( object: object, path: string, value: any ): void {
 
 export function getLabelValue( labels: KeyValue, languages: string[], defaultValue?: string ): string {
 	languages.push( 'en' );
-	for ( const i in languages ) {
-		const language: string = languages[ i ];
+	for ( const language of languages ) {
 		if ( labels[ language ] ) {
 			return labels[ language ].value;
 		}

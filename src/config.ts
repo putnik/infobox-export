@@ -317,6 +317,10 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 		}
 		const propertyId: PropertyId = key as PropertyId;
 		const entity: KeyValue = data.entities[ propertyId ];
+		if ( entity.labels === undefined ) {
+			console.debug( `Is property ${propertyId} deleted?` );
+			continue;
+		}
 		const label: string = getLabelValue( entity.labels, [ userLanguage, contentLanguage ], propertyId );
 		const aliases: string[] = getAliases( entity.labels, entity.aliases, contentLanguage );
 		const propertyData: Property = {
