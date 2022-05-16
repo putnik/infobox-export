@@ -18,7 +18,7 @@ const START_PROPERTY: PropertyId = 'P580';
 const END_PROPERTY: PropertyId = 'P582';
 const MOMENT_PROPERTY: PropertyId = 'P585';
 
-function getTimeSnaks( text: string ): SnaksObject {
+function getTimeSnaks( text: string, propertyId: PropertyId ): SnaksObject {
 	const snaks: SnaksObject = {};
 
 	const fakeContext: Context = {
@@ -44,8 +44,8 @@ function getTimeSnaks( text: string ): SnaksObject {
 		snaks[ START_PROPERTY ] = [ snakStart ];
 		snaks[ END_PROPERTY ] = [ snakEnd ];
 	} else if ( snakStart ) {
-		snakStart.property = MOMENT_PROPERTY;
-		snaks[ MOMENT_PROPERTY ] = [ snakStart ];
+		snakStart.property = propertyId === 'P69' ? END_PROPERTY : MOMENT_PROPERTY;
+		snaks[ snakStart.property ] = [ snakStart ];
 	}
 
 	return snaks;
@@ -143,7 +143,7 @@ export async function parseItem( context: Context ): Promise<Statement[]> {
 					label: uppercaseFirst( extractedUrl ),
 					language: contentLanguage,
 					project: getConfig( 'project' ),
-					qualifiers: getTimeSnaks( timeString )
+					qualifiers: getTimeSnaks( timeString, context.propertyId )
 				};
 
 				if ( $link.hasClass( 'extiw' ) ) {
@@ -177,7 +177,7 @@ export async function parseItem( context: Context ): Promise<Statement[]> {
 					label: uppercaseFirst( articleTitle ),
 					language: contentLanguage,
 					project: getConfig( 'project' ),
-					qualifiers: getTimeSnaks( timeString )
+					qualifiers: getTimeSnaks( timeString, context.propertyId )
 				};
 				titles.push( title );
 			}

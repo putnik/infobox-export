@@ -46,7 +46,9 @@ export function addQualifierValue(
 }
 
 export async function addPointInTimeQualifier( $field: JQuery, statement: Statement ): Promise<Statement> {
-	if ( statement.qualifiers?.P585 ) {
+	const qualifierId: PropertyId = statement.mainsnak.property === 'P69' ? 'P582' : 'P585';
+
+	if ( statement.qualifiers?.[ qualifierId ] ) {
 		return statement;
 	}
 
@@ -54,7 +56,7 @@ export async function addPointInTimeQualifier( $field: JQuery, statement: Statem
 	const pointInTimeRegex: RegExp = /\(([^()]+)\)/g;
 	while ( ( matches = pointInTimeRegex.exec( $field.text() ) ) ) {
 		const fakeContext: Context = {
-			propertyId: 'P585',
+			propertyId: qualifierId,
 			text: matches[ 1 ].trim(),
 			$field: $( '<span>' ),
 			$wrapper: $( '<span>' )
@@ -69,7 +71,7 @@ export async function addPointInTimeQualifier( $field: JQuery, statement: Statem
 		}
 
 		const qualifierValue: TimeValue = ( qualifierStatements[ 0 ].mainsnak.datavalue.value ) as TimeValue;
-		statement = addQualifierValue( statement, 'P585', 'time', qualifierValue );
+		statement = addQualifierValue( statement, qualifierId, 'time', qualifierValue );
 		break;
 	}
 
