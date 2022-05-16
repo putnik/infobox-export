@@ -171,9 +171,20 @@ export async function init(): Promise<any> {
 		return;
 	}
 
-	loadConfig();
-	await loadDefaultReference();
-	await loadMonths();
+	const preloaderCss = require( './assets/preloader.css' ).toString();
+	mw.util.addCSS( preloaderCss );
+
+	const $infobox: JQuery = $( '.infobox, .sinottico, table.toccolours, table.vcard, table.vevent, #mw-parser-output > table:first-child' );
+	$infobox.addClass( 'infobox-export' );
+
+	const $mainHeader: JQuery = $infobox.find( 'caption, th[colspan], td[colspan]' ).eq( 0 );
+	$mainHeader.addClass( 'infobox-export-preloader' );
+	const mainHeaderRowBackground: string | undefined = $mainHeader.parent( 'tr' ).css( 'background-color' );
+	if ( $mainHeader.css( 'background-color' ) === 'rgba(0, 0, 0, 0)' &&
+		( mainHeaderRowBackground === undefined || mainHeaderRowBackground === 'rgba(0, 0, 0, 0)' )
+	) {
+		$mainHeader.addClass( 'infobox-export-preloader-dark' );
+	}
 
 	// Item data request
 	const data: ApiResponse = await wdApiRequest( {
@@ -182,12 +193,14 @@ export async function init(): Promise<any> {
 		ids: mw.config.get( 'wgWikibaseItemId' )
 	} );
 	if ( !data.success ) {
+		$mainHeader.removeClass( 'infobox-export-preloader' );
 		return;
 	}
 	let claims: { [ key: string ]: Statement[] };
 	for ( const i in data.entities ) {
 		// @ts-ignore
 		if ( i == -1 ) {
+			$mainHeader.removeClass( 'infobox-export-preloader' );
 			return;
 		}
 
@@ -196,10 +209,14 @@ export async function init(): Promise<any> {
 		break;
 	}
 	if ( !claims ) {
+		$mainHeader.removeClass( 'infobox-export-preloader' );
 		return;
 	}
 
-	$( '.infobox, .sinottico, table.toccolours, table.vcard, table.vevent, #mw-parser-output > table:first-child' ).addClass( 'infobox-export' );
+	loadConfig();
+	await loadDefaultReference();
+	await loadMonths();
+
 	let $fields = $( '.infobox-export:not(.vertical-navbox):not([data-from]) .no-wikidata' );
 	if ( !$fields.length ) {
 		$( '.infobox-export' ).find( 'tr > th + td, tr > td + td' ).each( function () {
@@ -277,9 +294,11 @@ export async function init(): Promise<any> {
 			propertyIds.push( $( this ).data( 'wikidata-qualifier-id' ) );
 		} );
 	} );
-	const css = require( './assets/init.css' ).toString();
-	mw.util.addCSS( css );
+	const mainCss = require( './assets/main.css' ).toString();
+	mw.util.addCSS( mainCss );
 
 	// TODO: Do not load properties until the window is opened for the first time
 	await loadProperties( propertyIds );
+
+	$mainHeader.removeClass( 'infobox-export-preloader' );
 }

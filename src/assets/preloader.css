@@ -1,0 +1,22 @@
+@keyframes infobox-export-loader {
+    from {
+        background-position-x: -22px;
+    }
+    to {
+        background-position-x: 0;
+    }
+}
+
+.infobox-export-preloader {
+    /*background-color: #f8f9fa;*/
+    /*outline: 1px solid #c8ccd1;*/
+    /*border-radius: 2px;*/
+    background-size: 200% 100% !important;
+    background-image: repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255, 255, 255, 0.25) 8px, rgba(255, 255, 255, 0.25) 16px ) !important;
+    animation: infobox-export-loader 1s linear infinite !important;
+}
+
+.infobox-export-preloader.infobox-export-preloader-dark {
+    background-image: repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(200, 204, 209, 0.25) 8px, rgba(200, 204, 209, 0.25) 16px ) !important;
+}
+
