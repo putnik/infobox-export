@@ -226,7 +226,8 @@ export async function init(): Promise<any> {
 		$fields = $( '.infobox-export:not(.vertical-navbox):not([data-from]) .infobox-export-label + td' );
 		await preloadAvailableProperties( itemId );
 	}
-	$fields.each( async function () {
+	// eslint-disable-next-line compat/compat
+	await Promise.all( $fields.map( async function () {
 		const $field: JQuery = $( this );
 		const propertyId: PropertyId | undefined = $field.attr( 'data-wikidata-property-id' ) as ( PropertyId | undefined );
 		if ( typeof propertyId === 'undefined' ) {
@@ -293,7 +294,7 @@ export async function init(): Promise<any> {
 		$fieldQualifiers.each( function () {
 			propertyIds.push( $( this ).data( 'wikidata-qualifier-id' ) );
 		} );
-	} );
+	} ) );
 	const mainCss = require( './assets/main.css' ).toString();
 	mw.util.addCSS( mainCss );
 
