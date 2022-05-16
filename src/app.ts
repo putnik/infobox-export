@@ -174,7 +174,7 @@ export async function init(): Promise<any> {
 	const preloaderCss = require( './assets/preloader.css' ).toString();
 	mw.util.addCSS( preloaderCss );
 
-	const $infobox: JQuery = $( '.infobox, .sinottico, table.toccolours, table.vcard, table.vevent, #mw-parser-output > table:first-child' );
+	const $infobox: JQuery = $( '.infobox, .sinottico, table.toccolours, table.vcard, table.vevent, .mw-parser-output > table:first-child' );
 	$infobox.addClass( 'infobox-export' );
 
 	const $mainHeader: JQuery = $infobox.find( 'caption, th[colspan], td[colspan], .entete' ).eq( 0 );
