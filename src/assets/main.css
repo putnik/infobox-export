@@ -1,9 +1,12 @@
 .infobox-export:not(.vertical-navbox, .ve-ce-leafNode):not([data-from]) .no-wikidata {
-    display: block !important;
     background-color: #fee7e6;
     border: 1px solid #f6bab9;
     border-radius: 2px;
     padding: 3px 6px;
+}
+
+.infobox-export:not(.vertical-navbox, .ve-ce-leafNode):not([data-from]) span.no-wikidata {
+    display: block !important;
 }
 
 .infobox-export:not(.vertical-navbox, .ve-ce-leafNode):not([data-from]) .no-wikidata.partial-wikidata {
