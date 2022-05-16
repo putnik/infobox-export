@@ -41,6 +41,7 @@ const i18nConfig: Translations = {
 	de: require( './config/de.json' ),
 	en: require( './config/en.json' ),
 	hy: require( './config/hy.json' ),
+	it: require( './config/it.json' ),
 	lt: require( './config/lt.json' ),
 	ru: require( './config/ru.json' ),
 	tg: require( './config/tg.json' ),
