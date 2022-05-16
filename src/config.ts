@@ -43,6 +43,7 @@ const i18nConfig: Translations = {
 	hy: require( './config/hy.json' ),
 	it: require( './config/it.json' ),
 	lt: require( './config/lt.json' ),
+	mul: require( './config/mul.json' ),
 	ru: require( './config/ru.json' ),
 	tg: require( './config/tg.json' ),
 	tr: require( './config/tr.json' )
@@ -59,7 +60,7 @@ function getI18nConfig( path: string ): any {
 		result = get( i18nConfig[ contentLanguage ], path );
 	}
 	if ( result === undefined ) {
-		result = get( i18nConfig.en, path );
+		result = get( i18nConfig.mul, path );
 	}
 	if ( result === undefined ) {
 		console.debug( 'Config missed for "' + path + '"' );
