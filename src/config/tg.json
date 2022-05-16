@@ -3,7 +3,5 @@
 	"re-unknown": "^(?:\\?|номаълум)$",
 	"mark-checked": "Тафтишшуда",
 	"mark-archived": "Бойгонишуда",
-	"unit-sec": " сония",
-	"units": {},
-	"fixed-values": []
+	"unit-sec": " сония"
 }
