@@ -121,7 +121,7 @@ async function clickEvent(): Promise<void> {
 }
 
 async function loadDefaultReference(): Promise<void> {
-	if ( getConfig( 'references' ) !== undefined ) {
+	if ( getConfig( 'references.P143' ) !== undefined && getConfig( 'references.P4656' ) !== undefined ) {
 		return;
 	}
 
