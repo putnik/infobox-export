@@ -177,7 +177,7 @@ export async function init(): Promise<any> {
 	const $infobox: JQuery = $( '.infobox, .sinottico, table.toccolours, table.vcard, table.vevent, #mw-parser-output > table:first-child' );
 	$infobox.addClass( 'infobox-export' );
 
-	const $mainHeader: JQuery = $infobox.find( 'caption, th[colspan], td[colspan]' ).eq( 0 );
+	const $mainHeader: JQuery = $infobox.find( 'caption, th[colspan], td[colspan], .entete' ).eq( 0 );
 	$mainHeader.addClass( 'infobox-export-preloader' );
 	const mainHeaderRowBackground: string | undefined = $mainHeader.parent( 'tr' ).css( 'background-color' );
 	if ( $mainHeader.css( 'background-color' ) === 'rgba(0, 0, 0, 0)' &&
