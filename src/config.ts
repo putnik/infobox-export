@@ -17,7 +17,7 @@ import {
 import { ItemId, PropertyId } from './types/wikidata/types';
 import { Snak, Statement } from './types/wikidata/main';
 import { ItemDataValue, PropertyDataValue, StringDataValue } from './types/wikidata/datavalues';
-import { ItemValue } from './types/wikidata/values';
+import { ItemValue, PropertyValue } from './types/wikidata/values';
 
 const mw = require( 'mw' );
 declare let __VERSION__: string;
@@ -341,6 +341,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 			aliases: aliases,
 			constraints: {
 				integer: false,
+				noneOfTypes: {},
 				noneOfValues: {},
 				oneOfValues: [],
 				unique: false,
@@ -416,6 +417,21 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 						}
 						break;
 
+					case 'Q21502838': // None-of types constraint
+						const propertyId: PropertyId | undefined = ( constraint.qualifiers?.P2306?.[ 0 ]?.datavalue?.value as PropertyValue | undefined )?.id;
+						if ( propertyId !== 'P31' ) {
+							break;
+						}
+						const typeReplacementId: PropertyId | null = ( constraint.qualifiers?.P6824?.[ 0 ]?.datavalue?.value as PropertyValue | undefined )?.id || null;
+						qualifiers = constraint.qualifiers?.P2305 || [];
+						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
+							const qualifierId: ItemId | undefined = ( qualifiers[ idx ]?.datavalue as ItemDataValue | undefined )?.value?.id;
+							if ( qualifierId ) {
+								propertyData.constraints.noneOfTypes[ qualifierId ] = typeReplacementId;
+							}
+						}
+						break;
+
 					case 'Q21510859': // One-of constraint
 						qualifiers = constraint.qualifiers?.P2305 || [];
 						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
@@ -436,13 +452,13 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 						}
 						break;
 
-					case 'Q52558054': // None-of constraint
-						const replacementId: ItemId | undefined = ( constraint.qualifiers?.P9729?.[ 0 ]?.datavalue?.value as ItemValue | undefined )?.id;
+					case 'Q52558054': // None-of values constraint
+						const valueReplacementId: ItemId | undefined = ( constraint.qualifiers?.P9729?.[ 0 ]?.datavalue?.value as ItemValue | undefined )?.id;
 						qualifiers = constraint.qualifiers?.P2305 || [];
 						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
 							const qualifierId: ItemId | undefined = ( qualifiers[ idx ]?.datavalue as ItemDataValue | undefined )?.value?.id;
 							if ( qualifierId ) {
-								propertyData.constraints.noneOfValues[ qualifierId ] = replacementId;
+								propertyData.constraints.noneOfValues[ qualifierId ] = valueReplacementId;
 							}
 						}
 						break;

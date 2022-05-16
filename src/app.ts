@@ -236,7 +236,7 @@ export async function init(): Promise<any> {
 		const propertyId: PropertyId | undefined = $field.attr( 'data-wikidata-property-id' ) as ( PropertyId | undefined );
 		if ( typeof propertyId === 'undefined' ) {
 			const $label: JQuery = $field.parent().children( 'th, .infobox-export-label' ).first();
-			const guessedPropertyIds: PropertyId[] = await guessPropertyIdByLabel( $label, itemId );
+			const guessedPropertyIds: PropertyId[] = await guessPropertyIdByLabel( $label, itemId, claims );
 			let guessedProperties: Property[] = await Promise.all( guessedPropertyIds.map(
 				async ( propertyId: PropertyId ) => await getProperty( propertyId )
 			) );

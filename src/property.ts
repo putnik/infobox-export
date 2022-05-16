@@ -3,6 +3,8 @@ import { SparqlBindings, SparqlResponse } from './types/api';
 import { sparqlRequest } from './api';
 import { getProperty, loadProperties } from './config';
 import { Property } from './types/main';
+import { ClaimsObject, Statement } from './types/wikidata/main';
+import { ItemValue } from './types/wikidata/values';
 
 let availableProperties: PropertyId[] | undefined;
 
@@ -56,7 +58,7 @@ export async function preloadAvailableProperties( itemId: ItemId ): Promise<void
 	await loadProperties( availableProperties );
 }
 
-export async function guessPropertyIdByLabel( $label: JQuery, itemId: ItemId ): Promise<PropertyId[]> {
+export async function guessPropertyIdByLabel( $label: JQuery, itemId: ItemId, claims: ClaimsObject ): Promise<PropertyId[]> {
 	if ( typeof availableProperties === 'undefined' ) {
 		await preloadAvailableProperties( itemId );
 	}
@@ -66,9 +68,32 @@ export async function guessPropertyIdByLabel( $label: JQuery, itemId: ItemId ): 
 
 	for ( const propertyId of availableProperties ) {
 		const property: Property = await getProperty( propertyId );
-		if ( property.aliases && ( property.aliases.includes( label ) || property.aliases.includes( baseLabel ) ) ) {
-			propertyIds.push( propertyReplacements[ propertyId ] ? propertyReplacements[ propertyId ] : propertyId );
+		if ( !property.aliases || !( property.aliases.includes( label ) || property.aliases.includes( baseLabel ) ) ) {
+			continue;
 		}
+
+		// Property replacements
+		if ( claims.P31?.length ) {
+			const typeIds: ItemId[] = claims.P31.map(
+				( statement: Statement ) => ( statement.mainsnak.datavalue?.value as ItemValue | undefined )?.id
+			).filter( ( itemId: ItemId ) => itemId );
+			const replacementIds: ( PropertyId | null )[] = typeIds.map(
+				( typeId: ItemId ) => property.constraints.noneOfTypes?.[ typeId ]
+			).filter( ( replacementIds: PropertyId ) => replacementIds !== undefined );
+			if ( replacementIds.length ) {
+				const replacementId: PropertyId = replacementIds.pop();
+				if ( replacementId ) {
+					propertyIds.push( replacementId );
+				}
+				continue;
+			}
+		}
+		if ( propertyReplacements[ propertyId ] ) {
+			propertyIds.push( propertyReplacements[ propertyId ] );
+			continue;
+		}
+
+		propertyIds.push( propertyId );
 	}
 	return propertyIds;
 }

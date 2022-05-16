@@ -44,6 +44,9 @@ export interface Context {
 export interface Constraints {
 	format?: string;
 	integer: boolean;
+	noneOfTypes: {
+		[ key: ItemId ]: PropertyId | null;
+	};
 	noneOfValues: {
 		[ key: ItemId ]: ItemId | null;
 	};
