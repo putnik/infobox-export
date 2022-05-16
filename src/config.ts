@@ -374,7 +374,8 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 						propertyData.constraints.unique = true;
 						break;
 
-					case 'Q21510856': // Required
+					case 'Q21510851': // Allowed qualifiers
+					case 'Q21510856': // Required qualifiers
 						qualifiers = constraint.qualifiers?.P2306 || [];
 						for ( let idx = 0; idx < qualifiers.length; idx++ ) {
 							const qualifierId: PropertyId | undefined = ( qualifiers[ idx ]?.datavalue as PropertyDataValue | undefined )?.value?.id;
