@@ -229,6 +229,10 @@ export async function init(): Promise<any> {
 	// eslint-disable-next-line compat/compat
 	await Promise.all( $fields.map( async function () {
 		const $field: JQuery = $( this );
+		if ( /^[\s\u200B-\u200D\uFEFF]*$/.test( $field.text() ) ) {
+			return;
+		}
+
 		const propertyId: PropertyId | undefined = $field.attr( 'data-wikidata-property-id' ) as ( PropertyId | undefined );
 		if ( typeof propertyId === 'undefined' ) {
 			const $label: JQuery = $field.parent().children( 'th, .infobox-export-label' ).first();
