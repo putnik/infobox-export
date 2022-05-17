@@ -222,6 +222,11 @@ export async function init(): Promise<any> {
 
 	let $fields = $( '.infobox-export:not(.vertical-navbox):not([data-from]) .no-wikidata' );
 	if ( !$fields.length ) {
+		if ( $( '.infobox-export [data-wikidata-property-id]' ).length ) {
+			$mainHeader.removeClass( 'infobox-export-preloader' );
+			return;
+		}
+
 		$( '.infobox-export' ).find( 'tr > th + td, tr > td + td' ).each( function () {
 			const $label: JQuery = $( this ).prev();
 			$label.addClass( 'infobox-export-label' );
