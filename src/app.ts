@@ -1,5 +1,5 @@
 import { sparqlRequest, wdApiRequest } from './api';
-import { setBaseRevId } from './wikidata';
+import { getItemPropertyValues, setBaseRevId } from './wikidata';
 import {
 	canExportValue,
 	prepareCommonsMedia,
@@ -25,7 +25,10 @@ import { guessPropertyIdByLabel, preloadAvailableProperties } from './property';
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
 
-const propertyIds: PropertyId[] = [ 'P2076', 'P2077' ]; // Temperature and pressure for qualifiers
+const propertyIds: Set<PropertyId> = new Set();
+// Temperature and pressure for qualifiers
+propertyIds.add( 'P2076' );
+propertyIds.add( 'P2077' );
 
 /**
  * Parsing values from parameters before displaying a dialog
@@ -224,7 +227,8 @@ export async function init(): Promise<any> {
 			$label.addClass( 'infobox-export-label' );
 		} );
 		$fields = $( '.infobox-export:not(.vertical-navbox):not([data-from]) .infobox-export-label + td' );
-		await preloadAvailableProperties( itemId );
+		const typeIds: ItemId[] = getItemPropertyValues( claims, 'P31' );
+		await preloadAvailableProperties( typeIds );
 	}
 	// eslint-disable-next-line compat/compat
 	await Promise.all( $fields.map( async function () {
@@ -272,7 +276,7 @@ export async function init(): Promise<any> {
 						.addClass( 'no-wikidata' )
 						.attr( 'data-wikidata-property-id', guessedProperty.id );
 					$field.contents().wrapAll( $wrapper );
-					propertyIds.push( guessedProperty.id );
+					propertyIds.add( guessedProperty.id );
 					if ( claims[ guessedProperty.id ] && claims[ guessedProperty.id ].length ) {
 						$wrapper.addClass( 'partial-wikidata' );
 					}
@@ -284,7 +288,7 @@ export async function init(): Promise<any> {
 		$field
 			.removeClass( 'no-wikidata' )
 			.off( 'dblclick' );
-		propertyIds.push( propertyId );
+		propertyIds.add( propertyId );
 		const canExport: boolean = await canExportValue( propertyId, $field, claims[ propertyId ] );
 		if ( canExport ) {
 			$field.addClass( 'no-wikidata' );
@@ -296,7 +300,7 @@ export async function init(): Promise<any> {
 
 		const $fieldQualifiers = $field.closest( 'tr' ).find( '[data-wikidata-qualifier-id]' );
 		$fieldQualifiers.each( function () {
-			propertyIds.push( $( this ).data( 'wikidata-qualifier-id' ) );
+			propertyIds.add( $( this ).data( 'wikidata-qualifier-id' ) );
 		} );
 	} ) );
 	const mainCss = require( './assets/main.css' ).toString();

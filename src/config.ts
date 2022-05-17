@@ -1,6 +1,6 @@
 import { getMonths, getMonthsGen } from './months';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
-import { Config, KeyValue, Property, Translations, UnitsData } from './types/main';
+import { Config, KeyValue, Property, Translations, Type, UnitsData } from './types/main';
 import { ApiResponse, SparqlUnitBindings, SparqlUnitsResponse } from './types/api';
 import { sparqlRequest, wdApiRequest } from './api';
 import {
@@ -52,6 +52,7 @@ const i18nConfig: Translations = {
 
 const defaultUnitTypeIds: ItemId[] = [ 'Q47574', 'Q29479187' ];
 const propertiesStore: string = 'infoboxExportProperties';
+const typesStore: string = 'infoboxExportTypes';
 const unitsStore: string = 'infoboxExportUnits';
 const localStorageKey: string = 'infoboxExportConfig';
 
@@ -164,6 +165,21 @@ export async function setProperties( properties: Property[] ): Promise<void> {
 
 	await bulkInsertIndexedDB( propertiesStore, data );
 	console.debug( `${properties.length} properties saved.` );
+}
+
+export async function getType( typeId: ItemId ): Promise<Type | undefined> {
+	return await queryIndexedDB( typesStore, typeId ) as ( Type | undefined );
+}
+
+export async function setTypes( types: Type[] ): Promise<void> {
+	const expires: number = Date.now() + 10800000; // 3 hours
+	const data: any[] = types.map( ( type: Type ) => ( {
+		...type,
+		expires
+	} ) );
+
+	await bulkInsertIndexedDB( typesStore, data );
+	console.debug( `${types.length} types saved.` );
 }
 
 export async function getUnit( unitId: ItemId ): Promise<string[] | undefined> {
@@ -505,12 +521,13 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 /**
  * Wrapper for property preloading that excludes already loaded properties
  */
-export async function loadProperties( propertyIds: PropertyId[] ): Promise<void> {
-	if ( !propertyIds || !propertyIds.length ) {
+export async function loadProperties( propertyIdSet: Set<PropertyId> ): Promise<void> {
+	if ( !propertyIdSet.size ) {
 		return;
 	}
 
 	const neededPropertyIds: PropertyId[] = [];
+	const propertyIds: PropertyId[] = Array.from( propertyIdSet );
 	for ( const i in propertyIds ) {
 		const propertyId: PropertyId = propertyIds[ i ];
 		if ( !propertyId ) {

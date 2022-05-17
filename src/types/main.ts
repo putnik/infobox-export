@@ -67,6 +67,11 @@ export interface Property {
 	units: ItemId[];
 }
 
+export interface Type {
+	id: ItemId;
+	properties: PropertyId[];
+}
+
 export interface Config {
 	version: string;
 	project: string;

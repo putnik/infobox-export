@@ -152,7 +152,8 @@ export async function getStatements( propertyId: PropertyId, titles: Title[], re
 		}
 
 		const entity = data.entities[ entityId ];
-		if ( entity?.claims?.P31?.[ 0 ]?.mainsnak?.datavalue?.value?.id === 'Q4167410' ) {
+		const typeIds: ItemId[] = getItemPropertyValues( entity?.claims, 'P31' );
+		if ( typeIds.includes( 'Q4167410' ) ) {
 			continue; // skip disambigs
 		}
 
@@ -296,4 +297,14 @@ export function createNovalueSnak( propertyId: PropertyId ): Snak {
 		snaktype: 'novalue',
 		property: propertyId
 	};
+}
+
+export function getItemPropertyValues( claims: ClaimsObject | undefined, propertyId: PropertyId ): ItemId[] {
+	if ( claims?.[ propertyId ] === undefined ) {
+		return [];
+	}
+	return claims[ propertyId ].map(
+		( statement: Statement ) => ( statement.mainsnak.datavalue?.value as ItemValue | undefined )?.id
+	).filter( ( itemId: ItemId ) => itemId );
+
 }
