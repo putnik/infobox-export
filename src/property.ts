@@ -78,7 +78,7 @@ export async function guessPropertyIdByLabel( $label: JQuery, itemId: ItemId, cl
 				( statement: Statement ) => ( statement.mainsnak.datavalue?.value as ItemValue | undefined )?.id
 			).filter( ( itemId: ItemId ) => itemId );
 			const replacementIds: ( PropertyId | null )[] = typeIds.map(
-				( typeId: ItemId ) => property.constraints.noneOfTypes?.[ typeId ]
+				( typeId: ItemId ) => property.constraints.noneOfTypes[ typeId ]
 			).filter( ( replacementIds: PropertyId ) => replacementIds !== undefined );
 			if ( replacementIds.length ) {
 				const replacementId: PropertyId = replacementIds.pop();

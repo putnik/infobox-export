@@ -103,7 +103,7 @@ export async function queryIndexedDB( storeName: string, id: ItemId | PropertyId
 	// eslint-disable-next-line
 	return new Promise(
 		function ( resolve, reject ) {
-			const openRequest: IDBOpenDBRequest = indexedDB.open( storeName, 2 );
+			const openRequest: IDBOpenDBRequest = indexedDB.open( storeName, 3 );
 
 			openRequest.onerror = function () {
 				reject( Error( 'IndexedDB error: ' + openRequest.error ) );
@@ -129,6 +129,9 @@ export async function queryIndexedDB( storeName: string, id: ItemId | PropertyId
 				};
 
 				objectRequest.onsuccess = function () {
+					if ( !objectRequest.result?.expires || objectRequest.result.expires < Date.now() ) {
+						resolve( undefined );
+					}
 					resolve( objectRequest.result );
 				};
 			};
@@ -143,7 +146,7 @@ export async function bulkInsertIndexedDB( storeName: string, data: any[] ): Pro
 	// eslint-disable-next-line
 	return new Promise(
 		function ( resolve, reject ) {
-			const openRequest: IDBOpenDBRequest = indexedDB.open( storeName, 2 );
+			const openRequest: IDBOpenDBRequest = indexedDB.open( storeName, 3 );
 
 			openRequest.onerror = function () {
 				reject( Error( 'IndexedDB error: ' + openRequest.error ) );

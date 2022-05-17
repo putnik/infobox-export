@@ -156,7 +156,13 @@ export async function getProperty( propertyId: PropertyId ): Promise<Property | 
 }
 
 export async function setProperties( properties: Property[] ): Promise<void> {
-	await bulkInsertIndexedDB( propertiesStore, properties );
+	const expires: number = Date.now() + 10800000; // 3 hours
+	const data: any[] = properties.map( ( property: Property ) => ( {
+		...property,
+		expires
+	} ) );
+
+	await bulkInsertIndexedDB( propertiesStore, data );
 	console.debug( `${properties.length} properties saved.` );
 }
 
@@ -166,9 +172,11 @@ export async function getUnit( unitId: ItemId ): Promise<string[] | undefined> {
 }
 
 export async function setUnits( units: UnitsData ): Promise<void> {
+	const expires: number = Date.now() + 25200000; // 7 hours
 	const data: any[] = Object.keys( units ).map( ( unitId: string ) => ( {
 		id: unitId,
-		search: units[ unitId as ItemId ]
+		search: units[ unitId as ItemId ],
+		expires
 	} ) );
 	await bulkInsertIndexedDB( unitsStore, data );
 	console.debug( `${data.length} units saved.` );
