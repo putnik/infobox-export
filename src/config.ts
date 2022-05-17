@@ -310,7 +310,6 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 		return;
 	}
 
-	const unitIds: ItemId[] = [];
 	const data: ApiResponse = await wdApiRequest( {
 		action: 'wbgetentities',
 		languages: allLanguages,
@@ -403,7 +402,6 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 							const unitId: ItemId = ( qualifiers[ idx ]?.datavalue as ItemDataValue | undefined )?.value?.id;
 							if ( unitId ) {
 								propertyData.units.push( unitId );
-								unitIds.push( unitId );
 							} else if ( qualifiers[ idx ]?.snaktype === 'novalue' ) {
 								propertyData.constraints.unitOptional = true;
 							}
