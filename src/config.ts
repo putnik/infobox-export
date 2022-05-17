@@ -5,6 +5,7 @@ import { ApiResponse, SparqlUnitBindings, SparqlUnitsResponse } from './types/ap
 import { sparqlRequest, wdApiRequest } from './api';
 import {
 	bulkInsertIndexedDB,
+	bulkQueryIndexedDB,
 	get,
 	getAliases,
 	getLabelValue,
@@ -154,6 +155,10 @@ export function loadConfig(): void {
 
 export async function getProperty( propertyId: PropertyId ): Promise<Property | undefined> {
 	return await queryIndexedDB( propertiesStore, propertyId ) as ( Property | undefined );
+}
+
+export async function getProperties( propertyIds: PropertyId[] ): Promise<Property[]> {
+	return await bulkQueryIndexedDB( propertiesStore, propertyIds );
 }
 
 export async function setProperties( properties: Property[] ): Promise<void> {
@@ -526,18 +531,9 @@ export async function loadProperties( propertyIdSet: Set<PropertyId> ): Promise<
 		return;
 	}
 
-	const neededPropertyIds: PropertyId[] = [];
 	const propertyIds: PropertyId[] = Array.from( propertyIdSet );
-	for ( const i in propertyIds ) {
-		const propertyId: PropertyId = propertyIds[ i ];
-		if ( !propertyId ) {
-			continue;
-		}
-		const property: Property | undefined = await getProperty( propertyId );
-		if ( property === undefined ) {
-			neededPropertyIds.push( propertyId );
-		}
-	}
+	const existingPropertyIds: PropertyId[] = ( await getProperties( propertyIds ) ).map( ( property: Property ) => property.id );
+	const neededPropertyIds: PropertyId[] = propertyIds.filter( ( propertyId: PropertyId ) => !existingPropertyIds.includes( propertyId ) );
 
 	if ( neededPropertyIds.length ) {
 		const apiChunkSize: number = 50;

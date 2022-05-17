@@ -237,70 +237,74 @@ export async function init(): Promise<any> {
 		}
 
 		const propertyId: PropertyId | undefined = $field.attr( 'data-wikidata-property-id' ) as ( PropertyId | undefined );
-		if ( typeof propertyId === 'undefined' ) {
-			const $label: JQuery = $field.parent().children( 'th, .infobox-export-label' ).first();
-			const guessedPropertyIds: PropertyId[] = await guessPropertyIdByLabel( $label, itemId, claims );
-			let guessedProperties: Property[] = ( await Promise.all( guessedPropertyIds.map(
-				async ( propertyId: PropertyId ) => await getOrLoadProperty( propertyId )
-			) ) ).filter( ( property: Property | undefined ) => property );
+		if ( typeof propertyId !== 'undefined' ) {
+			$field
+				.removeClass( 'no-wikidata' )
+				.off( 'dblclick' );
 
-			// If at least one of these properties with same name and datatype already filled,
-			// then we think that it is the correct one.
-			const alreadyFilledDataTypes: DataType[] = [];
-			for ( const guessedProperty of guessedProperties ) {
-				if ( claims[ guessedProperty.id ] && claims[ guessedProperty.id ].length ) {
-					alreadyFilledDataTypes.push( guessedProperty.datatype );
+			propertyIds.add( propertyId );
+			const canExport: boolean = await canExportValue( propertyId, $field, claims[ propertyId ] );
+			if ( canExport ) {
+				$field.addClass( 'no-wikidata' );
+				if ( claims[ propertyId ] && claims[ propertyId ].length ) {
+					$field.addClass( 'partial-wikidata' );
 				}
+				$field.on( 'dblclick', clickEvent );
 			}
 
-			guessedProperties = guessedProperties.filter(
-				( property: Property ) => !alreadyFilledDataTypes.includes( property.datatype )
-			);
-			if ( !guessedProperties.length ) {
-				return;
+			const $fieldQualifiers = $field.closest( 'tr' ).find( '[data-wikidata-qualifier-id]' );
+			$fieldQualifiers.each( function () {
+				propertyIds.add( $( this ).data( 'wikidata-qualifier-id' ) );
+			} );
+
+			return;
+		}
+
+		const $label: JQuery = $field.parent().children( 'th, .infobox-export-label' ).first();
+		const guessedPropertyIds: PropertyId[] = await guessPropertyIdByLabel( $label, itemId, claims );
+		let guessedProperties: Property[] = ( await Promise.all( guessedPropertyIds.map(
+			async ( propertyId: PropertyId ) => await getOrLoadProperty( propertyId )
+		) ) ).filter( ( property: Property | undefined ) => property );
+
+		// If at least one of these properties with same name and datatype already filled,
+		// then we think that it is the correct one.
+		const alreadyFilledDataTypes: DataType[] = [];
+		for ( const guessedProperty of guessedProperties ) {
+			if ( claims[ guessedProperty.id ] && claims[ guessedProperty.id ].length ) {
+				alreadyFilledDataTypes.push( guessedProperty.datatype );
 			}
+		}
 
-			for ( const guessedProperty of guessedProperties ) {
-				if ( alreadyFilledDataTypes.includes( guessedProperty.datatype ) ) {
-					continue;
-				}
-				const canExport: boolean = await canExportValue( guessedProperty.id, $field, claims[ guessedProperty.id ] );
-				if ( canExport ) {
-					if ( !$field.attr( 'data-wikidata-property-id' ) ) {
-						$field.attr( 'data-wikidata-property-id', guessedProperty.id );
-						continue;
-					}
+		guessedProperties = guessedProperties.filter(
+			( property: Property ) => !alreadyFilledDataTypes.includes( property.datatype )
+		);
+		if ( !guessedProperties.length ) {
+			return;
+		}
 
-					const $wrapper: JQuery = $( '<span>' )
-						.addClass( 'no-wikidata' )
-						.attr( 'data-wikidata-property-id', guessedProperty.id );
+		for ( const guessedProperty of guessedProperties ) {
+			if ( alreadyFilledDataTypes.includes( guessedProperty.datatype ) ) {
+				continue;
+			}
+			const canExport: boolean = await canExportValue( guessedProperty.id, $field, claims[ guessedProperty.id ] );
+			if ( canExport ) {
+				propertyIds.add( guessedProperty.id );
+
+				let $wrapper: JQuery = $field;
+				if ( $wrapper.attr( 'data-wikidata-property-id' ) ) {
+					$wrapper = $( '<span>' );
 					$field.contents().wrapAll( $wrapper );
-					propertyIds.add( guessedProperty.id );
-					if ( claims[ guessedProperty.id ] && claims[ guessedProperty.id ].length ) {
-						$wrapper.addClass( 'partial-wikidata' );
-					}
-					$wrapper.on( 'dblclick', clickEvent );
+				}
+				$wrapper
+					.on( 'dblclick', clickEvent )
+					.attr( 'data-wikidata-property-id', guessedProperty.id )
+					.addClass( 'no-wikidata' );
+
+				if ( claims[ guessedProperty.id ] && claims[ guessedProperty.id ].length ) {
+					$wrapper.addClass( 'partial-wikidata' );
 				}
 			}
 		}
-
-		$field
-			.removeClass( 'no-wikidata' )
-			.off( 'dblclick' );
-		propertyIds.add( propertyId );
-		const canExport: boolean = await canExportValue( propertyId, $field, claims[ propertyId ] );
-		if ( canExport ) {
-			$field.addClass( 'no-wikidata' );
-			if ( claims[ propertyId ] && claims[ propertyId ].length ) {
-				$field.addClass( 'partial-wikidata' );
-			}
-			$field.on( 'dblclick', clickEvent );
-		}
-
-		const $fieldQualifiers = $field.closest( 'tr' ).find( '[data-wikidata-qualifier-id]' );
-		$fieldQualifiers.each( function () {
-			propertyIds.add( $( this ).data( 'wikidata-qualifier-id' ) );
-		} );
 	} ) );
 	const mainCss = require( './assets/main.css' ).toString();
 	mw.util.addCSS( mainCss );

@@ -1,8 +1,8 @@
 /**
  * Returns an array of elements with duplicate values deleted
  */
-import { KeyValue } from './types/main';
-import { ItemId, PropertyId } from './types/wikidata/types';
+import { KeyValue, Property, Type } from './types/main';
+import { ItemId, PropertyId, Unit } from './types/wikidata/types';
 
 export function unique( array: any[] ): any[] {
 	const $ = require( 'jquery' );
@@ -95,18 +95,24 @@ export function prepareUnitSearchString( search: string | undefined ): string {
 	return search.replace( /[-[\]/{}()*+?.\\^$|]/g, '\\$&' );
 }
 
-export async function queryIndexedDB( storeName: string, id: ItemId | PropertyId ): Promise<undefined> {
-	if ( typeof id === 'undefined' ) {
-		console.debug( 'queryIndexedDB() with empty ID', storeName );
+export async function queryIndexedDB( storeName: string, id: ItemId | PropertyId ): Promise<Property | Type | Unit | undefined> {
+	const rows: ( Property | Type | Unit )[] = await bulkQueryIndexedDB( storeName, [ id ] );
+	if ( !rows.length ) {
 		return undefined;
+	}
+	return rows.pop();
+}
+
+export async function bulkQueryIndexedDB( storeName: string, ids: ( ItemId | PropertyId )[] ): Promise<any> {
+	if ( !Array.isArray( ids ) || !ids.length ) {
+		console.debug( 'bulkQueryIndexedDB() without IDs', storeName );
+		return [];
 	}
 	return new Promise(
 		function ( resolve, reject ) {
 			const openRequest: IDBOpenDBRequest = indexedDB.open( storeName, 3 );
 
-			openRequest.onerror = function () {
-				reject( Error( 'IndexedDB error: ' + openRequest.error ) );
-			};
+			openRequest.onerror = () => reject( Error( 'IndexedDB error: ' + openRequest.error ) );
 
 			openRequest.onupgradeneeded = function () {
 				const db: IDBDatabase = openRequest.result;
@@ -119,20 +125,16 @@ export async function queryIndexedDB( storeName: string, id: ItemId | PropertyId
 
 			openRequest.onsuccess = function () {
 				const db: IDBDatabase = openRequest.result;
-				const transaction: IDBTransaction = db.transaction( [ storeName ], 'readwrite' );
+				const transaction: IDBTransaction = db.transaction( [ storeName ], 'readonly' );
 				const objectStore: IDBObjectStore = transaction.objectStore( storeName );
-				const objectRequest: IDBRequest | undefined = objectStore.get( id );
 
-				objectRequest.onerror = function () {
-					reject( Error( 'IDBObjectStore error: ' + objectRequest.error ) );
-				};
-
-				objectRequest.onsuccess = function () {
-					if ( !objectRequest.result?.expires || objectRequest.result.expires < Date.now() ) {
-						resolve( undefined );
-					}
-					resolve( objectRequest.result );
-				};
+				Promise.all( ids.map(
+					( id: ItemId | PropertyId ) => new Promise( ( resolve, reject ) => {
+						const objectRequest: IDBRequest = objectStore.get( id );
+						objectRequest.onerror = () => reject( Error( 'IDBObjectStore error: ' + objectRequest.error ) );
+						objectRequest.onsuccess = () => ( resolve( objectRequest.result ) );
+					} )
+				) ).then( ( rows: any[] ) => resolve( rows.filter( ( row ) => row ) ) );
 			};
 		}
 	);
@@ -168,13 +170,8 @@ export async function bulkInsertIndexedDB( storeName: string, data: any[] ): Pro
 					objectRequest = objectStore.put( value );
 				}
 
-				objectRequest.onerror = function () {
-					reject( Error( 'IDBObjectStore error: ' + objectRequest.error ) );
-				};
-
-				objectRequest.onsuccess = function () {
-					resolve( objectRequest.result );
-				};
+				objectRequest.onerror = () => reject( Error( 'IDBObjectStore error: ' + objectRequest.error ) );
+				objectRequest.onsuccess = () => resolve( objectRequest.result );
 			};
 		}
 	);

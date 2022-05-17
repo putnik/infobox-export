@@ -1,12 +1,12 @@
 import { ItemId, PropertyId } from './types/wikidata/types';
 import { SparqlBindings, SparqlResponse } from './types/api';
 import { sparqlRequest } from './api';
-import { getProperty, getType, loadProperties, setTypes } from './config';
+import { getProperties, getType, loadProperties, setTypes } from './config';
 import { Property, Type } from './types/main';
 import { ClaimsObject } from './types/wikidata/main';
 import { getItemPropertyValues } from './wikidata';
 
-let availableProperties: Set<PropertyId> | undefined;
+let availablePropertiesSet: Set<PropertyId> | undefined;
 
 const propertyReplacements: { [key: PropertyId]: PropertyId } = {
 	P276: 'P131',
@@ -14,7 +14,7 @@ const propertyReplacements: { [key: PropertyId]: PropertyId } = {
 };
 
 export async function preloadAvailableProperties( typeIds: ItemId[] ): Promise<void> {
-	availableProperties = new Set();
+	availablePropertiesSet = new Set();
 
 	const typeIdsToQuery: ItemId[] = [];
 	const typesObject: { [ key: ItemId ]: Set<PropertyId> } = {};
@@ -26,7 +26,7 @@ export async function preloadAvailableProperties( typeIds: ItemId[] ): Promise<v
 			continue;
 		}
 		for ( const propertyId of type.properties ) {
-			availableProperties.add( propertyId );
+			availablePropertiesSet.add( propertyId );
 		}
 	}
 
@@ -70,7 +70,7 @@ export async function preloadAvailableProperties( typeIds: ItemId[] ): Promise<v
 		for ( let i = 0; i < data.results.bindings.length; i++ ) {
 			const bindings: SparqlBindings = data.results.bindings[ i ];
 			const propertyId: PropertyId = bindings.pid.value as PropertyId;
-			availableProperties.add( propertyId );
+			availablePropertiesSet.add( propertyId );
 			typesObject[ typeId ].add( propertyId );
 		}
 	}
@@ -84,22 +84,21 @@ export async function preloadAvailableProperties( typeIds: ItemId[] ): Promise<v
 	}
 	await setTypes( types );
 
-	await loadProperties( availableProperties );
+	await loadProperties( availablePropertiesSet );
 }
 
 export async function guessPropertyIdByLabel( $label: JQuery, itemId: ItemId, claims: ClaimsObject ): Promise<PropertyId[]> {
 	const typeIds: ItemId[] = getItemPropertyValues( claims, 'P31' );
 
-	if ( typeof availableProperties === 'undefined' ) {
+	if ( typeof availablePropertiesSet === 'undefined' ) {
 		await preloadAvailableProperties( typeIds );
 	}
 	const propertyIds: PropertyId[] = [];
 	const label: string = $label.text().replace( /:$/, '' ).trim().toLowerCase();
 	const baseLabel: string = label.replace( /\(.+?\)/, '' ).trim();
 
-	const availablePropertyIds: PropertyId[] = Array.from( availableProperties );
-	for ( const propertyId of availablePropertyIds ) {
-		const property: Property = await getProperty( propertyId );
+	const availableProperties: Property[] = await getProperties( Array.from( availablePropertiesSet ) );
+	for ( const property of availableProperties ) {
 		if ( !property.aliases || !( property.aliases.includes( label ) || property.aliases.includes( baseLabel ) ) ) {
 			continue;
 		}
@@ -117,12 +116,12 @@ export async function guessPropertyIdByLabel( $label: JQuery, itemId: ItemId, cl
 				continue;
 			}
 		}
-		if ( propertyReplacements[ propertyId ] ) {
-			propertyIds.push( propertyReplacements[ propertyId ] );
+		if ( propertyReplacements[ property.id ] ) {
+			propertyIds.push( propertyReplacements[ property.id ] );
 			continue;
 		}
 
-		propertyIds.push( propertyId );
+		propertyIds.push( property.id );
 	}
 	return propertyIds;
 }
