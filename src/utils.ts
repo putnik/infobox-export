@@ -100,7 +100,6 @@ export async function queryIndexedDB( storeName: string, id: ItemId | PropertyId
 		console.debug( 'queryIndexedDB() with empty ID', storeName );
 		return undefined;
 	}
-	// eslint-disable-next-line
 	return new Promise(
 		function ( resolve, reject ) {
 			const openRequest: IDBOpenDBRequest = indexedDB.open( storeName, 3 );
@@ -143,7 +142,6 @@ export async function bulkInsertIndexedDB( storeName: string, data: any[] ): Pro
 	if ( !data.length ) {
 		return;
 	}
-	// eslint-disable-next-line
 	return new Promise(
 		function ( resolve, reject ) {
 			const openRequest: IDBOpenDBRequest = indexedDB.open( storeName, 3 );

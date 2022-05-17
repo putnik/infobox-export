@@ -8,7 +8,13 @@
     "target": "es5",
     "allowJs": false,
     "moduleResolution": "node",
-    "strictFunctionTypes": true
+    "strictFunctionTypes": true,
+    "lib": [
+      "dom",
+      "es5",
+      "es2015.promise",
+      "scripthost"
+    ]
   },
   "include": ["src/**/*", "test/*.spec.ts"],
   "exclude": ["node_modules"]

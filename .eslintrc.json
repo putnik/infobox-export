@@ -2,15 +2,18 @@
 	"root": true,
 	"parser": "@typescript-eslint/parser",
 	"plugins": [
-		"@typescript-eslint"
+		"@typescript-eslint",
+		"promise"
 	],
 	"extends": [
 		"wikimedia/jquery",
 		"wikimedia/mediawiki",
 		"wikimedia/mocha",
-		"wikimedia/server"
+		"wikimedia/server",
+		"plugin:promise/recommended"
 	],
 	"rules": {
+		"compat/compat": "off",
 		"eqeqeq": "off",
 		"jsdoc/require-param": "off",
 		"jsdoc/require-param-type": "off",
@@ -34,6 +37,7 @@
 		"no-unreachable-loop": "off",
 		"node/no-missing-import": "off",
 		"node/no-missing-require": "off",
+		"promise/catch-or-return": "off",
 
 		"no-unused-vars": "off",
 		"@typescript-eslint/no-unused-vars": ["error"]

@@ -230,7 +230,6 @@ export async function init(): Promise<any> {
 		const typeIds: ItemId[] = getItemPropertyValues( claims, 'P31' );
 		await preloadAvailableProperties( typeIds );
 	}
-	// eslint-disable-next-line compat/compat
 	await Promise.all( $fields.map( async function () {
 		const $field: JQuery = $( this );
 		if ( /^[\s\u200B-\u200D\uFEFF]*$/.test( $field.text() ) ) {
