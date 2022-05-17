@@ -7,7 +7,7 @@ import {
 	prepareMonolingualText
 } from './parser';
 import { getI18n } from './i18n';
-import { getConfig, getOrLoadProperty, getProperty, loadConfig, loadProperties, saveConfig, setConfig } from './config';
+import { getConfig, getOrLoadProperty, loadConfig, loadProperties, saveConfig, setConfig } from './config';
 import { showDialog } from './ui';
 import { loadMonths } from './months';
 import { ApiResponse, SparqlResponse } from './types/api';
@@ -237,9 +237,9 @@ export async function init(): Promise<any> {
 		if ( typeof propertyId === 'undefined' ) {
 			const $label: JQuery = $field.parent().children( 'th, .infobox-export-label' ).first();
 			const guessedPropertyIds: PropertyId[] = await guessPropertyIdByLabel( $label, itemId, claims );
-			let guessedProperties: Property[] = await Promise.all( guessedPropertyIds.map(
-				async ( propertyId: PropertyId ) => await getProperty( propertyId )
-			) );
+			let guessedProperties: Property[] = ( await Promise.all( guessedPropertyIds.map(
+				async ( propertyId: PropertyId ) => await getOrLoadProperty( propertyId )
+			) ) ).filter( ( property: Property | undefined ) => property );
 
 			// If at least one of these properties with same name and datatype already filled,
 			// then we think that it is the correct one.
