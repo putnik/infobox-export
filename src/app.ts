@@ -232,10 +232,6 @@ export async function init(): Promise<any> {
 	}
 	await Promise.all( $fields.map( async function () {
 		const $field: JQuery = $( this );
-		if ( /^[\s\u200B-\u200D\uFEFF]*$/.test( $field.text() ) ) {
-			return;
-		}
-
 		const propertyId: PropertyId | undefined = $field.attr( 'data-wikidata-property-id' ) as ( PropertyId | undefined );
 		if ( typeof propertyId !== 'undefined' ) {
 			$field
@@ -257,6 +253,11 @@ export async function init(): Promise<any> {
 				propertyIds.add( $( this ).data( 'wikidata-qualifier-id' ) );
 			} );
 
+			return;
+		}
+
+		// Skip empty fields
+		if ( /^[\s\u200B-\u200D\uFEFF]*$/.test( $field.text() ) ) {
 			return;
 		}
 
