@@ -1,5 +1,6 @@
 {
 	"re-dates": [
 		{"re": "(?<d>\\d{1,2})º\\s+(?<mm>%months%|%months-gen%)\\s+(?<y>[12]\\d{3})\\.?$", "flags": "i"}
-	]
+	],
+	"sec-unit": " secondo"
 }
