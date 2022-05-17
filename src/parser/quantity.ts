@@ -72,6 +72,9 @@ export function parseRawQuantity( config: any, text: string, forceInteger?: bool
 		let fractional: number = parts ? parts[ 2 ].length : 0;
 		const upperBound: number = parseFloat( value.upperBound );
 		const lowerBound: number = parseFloat( value.lowerBound );
+		if ( upperBound < lowerBound ) {
+			return null;
+		}
 		const amount: number = ( upperBound + lowerBound ) / 2;
 		const integral: number = parts ? parts[ 1 ].length : amount.toString().length;
 		value.lowerBound = numberToString( lowerBound, integral, fractional, magnitude );
