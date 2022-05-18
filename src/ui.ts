@@ -7,7 +7,7 @@ const mw = require( 'mw' );
 import { inheritClass } from 'oojs';
 
 import { getI18n } from './i18n';
-import { getConfig, getOrLoadProperty } from './config';
+import { clearCache, getConfig, getOrLoadProperty } from './config';
 import { convertStatementsToClaimsObject, createClaim, stringifyStatement } from './wikidata';
 import { formatItemValue, formatReferences, formatSnak } from './formatter';
 import { ClaimsObject, Snak, SnaksObject, Statement } from './types/wikidata/main';
@@ -165,7 +165,39 @@ async function getFormPanel( statements: Statement[] ): Promise<any> {
 		propertyFieldsets.push( propertyFieldset );
 	}
 
-	const { PanelLayout } = require( 'ooui' );
+	const {
+		ButtonMenuSelectWidget,
+		MenuOptionWidget,
+		MenuSectionOptionWidget,
+		PanelLayout
+	} = require( 'ooui' );
+
+	const configMenuButton: any = new ButtonMenuSelectWidget( {
+		framed: false,
+		icon: 'ellipsis',
+		label: '',
+		menu: {
+			horizontalPosition: 'before',
+			verticalPosition: 'below',
+			items: [
+				new MenuSectionOptionWidget( {
+					label: getI18n( 'version-string' ).replace( '$1', getConfig( 'version' ) )
+				} ),
+				new MenuOptionWidget( {
+					label: getI18n( 'clear-cache' ),
+					data: 'clear',
+					icon: 'reload'
+				} )
+			]
+		}
+	} );
+	configMenuButton.getMenu().on( 'select', ( item: any ) => {
+		if ( item?.data === 'clear' ) {
+			clearCache();
+			window.location.reload();
+		}
+	} );
+
 	return new PanelLayout( {
 		padded: true,
 		expanded: false,
@@ -173,6 +205,10 @@ async function getFormPanel( statements: Statement[] ): Promise<any> {
 			...propertyFieldsets,
 			$( '<hr>' ).css( 'margin-top', '1.5em' ),
 			$( '<p>' ).text( getI18n( 'export-confirmation' ) ),
+			$( '<div>' ).css( {
+				float: 'right',
+				marginLeft: '.5em'
+			} ).append( configMenuButton.$element ),
 			$( '<p>' ).css( 'font-size', '85%' ).html( getI18n( 'license-cc0' ) )
 		]
 	} );
@@ -271,9 +307,7 @@ export async function showDialog( statements: Statement[] ) {
 	inheritClass( ExtProcessDialog, ProcessDialog );
 
 	ExtProcessDialog.static.name = getI18n( 'window-header' );
-	ExtProcessDialog.static.title = $( '<span>' )
-		.attr( 'title', getI18n( 'version-string' ).replace( '$1', getConfig( 'version' ) ) )
-		.text( ExtProcessDialog.static.name );
+	ExtProcessDialog.static.title = ExtProcessDialog.static.name;
 
 	ExtProcessDialog.static.actions = [
 		{ action: 'export', label: getI18n( 'export-button-label' ), flags: [ 'primary', 'progressive' ] },

@@ -25,5 +25,6 @@
 	"unknown-value": "Unknown value",
 	"grigorian-calendar": "Gregorian",
 	"julian-calendar": "Julian",
-	"export-all": "Export all values to Wikidata"
+	"export-all": "Export all values to Wikidata",
+	"clear-cache": "Clear cache"
 }

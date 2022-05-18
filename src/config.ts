@@ -585,3 +585,10 @@ export async function preloadUnits( units: KeyValue ): Promise<void> {
 		await loadUnitsSparql( defaultUnitTypeIds, unitIds );
 	}
 }
+
+export function clearCache(): void {
+	indexedDB.deleteDatabase( propertiesStore );
+	indexedDB.deleteDatabase( typesStore );
+	indexedDB.deleteDatabase( unitsStore );
+	localStorage.removeItem( localStorageKey );
+}
