@@ -26,5 +26,7 @@
 	"grigorian-calendar": "Григорианский",
 	"julian-calendar": "Юлианский",
 	"export-all": "Экспортировать все значения в Викиданные",
-	"clear-cache": "Очистить кэш"
+	"clear-cache": "Очистить кэш",
+	"open-help-page": "Открыть справку",
+	"report-issue": "Сообщить о проблеме"
 }

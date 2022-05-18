@@ -178,23 +178,39 @@ async function getFormPanel( statements: Statement[] ): Promise<any> {
 		label: '',
 		menu: {
 			horizontalPosition: 'before',
-			verticalPosition: 'below',
+			verticalPosition: 'top',
 			items: [
 				new MenuSectionOptionWidget( {
 					label: getI18n( 'version-string' ).replace( '$1', getConfig( 'version' ) )
 				} ),
 				new MenuOptionWidget( {
+					label: getI18n( 'open-help-page' ),
+					data: 'help',
+					icon: 'help'
+				} ),
+				new MenuOptionWidget( {
+					label: getI18n( 'report-issue' ),
+					data: 'report',
+					icon: 'feedback'
+				} ),
+				new MenuOptionWidget( {
 					label: getI18n( 'clear-cache' ),
-					data: 'clear',
+					data: 'cache',
 					icon: 'reload'
 				} )
 			]
 		}
 	} );
 	configMenuButton.getMenu().on( 'select', ( item: any ) => {
-		if ( item?.data === 'clear' ) {
+		if ( item.data === 'clear' ) {
 			clearCache();
 			window.location.reload();
+		}
+		if ( item.data === 'help' ) {
+			window.open( '//wikidata.org/wiki/Special:MyLanguage/Help:Infobox_export_gadget', '_blank' );
+		}
+		if ( item.data === 'report' ) {
+			window.open( '//www.wikidata.org/?title=Help_talk:Infobox_export_gadget&action=edit&section=new', '_blank' );
 		}
 	} );
 

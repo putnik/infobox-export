@@ -26,5 +26,7 @@
 	"grigorian-calendar": "Gregorian",
 	"julian-calendar": "Julian",
 	"export-all": "Export all values to Wikidata",
-	"clear-cache": "Clear cache"
+	"clear-cache": "Clear cache",
+	"open-help-page": "Open help page",
+	"report-issue": "Report issue"
 }
