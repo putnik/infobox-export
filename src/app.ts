@@ -302,7 +302,6 @@ export async function init(): Promise<any> {
 				let $wrapper: JQuery = $field;
 				if ( $wrapper.attr( 'data-wikidata-property-id' ) ) {
 					$wrapper = $( '<span>' );
-					$field.contents().wrapAll( $wrapper );
 				}
 				$wrapper
 					.on( 'dblclick', clickEvent )
@@ -311,6 +310,10 @@ export async function init(): Promise<any> {
 
 				if ( claims[ guessedProperty.id ] && claims[ guessedProperty.id ].length ) {
 					$wrapper.addClass( 'partial-wikidata' );
+				}
+
+				if ( $wrapper.prop( 'tagName' ) === 'SPAN' ) {
+					$field.contents().wrapAll( $wrapper );
 				}
 			}
 		}
