@@ -22,10 +22,12 @@ import { ItemValue, PropertyValue } from './types/wikidata/values';
 
 const mw = require( 'mw' );
 declare let __VERSION__: string;
+declare let __COMMIT__: string;
 
 // Main config
 let config: Config = {
 	version: __VERSION__,
+	commit: __COMMIT__,
 	project: mw.config.get( 'wgDBname' ),
 	references: {},
 	units: {},
@@ -144,7 +146,7 @@ export function loadConfig(): void {
 		}
 	}
 
-	if ( loadedConfig && loadedConfig.version === getConfig( 'version' ) ) {
+	if ( loadedConfig && loadedConfig.commit === getConfig( 'commit' ) ) {
 		config = loadedConfig;
 	}
 

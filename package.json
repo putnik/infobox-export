@@ -4,8 +4,8 @@
   "description": "",
   "private": true,
   "scripts": {
-    "build": "webpack --config webpack.prod.js",
-    "dev": "webpack --config webpack.dev.js",
+    "build": "GIT_COMMIT=`git rev-parse HEAD` webpack --config webpack.prod.js",
+    "dev": "GIT_COMMIT=`git rev-parse HEAD` webpack --config webpack.dev.js",
     "lint": "eslint src --ext=\".js,.ts\"",
     "lint-fix": "eslint src --ext=\".js,.ts\" --fix",
     "test": "mocha --require @babel/register --extensions \".js, .ts, .tsx\" --globals global",

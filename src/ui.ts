@@ -168,7 +168,6 @@ async function getFormPanel( statements: Statement[] ): Promise<any> {
 	const {
 		ButtonMenuSelectWidget,
 		MenuOptionWidget,
-		MenuSectionOptionWidget,
 		PanelLayout
 	} = require( 'ooui' );
 
@@ -180,8 +179,10 @@ async function getFormPanel( statements: Statement[] ): Promise<any> {
 			horizontalPosition: 'before',
 			verticalPosition: 'top',
 			items: [
-				new MenuSectionOptionWidget( {
-					label: getI18n( 'version-string' ).replace( '$1', getConfig( 'version' ) )
+				new MenuOptionWidget( {
+					label: getI18n( 'version-string' ).replace( '$1', getConfig( 'version' ) ),
+					data: 'version',
+					icon: 'key'
 				} ),
 				new MenuOptionWidget( {
 					label: getI18n( 'open-help-page' ),
@@ -214,6 +215,9 @@ async function getFormPanel( statements: Statement[] ): Promise<any> {
 		}
 		if ( item.data === 'report' ) {
 			window.open( '//www.wikidata.org/?title=Help_talk:Infobox_export_gadget&action=edit&section=new', '_blank' );
+		}
+		if ( item.data === 'version' ) {
+			window.open( '//github.com/putnik/infobox-export/commit/' + getConfig( 'commit' ), '_blank' );
 		}
 	} );
 

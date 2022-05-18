@@ -74,6 +74,7 @@ export interface Type {
 
 export interface Config {
 	version: string;
+	commit: string;
 	project: string;
 	references: { [ key: string ]: Reference };
 	units: { [ key: string ]: Unit[] };
