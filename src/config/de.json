@@ -2,7 +2,7 @@
 	"re-circa": "(?:~|≈|ca\\.|circa)",
 	"re-century": "^([IVXivx]{1,5})\\s*(Jahrhundert|Jhd\\.)?$",
 	"re-dates": [
-		"(?<d>\\d{1,2})\\s+(?<mm>%months-gen%)[,\\s]+(?<y>[12]\\d{3})\\.?$"
+		"(?<d>\\d{1,2})\\.\\s+(?<mm>%months-gen%)[,\\s]+(?<y>[12]\\d{3})\\.?"
 	],
 	"re-decade": "(\\d{3,4})er",
 	"re-bce": "v\\.\\Chr\\.\\s*$",
