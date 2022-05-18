@@ -8,7 +8,7 @@ See [description](https://www.wikidata.org/wiki/Special:MyLanguage/Help:Infobox_
 ## Installation
 Builds of this script are published on [MediaWiki:Gadget-infoboxExport.js](https://www.wikidata.org/wiki/MediaWiki:Gadget-infoboxExport.js) page in Wikidata.
 
-To start using it just add this line to your global [common.js](https://www.wikidata.org/wiki/Special:MyPage/common.js):
+To start using it just add this line to your [global.js](https://meta.wikimedia.org/wiki/Special:MyPage/global.js):
 ```js
 mw.loader.load( '//www.wikidata.org/w/index.php?title=MediaWiki:Gadget-infoboxExport.js&action=raw&ctype=text/javascript' );
 ```
