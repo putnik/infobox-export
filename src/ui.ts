@@ -202,7 +202,10 @@ async function getFormPanel( statements: Statement[] ): Promise<any> {
 		}
 	} );
 	configMenuButton.getMenu().on( 'select', ( item: any ) => {
-		if ( item.data === 'clear' ) {
+		if ( !item ) {
+			return;
+		}
+		if ( item.data === 'cache' ) {
 			clearCache();
 			window.location.reload();
 		}
