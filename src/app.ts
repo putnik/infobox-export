@@ -183,7 +183,11 @@ export async function init(): Promise<any> {
 	const preloaderCss = require( './assets/preloader.css' ).toString();
 	mw.util.addCSS( preloaderCss );
 
-	const $mainHeader: JQuery = $infobox.find( 'caption, th[colspan], td[colspan], .entete' ).eq( 0 );
+	let $mainHeader: JQuery = $infobox.find( 'caption, th[colspan], .entete' );
+	if ( $mainHeader.length === 0 ) {
+		$mainHeader = $infobox.find( 'td[colspan]' );
+	}
+	$mainHeader = $mainHeader.eq( 0 );
 	$mainHeader.addClass( 'infobox-export-preloader' );
 	const mainHeaderRowBackground: string | undefined = $mainHeader.parent( 'tr' ).css( 'background-color' );
 	if ( $mainHeader.css( 'background-color' ) === 'rgba(0, 0, 0, 0)' &&
