@@ -1,6 +1,6 @@
 {
 	"re-circa": "(?:~|≈|[Aa]pie)",
-	"re-century": "^([IVXivx]{1,5})\\s*(?:amžius)?$",
+	"re-century": "^([IVXivx]{1,5})\\s*(?:amžius|a\\.)?$",
 	"re-month-dot-year": "^(\\d{1,2})\\.(\\d{3,4})(?:\\s*m\\.)?$",
 	"re-dates": [
 		{"re": "(?<y>\\d{2,4})\\s*m\\.\\s+(?<mm>%months%)\\s+(?<d>\\d{1,2})\\s*d\\.", "flags": "i"}
