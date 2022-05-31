@@ -166,7 +166,7 @@ export async function getProperties( propertyIds: PropertyId[] ): Promise<Proper
 }
 
 export async function setProperties( properties: Property[] ): Promise<void> {
-	const expires: number = Date.now() + 10800000; // 3 hours
+	const expires: number = Date.now() + 86400000; // 1 day
 	const data: any[] = properties.map( ( property: Property ) => ( {
 		...property,
 		expires
@@ -181,7 +181,7 @@ export async function getType( typeId: ItemId ): Promise<Type | undefined> {
 }
 
 export async function setTypes( types: Type[] ): Promise<void> {
-	const expires: number = Date.now() + 10800000; // 3 hours
+	const expires: number = Date.now() + 86400000; // 1 day
 	const data: any[] = types.map( ( type: Type ) => ( {
 		...type,
 		expires
@@ -197,7 +197,7 @@ export async function getUnit( unitId: ItemId ): Promise<string[] | undefined> {
 }
 
 export async function setUnits( units: UnitsData ): Promise<void> {
-	const expires: number = Date.now() + 25200000; // 7 hours
+	const expires: number = Date.now() + 259200000; // 3 days
 	const data: any[] = Object.keys( units ).map( ( unitId: string ) => ( {
 		id: unitId,
 		search: units[ unitId as ItemId ],
