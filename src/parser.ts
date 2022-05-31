@@ -46,7 +46,20 @@ export function addQualifierValue(
 }
 
 export async function addPointInTimeQualifier( $field: JQuery, statement: Statement ): Promise<Statement> {
-	const qualifierId: PropertyId = statement.mainsnak.property === 'P69' ? 'P582' : 'P585';
+	let qualifierId: PropertyId;
+	switch ( statement.mainsnak.property ) {
+		case 'P512':
+		case 'P803':
+			qualifierId = 'P580';
+			break;
+
+		case 'P69':
+			qualifierId = 'P582';
+			break;
+
+		default:
+			qualifierId = 'P585';
+	}
 
 	if ( statement.qualifiers?.[ qualifierId ] ) {
 		return statement;
