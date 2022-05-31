@@ -235,9 +235,12 @@ export async function canExportItem( propertyId: PropertyId, wikidataStatements:
 			invalidValues.add( localValue.id );
 		}
 		for ( let j = 0; j < wikidataStatements.length; j++ ) {
-			const wikidataValue: ItemValue = wikidataStatements[ j ].mainsnak.datavalue.value as ItemValue;
-			alreadyExistingItems[ propertyId ].push( wikidataValue.id );
-			if ( localValue.id === wikidataValue.id ) {
+			const existingValue: ItemValue = wikidataStatements[ j ].mainsnak.datavalue?.value as ItemValue | undefined;
+			if ( existingValue?.id === undefined ) {
+				continue;
+			}
+			alreadyExistingItems[ propertyId ].push( existingValue.id );
+			if ( localValue.id === existingValue.id ) {
 				invalidValues.add( localValue.id );
 			}
 		}
