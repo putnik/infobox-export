@@ -1,14 +1,14 @@
 {
 	"re-circa": "(?:~|≈|[Aa]pie)",
 	"re-century": "^([IVXivx]{1,5})\\s*(?:amžius|a\\.)?$",
-	"re-month-dot-year": "^(\\d{1,2})\\.(\\d{3,4})(?:\\s*m\\.)?$",
+	"re-month-dot-year": "^(\\d{1,2})\\.((?:[12]\\d|[1-9])\\d{2})(?:\\s*m\\.)?$",
 	"re-dates": [
 		{"re": "(?<y>\\d{2,4})\\s*m\\.\\s+(?<mm>%months%)\\s+(?<d>\\d{1,2})\\s*d\\.", "flags": "i"}
 	],
-	"re-dot-date": "^(\\d{1,2})\\.(\\d{1,2})\\.(\\d{2,4})(?:\\s*m\\.?)?$",
-	"re-decade": "(\\d{3,4})-as",
+	"re-dot-date": "^(\\d{1,2})\\.(\\d{1,2})\\.((?:[12]\\d|[1-9])\\d{2})(?:\\s*m\\.?)?$",
+	"re-decade": "((?:[12]\\d|[1-9])\\d{2})-as",
 	"re-year-postfix": "\\s+(m\\.?)$",
-	"re-since-year": "(\\d{4})\\s*(?:m\\.)?",
+	"re-since-year": "((?:[12]\\d|[1-9])\\d{2})\\s*(?:m\\.)?",
 	"re-bce": "pr\\.\\s+Kr\\.?\\s*e\\.?\\s*$",
 	"re-ce": "Kr\\.?\\s*e\\.?\\s*$",
 	"re-present": "^(?:iki )?(?:(?:esamasis|šiais)\\s+laikai?s|dabar|nau)$",

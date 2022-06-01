@@ -2,10 +2,10 @@
 	"re-circa": "(?:~|≈|təq\\.|təqribən|təx\\.|təxminən)",
 	"re-century": "^([IVXivx]{1,5})\\s*(əsr?|ə\\.)?$",
 	"re-dates": [
-		"(?<d>\\d{1,2})\\s+(?<mm>%months-gen%)[,\\s]+(?<y>[12]\\d{3})\\.?$"
+		"(?<d>\\d{1,2})\\s+(?<mm>%months-gen%)[,\\s]+(?<y>(?:[12]\\d|[1-9])\\d{2})\\.?$"
 	],
-	"re-decade": "(\\d{3,4})-[lər]",
-	"re-since-year": "(\\d{4})",
+	"re-decade": "((?:[12]\\d|[1-9])\\d{2})-[lər]",
+	"re-since-year": "((?:[12]\\d|[1-9])\\d{2})",
 	"re-bce": "b\\.\\e\\.\\ə\\.?\\s*$",
 	"re-ce": "b\\.\\s\\e\\.?\\s*$",
 	"re-present": "^(?:hazırkı\\.|hazırkı|indiki)\\s+vaxt$",
