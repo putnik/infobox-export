@@ -149,7 +149,7 @@ export async function parseItem( context: Context ): Promise<Statement[]> {
 				if ( $link.hasClass( 'extiw' ) ) {
 					const wikiLinkMatch: RegExpMatchArray | null = $links[ j ].getAttribute( 'href' )
 						.match( /^https:\/\/([a-z-]+)\.(wik[^.]+)\./ );
-					if ( wikiLinkMatch && wikiLinkMatch[ 2 ] !== 'wikimedia' ) {
+					if ( wikiLinkMatch && wikiLinkMatch[ 2 ] !== 'wikimedia' && wikiLinkMatch[ 2 ] !== 'wikidata' ) {
 						value.language = wikiLinkMatch[ 1 ];
 						value.project = wikiLinkMatch[ 1 ] + wikiLinkMatch[ 2 ].replace( 'wikipedia', 'wiki' );
 					}
