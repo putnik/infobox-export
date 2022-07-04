@@ -1,5 +1,5 @@
 {
-	"re-circa": "(?:~|≈|[Aa]pie)",
+	"re-circa": "~|≈|[Aa]pie",
 	"re-century": "^([IVXivx]{1,5})\\s*(?:amžius|a\\.)?$",
 	"re-month-dot-year": "^(\\d{1,2})\\.((?:[12]\\d|[1-9])\\d{2})(?:\\s*m\\.)?$",
 	"re-dates": [

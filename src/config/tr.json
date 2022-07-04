@@ -1,5 +1,5 @@
 {
-	"re-circa": "(?:~|≈|y\\.|yaklaşık)",
+	"re-circa": "~|≈|y\\.|yaklaşık",
 	"re-century": "^([IVXivx]{1,5})\\s*(yüzyıl|y\\.)?$",
 	"re-10_3": "bin",
 	"re-10_6": "milyon",

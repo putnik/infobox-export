@@ -1,5 +1,5 @@
 {
-	"re-circa": "(?:~|≈|c\\.|circa)",
+	"re-circa": "~|≈|c\\.|circa",
 	"re-century": "^([IVXivx]{1,5})\\s*(century|c\\.)?$",
 	"re-iso-date": "^([012]\\d{3})-(\\d{1,2})-(\\d{1,2})",
 	"re-month-year": "^(%months%)\\s+((?:[12]\\d|[1-9])\\d{2})$",

@@ -6,7 +6,8 @@ const config = {
 	're-10_3': /thousand/,
 	're-10_6': /million/,
 	're-10_9': /billion/,
-	're-10_12': /trillion/
+	're-10_12': /trillion/,
+	're-circa': /~|≈|c\.|circa/
 };
 
 describe( 'parseRawQuantity()', function () {
@@ -130,6 +131,24 @@ describe( 'parseRawQuantity()', function () {
 				const result = parseRawQuantity( config, '1234.56×10-3' );
 				assert.deepStrictEqual( result, {
 					amount: '1.23456',
+					unit: '1'
+				} );
+			} );
+		} );
+		describe( 'for prefix with dot', function () {
+			it( 'should keep value as integer', function () {
+				const result = parseRawQuantity( config, 'c. 500' );
+				assert.deepStrictEqual( result, {
+					amount: '500',
+					unit: '1'
+				} );
+			} );
+			it( 'should keep ranged values as integers', function () {
+				const result = parseRawQuantity( config, 'c. 500 - 700' );
+				assert.deepStrictEqual( result, {
+					amount: '600',
+					lowerBound: '500',
+					upperBound: '700',
 					unit: '1'
 				} );
 			} );

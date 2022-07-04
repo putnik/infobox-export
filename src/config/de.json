@@ -1,5 +1,5 @@
 {
-	"re-circa": "(?:~|≈|ca\\.|circa)",
+	"re-circa": "~|≈|ca\\.|circa",
 	"re-century": "^([IVXivx]{1,5})\\s*(Jahrhundert|Jhd\\.)?$",
 	"re-dates": [
 		"(?<d>\\d{1,2})\\.\\s+(?<mm>%months-gen%)[,\\s]+(?<y>(?:[12]\\d|[1-9])\\d{2})\\.?"

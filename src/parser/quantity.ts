@@ -28,6 +28,13 @@ function numberToString( value: number, integral: number, fractional: number, ma
 	return ( integralMultiplier * value ).toFixed( integral + fractional ).replace( /0\./, '0.' + new Array( -magnitude - integral + 1 ).join( '0' ) );
 }
 
+export function parseNumber( value: string ): number {
+	value = value
+		.replace( /[^\d.+-]/g, '' )
+		.replace( /^\./, '' );
+	return parseFloat( value );
+}
+
 /**
  * Parsing the number and (optionally) the accuracy
  */
@@ -63,18 +70,18 @@ export function parseRawQuantity( config: any, text: string, forceInteger?: bool
 	const interval: string[] = decimals[ 0 ].split( '-' );
 	if ( decimals.length === 1 &&
 		interval.length === 2 &&
-		interval[ 0 ].replace( /[^\d]/g, '' ).length !== 0 &&
-		interval[ 1 ].replace( /[^\d]/g, '' ).length !== 0
+		interval[ 0 ].replace( /\D/g, '' ).length !== 0 &&
+		interval[ 1 ].replace( /\D/g, '' ).length !== 0
 	) {
-		value.lowerBound = interval[ 0 ].replace( /[^0-9.+-]/g, '' );
-		value.upperBound = interval[ 1 ].replace( /[^0-9.+-]/g, '' );
-		const parts: RegExpMatchArray | null = value.lowerBound.match( /(\d+)\.(\d+)/ );
-		let fractional: number = parts ? parts[ 2 ].length : 0;
-		const upperBound: number = parseFloat( value.upperBound );
-		const lowerBound: number = parseFloat( value.lowerBound );
+		const lowerBound: number = parseNumber( interval[ 0 ] );
+		const upperBound: number = parseNumber( interval[ 1 ] );
 		if ( upperBound < lowerBound ) {
 			return null;
 		}
+		const parts: RegExpMatchArray | null = interval[ 0 ]
+			.replace( /[^\d.+-]/g, '' )
+			.match( /(\d+)\.(\d+)/ );
+		let fractional: number = parts ? parts[ 2 ].length : 0;
 		const amount: number = ( upperBound + lowerBound ) / 2;
 		const integral: number = parts ? parts[ 1 ].length : amount.toString().length;
 		value.lowerBound = numberToString( lowerBound, integral, fractional, magnitude );
@@ -86,7 +93,7 @@ export function parseRawQuantity( config: any, text: string, forceInteger?: bool
 		return value;
 	}
 
-	const amount: number = parseFloat( decimals[ 0 ].replace( /[^0-9.+-]/g, '' ) );
+	const amount: number = parseNumber( decimals[ 0 ] );
 	if ( isNaN( amount ) ) {
 		return null;
 	}
@@ -98,7 +105,7 @@ export function parseRawQuantity( config: any, text: string, forceInteger?: bool
 	value.amount = numberToString( amount, integral, fractional, magnitude );
 
 	if ( decimals.length > 1 ) {
-		bound = parseFloat( decimals[ 1 ].replace( /[^0-9.+-]/g, '' ) );
+		bound = parseNumber( decimals[ 1 ] );
 	}
 
 	if ( !isNaN( bound ) ) {
@@ -264,9 +271,9 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 		statement = await addQualifiers( context.$field, statement );
 
 		if ( ( property?.constraints?.qualifier || [] ).includes( 'P585' ) ) {
-			let yearMatch: string[] = context.text.match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
+			let yearMatch: string[] = context.text.match( /\(([^)]*[12]\s?\d{3})[,)\s]/ );
 			if ( !yearMatch ) {
-				yearMatch = thText.match( /\(([^)]*[12]\s?\d\d\d)[,)\s]/ );
+				yearMatch = thText.match( /\(([^)]*[12]\s?\d{3})[,)\s]/ );
 			}
 			if ( yearMatch ) {
 				const extractedDate: TimeValue | void = createTimeValue( yearMatch[ 1 ].replace( /(\d)\s(\d)/, '$1$2' ) );
@@ -322,7 +329,7 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 
 export function canExportQuantity( statements: Statement[], $field: JQuery ): boolean {
 	for ( let i = 0; i < Object.keys( statements ).length; i++ ) {
-		const parsedTime: TimeValue | void = createTimeValue( ( $field.text().match( /\(([^)]*\d\d\d\d)[,)\s]/ ) || [] )[ 1 ] );
+		const parsedTime: TimeValue | void = createTimeValue( ( $field.text().match( /\(([^)]*\d{4})[,)\s]/ ) || [] )[ 1 ] );
 		if ( parsedTime && statements[ i ].qualifiers?.P585 ) {
 			const pointInTimeValue: TimeValue = statements[ i ].qualifiers.P585[ 0 ].datavalue.value as TimeValue;
 			if ( parsedTime.precision < pointInTimeValue.precision ) {
