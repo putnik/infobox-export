@@ -15,6 +15,9 @@
 	"rules": {
 		"compat/compat": "off",
 		"eqeqeq": "off",
+		"es-x/no-optional-catch-binding": "off",
+		"es-x/no-optional-chaining": "off",
+		"es-x/no-symbol-prototype-description": "off",
 		"jsdoc/require-param": "off",
 		"jsdoc/require-param-type": "off",
 		"jsdoc/require-returns": "off",
