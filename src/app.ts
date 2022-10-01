@@ -174,7 +174,16 @@ export async function init(): Promise<any> {
 		return;
 	}
 
-	const $infobox: JQuery = $( '.infobox, .sinottico, table.toccolours, table.vcard, table.vevent, .mw-parser-output > table:first-child' );
+	const infoboxSelectors: string[] = [
+		'.infobox',
+		'.infocaseta', // rowiki
+		'.sinottico', // itwiki
+		'table.toccolours',
+		'table.vcard',
+		'table.vevent',
+		'.mw-parser-output > table:first-child'
+	];
+	const $infobox: JQuery = $( infoboxSelectors.join( ',' ) );
 	if ( !$infobox.length ) {
 		return;
 	}
