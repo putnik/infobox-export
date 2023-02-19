@@ -124,7 +124,7 @@ async function clickEvent(): Promise<void> {
 }
 
 async function loadDefaultReference(): Promise<void> {
-	if ( getConfig( 'references.P143' ) !== undefined && getConfig( 'references.P4656' ) !== undefined ) {
+	if ( getConfig( 'references.P143' ) !== undefined ) {
 		return;
 	}
 
@@ -142,17 +142,6 @@ async function loadDefaultReference(): Promise<void> {
 		datavalue: {
 			type: 'wikibase-entityid',
 			value: { id: projectId }
-		}
-	} ] );
-
-	// Add a link to the current version of the page as "Wikimedia import URL"
-	setConfig( 'references.P4656', [ {
-		property: 'P4656',
-		datatype: 'url',
-		snaktype: 'value',
-		datavalue: {
-			type: 'string',
-			value: 'https://' + location.host + '/?oldid=' + mw.config.get( 'wgRevisionId' )
 		}
 	} ] );
 

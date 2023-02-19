@@ -1,4 +1,4 @@
-import { Reference } from '../types/wikidata/main';
+import { Reference, SnaksObject } from '../types/wikidata/main';
 import { getConfig } from '../config';
 import { createTimeValue } from './time';
 
@@ -82,6 +82,19 @@ export function getReferences( $field: JQuery ): Reference[] {
 			}
 		}
 	}
-	references.push( { snaks: getConfig( 'references' ) } );
+
+	const mw = require( 'mw' );
+	const defaultReferenceSnaks: SnaksObject = getConfig( 'references' );
+	defaultReferenceSnaks.P4656 = [ {
+		property: 'P4656',
+		datatype: 'url',
+		snaktype: 'value',
+		datavalue: {
+			type: 'string',
+			value: 'https://' + location.host + '/?oldid=' + mw.config.get( 'wgRevisionId' )
+		}
+	} ];
+	references.push( { snaks: defaultReferenceSnaks } );
+
 	return references;
 }
