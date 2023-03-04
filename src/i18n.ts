@@ -1,5 +1,5 @@
+import type { Translations } from './types/main';
 import { userLanguage } from './languages';
-import { Translations } from './types/main';
 
 const i18n: Translations = {
 	az: require( './i18n/az.json' ),

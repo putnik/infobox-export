@@ -1,3 +1,7 @@
+import type { ApiResponse, SparqlResponse } from './types/api';
+import type { Context, Property } from './types/main';
+import type { Statement } from './types/wikidata/main';
+import type { DataType, ItemId, PropertyId } from './types/wikidata/types';
 import { sparqlRequest, wdApiRequest } from './api';
 import { getItemPropertyValues, setBaseRevId } from './wikidata';
 import {
@@ -10,12 +14,8 @@ import { getI18n } from './i18n';
 import { getConfig, getOrLoadProperty, loadConfig, loadProperties, saveConfig, setConfig } from './config';
 import { showDialog } from './ui';
 import { loadMonths } from './months';
-import { ApiResponse, SparqlResponse } from './types/api';
 import { prepareQuantity } from './parser/quantity';
-import { Statement } from './types/wikidata/main';
-import { DataType, ItemId, PropertyId } from './types/wikidata/types';
 import { prepareTime } from './parser/time';
-import { Context, Property } from './types/main';
 import { parseItem } from './parser/item';
 import { prepareUrl } from './parser/url';
 import { prepareString } from './parser/string';

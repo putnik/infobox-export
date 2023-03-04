@@ -1,7 +1,7 @@
-import { Context, Property } from '../types/main';
-import { Reference, Snak, Statement } from '../types/wikidata/main';
+import type { Context, Property } from '../types/main';
+import type { Reference, Snak, Statement } from '../types/wikidata/main';
 import { getReferences } from './utils';
-import { StringDataValue } from '../types/wikidata/datavalues';
+import type { StringDataValue } from '../types/wikidata/datavalues';
 import { convertSnakToStatement } from '../wikidata';
 import { getProperty } from '../config';
 

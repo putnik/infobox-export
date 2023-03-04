@@ -1,5 +1,5 @@
-import { DataType, ItemId, PropertyId, SnakType, Unit } from './wikidata/types';
-import { Reference, SnaksObject } from './wikidata/main';
+import type { DataType, ItemId, PropertyId, SnakType, Unit } from './wikidata/types';
+import type { Reference, SnaksObject } from './wikidata/main';
 
 export interface KeyValue {
 	[ key: string ]: any;

@@ -1,4 +1,4 @@
-import { KeyValue } from './main';
+import type { KeyValue } from './main';
 
 export type ApiResponse = {
 	error?: {

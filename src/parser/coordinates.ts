@@ -1,9 +1,9 @@
-import { Context } from '../types/main';
-import { Reference, Snak, Statement } from '../types/wikidata/main';
-import { GlobeCoordinateDataValue } from '../types/wikidata/datavalues';
+import type { Context } from '../types/main';
+import type { Reference, Snak, Statement } from '../types/wikidata/main';
+import type { GlobeCoordinateDataValue } from '../types/wikidata/datavalues';
 import { convertSnakToStatement } from '../wikidata';
-import { GlobeCoordinateValue } from '../types/wikidata/values';
-import { Entity, PropertyId } from '../types/wikidata/types';
+import type { GlobeCoordinateValue } from '../types/wikidata/values';
+import type { Entity, PropertyId } from '../types/wikidata/types';
 import { getReferences } from './utils';
 
 export const earthGlobe: Entity = 'http://www.wikidata.org/entity/Q2';

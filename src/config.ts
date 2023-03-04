@@ -1,7 +1,11 @@
 import { getMonths, getMonthsGen } from './months';
+import type { ApiResponse, SparqlUnitBindings, SparqlUnitsResponse } from './types/api';
+import type { Config, KeyValue, Property, Translations, Type, UnitsData } from './types/main';
+import type { ItemDataValue, PropertyDataValue, StringDataValue } from './types/wikidata/datavalues';
+import type { Snak, Statement } from './types/wikidata/main';
+import type { ItemId, PropertyId } from './types/wikidata/types';
+import type { ItemValue, PropertyValue } from './types/wikidata/values';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
-import { Config, KeyValue, Property, Translations, Type, UnitsData } from './types/main';
-import { ApiResponse, SparqlUnitBindings, SparqlUnitsResponse } from './types/api';
 import { sparqlRequest, wdApiRequest } from './api';
 import {
 	bulkInsertIndexedDB,
@@ -15,10 +19,6 @@ import {
 	unique,
 	uppercaseFirst
 } from './utils';
-import { ItemId, PropertyId } from './types/wikidata/types';
-import { Snak, Statement } from './types/wikidata/main';
-import { ItemDataValue, PropertyDataValue, StringDataValue } from './types/wikidata/datavalues';
-import { ItemValue, PropertyValue } from './types/wikidata/values';
 
 const mw = require( 'mw' );
 declare let __VERSION__: string;

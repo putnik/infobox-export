@@ -1,12 +1,12 @@
 import { getLabelValue, getRandomHex, clone, unique } from './utils';
 import { getWdApi, wdApiRequest } from './api';
 import { allLanguages, contentLanguage, userLanguage } from './languages';
-import { ItemLabel, KeyValue, Title } from './types/main';
-import { ItemValue } from './types/wikidata/values';
-import { ApiResponse } from './types/api';
-import { Entity, ItemId, PropertyId } from './types/wikidata/types';
-import { Statement, Snak, Reference, ClaimsObject } from './types/wikidata/main';
-import { ItemDataValue } from './types/wikidata/datavalues';
+import type { ItemLabel, KeyValue, Title } from './types/main';
+import type { ItemValue } from './types/wikidata/values';
+import type { ApiResponse } from './types/api';
+import type { Entity, ItemId, PropertyId } from './types/wikidata/types';
+import type { Statement, Snak, Reference, ClaimsObject } from './types/wikidata/main';
+import type { ItemDataValue } from './types/wikidata/datavalues';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );

@@ -1,4 +1,4 @@
-import { Reference, SnaksObject } from '../types/wikidata/main';
+import type { Reference, SnaksObject } from '../types/wikidata/main';
 import { getConfig } from '../config';
 import { createTimeValue } from './time';
 

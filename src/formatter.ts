@@ -1,11 +1,11 @@
+import type { ItemLabel, KeyValue, Property } from './types/main';
+import type { Reference, Snak } from './types/wikidata/main';
+import type { PropertyId } from './types/wikidata/types';
+import type { ExternalIdValue, ItemValue, StringValue, TimeValue, UrlValue } from './types/wikidata/values';
 import { getI18n } from './i18n';
 import { getItemLabel, wbFormatValue } from './wikidata';
-import { ExternalIdValue, ItemValue, StringValue, TimeValue, UrlValue } from './types/wikidata/values';
-import { ItemLabel, KeyValue, Property } from './types/main';
 import { userLanguage } from './languages';
 import { getConfig, getOrLoadProperty } from './config';
-import { Reference, Snak } from './types/wikidata/main';
-import { PropertyId } from './types/wikidata/types';
 
 function getRefSup( url: string, text: string ): JQuery {
 	const $link: JQuery = $( '<a>' )

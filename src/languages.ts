@@ -1,8 +1,8 @@
+import type { Statement } from './types/wikidata/main';
+import type { ItemId } from './types/wikidata/types';
+import type { MonolingualTextValue } from './types/wikidata/values';
 import { unique } from './utils';
-import { MonolingualTextValue } from './types/wikidata/values';
-import { Statement } from './types/wikidata/main';
 import { generateItemSnak } from './wikidata';
-import { ItemId } from './types/wikidata/types';
 
 const mw = require( 'mw' );
 

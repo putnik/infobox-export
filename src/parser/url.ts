@@ -3,11 +3,11 @@ import { getReferences } from './utils';
 import { sparqlRequest } from '../api';
 import { addQualifierValue } from '../parser';
 import { convertSnakToStatement } from '../wikidata';
-import { SparqlResponse } from '../types/api';
-import { Context, KeyValue } from '../types/main';
-import { Reference, Snak, Statement } from '../types/wikidata/main';
-import { EntityIdValue } from '../types/wikidata/values';
-import { UrlDataValue } from '../types/wikidata/datavalues';
+import type { SparqlResponse } from '../types/api';
+import type { Context, KeyValue } from '../types/main';
+import type { Reference, Snak, Statement } from '../types/wikidata/main';
+import type { EntityIdValue } from '../types/wikidata/values';
+import type { UrlDataValue } from '../types/wikidata/datavalues';
 
 const webArchivePrefix = /^https?:\/\/web\.archive\.org\/web\/(\d{4})(\d{2})(\d{2})\d+\//;
 

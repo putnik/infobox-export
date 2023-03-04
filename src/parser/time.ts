@@ -1,12 +1,12 @@
-import { Reference, Snak, Statement } from '../types/wikidata/main';
+import type { Reference, Snak, Statement } from '../types/wikidata/main';
 import { getConfig } from '../config';
-import { TimeValue, Value } from '../types/wikidata/values';
+import type { TimeValue, Value } from '../types/wikidata/values';
 import { convertSnakToStatement, createNovalueSnak, grigorianCalendar, julianCalendar } from '../wikidata';
-import { TimeDataValue } from '../types/wikidata/datavalues';
+import type { TimeDataValue } from '../types/wikidata/datavalues';
 import { getReferences } from './utils';
-import { Context, KeyValue, TimeGuess } from '../types/main';
+import type { Context, KeyValue, TimeGuess } from '../types/main';
 import { getMonths, getMonthsGen } from '../months';
-import { PropertyId } from '../types/wikidata/types';
+import type { PropertyId } from '../types/wikidata/types';
 
 const startEndPropertyMapping: KeyValue = {
 	P571: 'P576',

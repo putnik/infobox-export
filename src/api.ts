@@ -1,5 +1,5 @@
-import { KeyValue } from './types/main';
-import { ApiResponse, MediaWikiApi, SparqlResponse } from './types/api';
+import type { KeyValue } from './types/main';
+import type { ApiResponse, MediaWikiApi, SparqlResponse } from './types/api';
 
 let api: any = null;
 let wdApi: any = null;

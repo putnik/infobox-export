@@ -1,9 +1,9 @@
+import type { KeyValue, Property, Type } from './types/main';
+import type { ItemId, PropertyId, Unit } from './types/wikidata/types';
+
 /**
  * Returns an array of elements with duplicate values deleted
  */
-import { KeyValue, Property, Type } from './types/main';
-import { ItemId, PropertyId, Unit } from './types/wikidata/types';
-
 export function unique( array: any[] ): any[] {
 	const $ = require( 'jquery' );
 	return $.grep( array, function ( el: any, index: number ) {

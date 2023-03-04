@@ -1,18 +1,18 @@
-import { getOrLoadProperty, getProperty } from './config';
-import { checkForMissedLanguage, contentLanguage } from './languages';
-import { convertSnakToStatement } from './wikidata';
-import { sparqlRequest } from './api';
-import { Context, KeyValue, Property } from './types/main';
-import { MonolingualTextValue, TimeValue, Value } from './types/wikidata/values';
-import { SparqlResponse } from './types/api';
-import { canExportQuantity } from './parser/quantity';
-import { Reference, Snak, Statement } from './types/wikidata/main';
-import { DataType, PropertyId, typesMapping } from './types/wikidata/types';
-import {
+import type { SparqlResponse } from './types/api';
+import type { Context, KeyValue, Property } from './types/main';
+import type {
 	CommonsMediaDataValue,
 	ExternalIdDataValue,
 	MonolingualTextDataValue
 } from './types/wikidata/datavalues';
+import type { Reference, Snak, Statement } from './types/wikidata/main';
+import type { MonolingualTextValue, TimeValue, Value } from './types/wikidata/values';
+import { getOrLoadProperty, getProperty } from './config';
+import { checkForMissedLanguage, contentLanguage } from './languages';
+import { convertSnakToStatement } from './wikidata';
+import { sparqlRequest } from './api';
+import { canExportQuantity } from './parser/quantity';
+import { DataType, PropertyId, typesMapping } from './types/wikidata/types';
 import { getReferences } from './parser/utils';
 import { createTimeValue, prepareTime } from './parser/time';
 import { canExportItem, parseItem } from './parser/item';

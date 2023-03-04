@@ -1,15 +1,15 @@
-import { Context, FixedValue, KeyValue, Property, Title } from '../types/main';
-import { Reference, Snak, SnaksObject, Statement } from '../types/wikidata/main';
+import type { Context, FixedValue, KeyValue, Property, Title } from '../types/main';
+import type { Reference, Snak, SnaksObject, Statement } from '../types/wikidata/main';
 import { getConfig, getProperty } from '../config';
 import { getReferences } from './utils';
 import { convertSnakToStatement, generateItemSnak, getStatements } from '../wikidata';
 import { lowercaseFirst, unique, uppercaseFirst } from '../utils';
 import { contentLanguage } from '../languages';
-import { ItemValue } from '../types/wikidata/values';
+import type { ItemValue } from '../types/wikidata/values';
 import { prepareTime } from './time';
-import { ApiResponse, SparqlResponse } from '../types/api';
+import type { ApiResponse, SparqlResponse } from '../types/api';
 import { apiRequest, sparqlRequest } from '../api';
-import { ItemId, PropertyId } from '../types/wikidata/types';
+import type { ItemId, PropertyId } from '../types/wikidata/types';
 import { addPointInTimeQualifier, addQualifiers } from '../parser';
 
 export const alreadyExistingItems: KeyValue = {};

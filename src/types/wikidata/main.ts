@@ -1,7 +1,7 @@
-import { DataType, PropertyId, Rank, SnakType } from './types';
-import { DataValue } from './datavalues';
-import { ItemValue } from './values';
-import { Title } from '../main';
+import type { DataType, PropertyId, Rank, SnakType } from './types';
+import type { DataValue } from './datavalues';
+import type { ItemValue } from './values';
+import type { Title } from '../main';
 
 export interface Snak {
 	snaktype: SnakType;

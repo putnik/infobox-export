@@ -1,6 +1,6 @@
+import type { KeyValue } from './types/main';
 import { getMessages } from './api';
 import { contentLanguage } from './languages';
-import { KeyValue } from './types/main';
 import { getConfig, saveConfig, setConfig } from './config';
 
 let months: string[] = [

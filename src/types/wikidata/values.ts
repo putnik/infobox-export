@@ -1,4 +1,4 @@
-import { Entity, ItemId, PropertyId, Unit } from './types';
+import type { Entity, ItemId, PropertyId, Unit } from './types';
 
 export type CommonsMediaValue = string;
 

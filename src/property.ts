@@ -1,9 +1,9 @@
-import { ItemId, PropertyId } from './types/wikidata/types';
-import { SparqlBindings, SparqlResponse } from './types/api';
+import type { SparqlBindings, SparqlResponse } from './types/api';
+import type { Property, Type } from './types/main';
+import type { ClaimsObject } from './types/wikidata/main';
+import type { ItemId, PropertyId } from './types/wikidata/types';
 import { sparqlRequest } from './api';
 import { getProperties, getType, loadProperties, setTypes } from './config';
-import { Property, Type } from './types/main';
-import { ClaimsObject } from './types/wikidata/main';
 import { getItemPropertyValues } from './wikidata';
 
 let availablePropertiesSet: Set<PropertyId> | undefined;

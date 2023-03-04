@@ -1,4 +1,4 @@
-import {
+import type {
 	CommonsMediaValue,
 	ExternalIdValue,
 	GlobeCoordinateValue,
@@ -11,7 +11,7 @@ import {
 	UrlValue,
 	Value
 } from './values';
-import { DataValueType } from './types';
+import type { DataValueType } from './types';
 
 export interface DataValue {
 	value: Value;

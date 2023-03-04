@@ -1,4 +1,7 @@
-import { ItemValue } from './types/wikidata/values';
+import type { KeyValue, Property } from './types/main';
+import type { ClaimsObject, Snak, SnaksObject, Statement } from './types/wikidata/main';
+import type { PropertyId } from './types/wikidata/types';
+import type { ItemValue } from './types/wikidata/values';
 
 const $ = require( 'jquery' );
 const mw = require( 'mw' );
@@ -10,9 +13,6 @@ import { getI18n } from './i18n';
 import { clearCache, getConfig, getOrLoadProperty } from './config';
 import { convertStatementsToClaimsObject, createClaim, stringifyStatement } from './wikidata';
 import { formatItemValue, formatReferences, formatSnak } from './formatter';
-import { ClaimsObject, Snak, SnaksObject, Statement } from './types/wikidata/main';
-import { PropertyId } from './types/wikidata/types';
-import { KeyValue, Property } from './types/main';
 import { alreadyExistingItems } from './parser/item';
 import { sleep, unique } from './utils';
 

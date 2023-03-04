@@ -1,11 +1,11 @@
-import { Context, KeyValue, Property } from '../types/main';
+import type { Context, KeyValue, Property } from '../types/main';
 import { getConfig, getOrLoadUnit, getOrLoadProperty, preloadUnits } from '../config';
-import { QuantityValue, TimeValue } from '../types/wikidata/values';
+import type { QuantityValue, TimeValue } from '../types/wikidata/values';
 import { randomEntityGuid, generateItemSnak } from '../wikidata';
 import { addQualifiers } from '../parser';
-import { DataValue } from '../types/wikidata/datavalues';
-import { Reference, Snak, Statement } from '../types/wikidata/main';
-import { ItemId, PropertyId, Unit } from '../types/wikidata/types';
+import type { DataValue } from '../types/wikidata/datavalues';
+import type { Reference, Snak, Statement } from '../types/wikidata/main';
+import type { ItemId, PropertyId, Unit } from '../types/wikidata/types';
 import { createTimeValue } from './time';
 import { getReferences } from './utils';
 
