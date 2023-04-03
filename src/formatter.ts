@@ -67,6 +67,25 @@ export async function formatExternalId( value: ExternalIdValue | StringValue, pr
 	return $label;
 }
 
+export async function formatGlobeCoordinateSnak( snak: Snak ): Promise<JQuery> {
+	const $label: JQuery = await wbFormatValue( snak );
+
+	$label.find( '.mw-kartographer-map img' ).each( function () {
+		const $img: JQuery = $( this );
+		const title: string = location.pathname.replace( '/wiki/', '' );
+
+		$img.attr( 'src', $img.attr( 'src' )
+			.replace( /domain=[^&]+/, 'domain=' + location.host )
+			.replace( /title=[^&]+/, 'title=' + title ) );
+
+		$img.attr( 'srcset', $img.attr( 'srcset' )
+			.replace( /domain=[^&]+/, 'domain=' + location.host )
+			.replace( /title=[^&]+/, 'title=' + title ) );
+	} );
+
+	return $label;
+}
+
 export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
 	const itemLabel: ItemLabel = await getItemLabel( value.id );
 	const $mainLabel: JQuery = $( '<span>' )
@@ -132,6 +151,9 @@ export async function formatSnak( snak: Snak ): Promise<JQuery> {
 		case 'external-id':
 			// ID [link]
 			return formatExternalId( snak.datavalue.value as ExternalIdValue, snak.property );
+
+		case 'globe-coordinate':
+			return formatGlobeCoordinateSnak( snak );
 
 		case 'time':
 			// '''XIV century''' (Julian)
