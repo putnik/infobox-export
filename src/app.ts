@@ -51,6 +51,7 @@ async function parseField( $field: JQuery ): Promise<Statement[]> {
 		$wrapper: $field
 	};
 
+	context.$field.find( 'style' ).remove();
 	context.$field.find( 'sup.reference' ).remove();
 	context.$field.find( '.printonly' ).remove();
 	context.$field.find( '[style*="display:none"]' ).remove();
