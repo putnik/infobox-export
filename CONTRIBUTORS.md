@@ -11,6 +11,7 @@ This page lists all contributors to the gadget. It can be both development and l
 * [Baris6161TURK](https://commons.wikimedia.org/wiki/User:Baris6161TURK)
 * [Kareyac](https://commons.wikimedia.org/wiki/User:Kareyac)
 * [Lilitik22](https://commons.wikimedia.org/wiki/User:Lilitik22)
+* [Taravyvan Adijene](https://commons.wikimedia.org/wiki/User:Taravyvan_Adijene)
 * [Toghrul Rahimli](https://commons.wikimedia.org/wiki/User:Toghrul_Rahimli)
 * [Чаховіч Уладзіслаў](https://commons.wikimedia.org/wiki/User:Чаховіч_Уладзіслаў)
 
