@@ -41,6 +41,7 @@ let config: Config = {
 const i18nConfig: Translations = {
 	az: require( './config/az.json' ),
 	be: require( './config/be.json' ),
+	'be-tarask': require( './config/be-tarask.json' ),
 	de: require( './config/de.json' ),
 	en: require( './config/en.json' ),
 	es: require( './config/es.json' ),

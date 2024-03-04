@@ -4,6 +4,7 @@ import { userLanguage } from './languages';
 const i18n: Translations = {
 	az: require( './i18n/az.json' ),
 	be: require( './i18n/be.json' ),
+	'be-tarask': require( './i18n/be-tarask.json' ),
 	de: require( './i18n/de.json' ),
 	en: require( './i18n/en.json' ),
 	hy: require( './i18n/hy.json' ),
