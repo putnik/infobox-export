@@ -334,7 +334,7 @@ export async function showDialog( statements: Statement[] ) {
 
 	ExtProcessDialog.static.actions = [
 		{ action: 'export', label: getI18n( 'export-button-label' ), flags: [ 'primary', 'progressive' ] },
-		{ label: getI18n( 'cancel-button-label' ), flags: [ 'safe' ] }
+		{ label: getI18n( 'cancel-button-label' ), flags: [ 'safe', 'close' ] }
 	];
 
 	const formPanel = await getFormPanel( statements );
