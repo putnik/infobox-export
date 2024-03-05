@@ -204,11 +204,11 @@ export async function prepareExternalId( context: Context ): Promise<Statement[]
 		return [];
 	}
 
-	const sparql = `SELECT ?item WHERE { ?item wdt:${context.propertyId} "${externalId}" } LIMIT 1`;
+	const sparql = `SELECT ?item WHERE { ?item wdt:${ context.propertyId } "${ externalId }" } LIMIT 1`;
 	const data: SparqlResponse = await sparqlRequest( sparql );
 	if ( data.results.bindings.length ) {
 		const url: string = data.results.bindings[ 0 ].item.value;
-		window.open( `${url}#${context.propertyId}`, '_blank' );
+		window.open( `${ url }#${ context.propertyId }`, '_blank' );
 
 		return [];
 	}

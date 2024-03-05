@@ -54,7 +54,7 @@ async function addLanguageQualifier( statement: Statement, context: Context ): P
 	if ( !Object.keys( codes ).length ) {
 		return;
 	}
-	const sparql: string = `SELECT ?item WHERE { ?item wdt:P218 ?value . FILTER ( ?value IN ("${Object.keys( codes ).join( '","' )}") ) }`;
+	const sparql: string = `SELECT ?item WHERE { ?item wdt:P218 ?value . FILTER ( ?value IN ("${ Object.keys( codes ).join( '","' ) }") ) }`;
 	const data: SparqlResponse = await sparqlRequest( sparql );
 	for ( let i = 0; i < data.results.bindings.length; i++ ) {
 		const langValue: EntityIdValue = {

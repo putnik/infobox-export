@@ -174,7 +174,7 @@ export async function setProperties( properties: Property[] ): Promise<void> {
 	} ) );
 
 	await bulkInsertIndexedDB( propertiesStore, data );
-	console.debug( `${properties.length} properties saved.` );
+	console.debug( `${ properties.length } properties saved.` );
 }
 
 export async function getType( typeId: ItemId ): Promise<Type | undefined> {
@@ -189,7 +189,7 @@ export async function setTypes( types: Type[] ): Promise<void> {
 	} ) );
 
 	await bulkInsertIndexedDB( typesStore, data );
-	console.debug( `${types.length} types saved.` );
+	console.debug( `${ types.length } types saved.` );
 }
 
 export async function getUnit( unitId: ItemId ): Promise<string[] | undefined> {
@@ -205,7 +205,7 @@ export async function setUnits( units: UnitsData ): Promise<void> {
 		expires
 	} ) );
 	await bulkInsertIndexedDB( unitsStore, data );
-	console.debug( `${data.length} units saved.` );
+	console.debug( `${ data.length } units saved.` );
 }
 
 function prepareUnit( unitId: ItemId, unitData: any ): string[] {
@@ -214,8 +214,8 @@ function prepareUnit( unitId: ItemId, unitData: any ): string[] {
 		return [];
 	}
 
-	if ( getI18nConfig( `units.${unitId}` ) ) {
-		unit = getI18nConfig( `units.${unitId}` );
+	if ( getI18nConfig( `units.${ unitId }` ) ) {
+		unit = getI18nConfig( `units.${ unitId }` );
 	}
 
 	if ( unitData.labels && unitData.labels[ contentLanguage ] ) {
@@ -266,13 +266,13 @@ async function loadUnits( units: ItemId[] ): Promise<void> {
 async function loadUnitsSparql( typeIds: ItemId[], onlyUnitIds?: ItemId[] ): Promise<ItemId[]> {
 	const sparql: string = `SELECT DISTINCT (SUBSTR(STR(?unit), 32) as ?unitId) ?unitLabel ?unitAltLabel ?code WITH {
 	SELECT DISTINCT ?unit {
-		${onlyUnitIds?.length ? `VALUES ?unit {wd:${onlyUnitIds.join( ' wd:' )}}.` : ''}
-		VALUES ?type {wd:${typeIds.join( ' wd:' )}}.
+		${ onlyUnitIds?.length ? `VALUES ?unit {wd:${ onlyUnitIds.join( ' wd:' ) }}.` : '' }
+		VALUES ?type {wd:${ typeIds.join( ' wd:' ) }}.
 		?unit wdt:P31?/wdt:P279* ?type.
 	}} AS %Q {
 		INCLUDE %Q
-		OPTIONAL { ?unit wdt:P5061 ?code. FILTER(lang(?code) IN ("${contentLanguage}","mul")) }.
-		SERVICE wikibase:label { bd:serviceParam wikibase:language "${contentLanguage}" }
+		OPTIONAL { ?unit wdt:P5061 ?code. FILTER(lang(?code) IN ("${ contentLanguage }","mul")) }.
+		SERVICE wikibase:label { bd:serviceParam wikibase:language "${ contentLanguage }" }
 	}`;
 	const data: SparqlUnitsResponse = await sparqlRequest( sparql ) as SparqlUnitsResponse;
 	if ( !data?.results?.bindings?.length ) {
@@ -291,7 +291,7 @@ async function loadUnitsSparql( typeIds: ItemId[], onlyUnitIds?: ItemId[] ): Pro
 			}
 			continue;
 		}
-		unit = getI18nConfig( `units.${unitId}` ) || [];
+		unit = getI18nConfig( `units.${ unitId }` ) || [];
 
 		if ( bindings.unitLabel?.value !== unitId ) {
 			unit.push( prepareUnitSearchString( bindings.unitLabel?.value ) );
@@ -307,9 +307,9 @@ async function loadUnitsSparql( typeIds: ItemId[], onlyUnitIds?: ItemId[] ): Pro
 		unitsData[ unitId ] = unit;
 		if ( unit.length ) {
 			unitIds.push( unitId );
-			console.debug( `Unit ${unitId} loaded.` );
+			console.debug( `Unit ${ unitId } loaded.` );
 		} else {
-			console.debug( `Unit ${unitId} has no search strings.` );
+			console.debug( `Unit ${ unitId } has no search strings.` );
 		}
 	}
 	await setUnits( unitsData );
@@ -362,7 +362,7 @@ async function realLoadProperties( propertyIds: PropertyId[] ): Promise<void> {
 		const propertyId: PropertyId = key as PropertyId;
 		const entity: KeyValue = data.entities[ propertyId ];
 		if ( entity.labels === undefined ) {
-			console.debug( `Is property ${propertyId} deleted?` );
+			console.debug( `Is property ${ propertyId } deleted?` );
 			continue;
 		}
 		const label: string = getLabelValue( entity.labels, [ userLanguage, contentLanguage ], propertyId );
@@ -556,7 +556,7 @@ export async function getOrLoadProperty( propertyId: PropertyId ): Promise<Prope
 		await realLoadProperties( [ propertyId ] );
 		result = await getProperty( propertyId );
 		if ( typeof result === 'undefined' ) {
-			console.debug( `Data missed for property ${propertyId}` );
+			console.debug( `Data missed for property ${ propertyId }` );
 			return undefined;
 		}
 	}
@@ -571,7 +571,7 @@ export async function getOrLoadUnit( unitId: ItemId ): Promise<string[] | undefi
 		await loadUnits( [ unitId ] );
 		result = await getUnit( unitId );
 		if ( typeof result === 'undefined' ) {
-			console.debug( `Data missed for unit ${unitId}` );
+			console.debug( `Data missed for unit ${ unitId }` );
 		}
 	}
 

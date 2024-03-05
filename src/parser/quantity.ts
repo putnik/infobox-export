@@ -190,22 +190,22 @@ async function recognizeUnits( text: string, units: KeyValue, label?: string ): 
 			let expr = search[ j ];
 			if ( search[ j ].charAt( 0 ) !== '^' ) {
 				if ( search[ j ].length < 5 ) {
-					expr = `^${expr}|[\\d\\s\\.]${expr}\\.?$`;
+					expr = `^${ expr }|[\\d\\s\\.]${ expr }\\.?$`;
 				} else {
-					expr = `[\\d\\s\\.]${expr}`;
+					expr = `[\\d\\s\\.]${ expr }`;
 				}
 			}
 			if ( text.match( new RegExp( expr ) ) ) {
-				result.push( `http://www.wikidata.org/entity/${itemId}` );
+				result.push( `http://www.wikidata.org/entity/${ itemId }` );
 				break;
 			}
 
 			if ( search[ j ].charAt( 0 ) === '^' || label === undefined ) {
 				continue;
 			}
-			const labelRegExp = new RegExp( `\\s${search[ j ]}:?$` );
+			const labelRegExp = new RegExp( `\\s${ search[ j ] }:?$` );
 			if ( label.match( labelRegExp ) ) {
-				result.push( `http://www.wikidata.org/entity/${itemId}` );
+				result.push( `http://www.wikidata.org/entity/${ itemId }` );
 				break;
 			}
 		}
@@ -304,7 +304,7 @@ export async function prepareQuantity( context: Context ): Promise<Statement[]> 
 					const supportedProperty: Property | undefined = await getOrLoadProperty( supportedProperties[ j ] );
 					const units: ItemId[] = supportedProperty?.units || [];
 					if ( units.length === 1 ) {
-						qualifierQuantity.unit = `http://www.wikidata.org/entity/${units[ 0 ]}`;
+						qualifierQuantity.unit = `http://www.wikidata.org/entity/${ units[ 0 ] }`;
 						if ( !statement.qualifiers ) {
 							statement.qualifiers = {};
 						}

@@ -12,7 +12,7 @@ function getRefSup( url: string, text: string ): JQuery {
 		.attr( 'href', url )
 		.attr( 'rel', 'noopener noreferrer' )
 		.attr( 'target', '_blank' )
-		.text( `[${text}]` );
+		.text( `[${ text }]` );
 	return $( '<sup>' )
 		.addClass( 'infobox-export-sup' )
 		.append( $link );
@@ -91,7 +91,7 @@ export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
 	const $mainLabel: JQuery = $( '<span>' )
 		.addClass( 'infobox-export-main-label' )
 		.text( itemLabel?.label || '' );
-	const $wdLink: JQuery = getRefSup( `https://wikidata.org/wiki/${value.id}`, 'd' );
+	const $wdLink: JQuery = getRefSup( `https://wikidata.org/wiki/${ value.id }`, 'd' );
 	const $label: JQuery = $( '<span>' ).append( $mainLabel, $wdLink );
 	if ( itemLabel?.description ) {
 		$label.append( $( '<span>' ).text( ' — ' + itemLabel.description ) );
@@ -106,7 +106,7 @@ function formatTimeValue( value: TimeValue ): JQuery {
 	let dateString: string;
 	if ( value.precision === 7 ) {
 		const century: number = Math.floor( ( parseInt( value.time.slice( 1, 5 ), 10 ) - 1 ) / 100 );
-		dateString = getConfig( `centuries.${century}` ) + getI18n( 'age-postfix' ) + bceMark;
+		dateString = getConfig( `centuries.${ century }` ) + getI18n( 'age-postfix' ) + bceMark;
 	} else {
 		const options: KeyValue = {
 			timeZone: 'UTC'

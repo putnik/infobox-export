@@ -1,6 +1,6 @@
-export type ItemId = `Q${number}`
-export type PropertyId = `P${number}`
-export type Entity = `http://www.wikidata.org/entity/${ItemId}`
+export type ItemId = `Q${ number }`
+export type PropertyId = `P${ number }`
+export type Entity = `http://www.wikidata.org/entity/${ ItemId }`
 export type Unit = Entity | '1';
 
 export type Rank = 'normal' | 'preferred' | 'deprecated';

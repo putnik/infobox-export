@@ -49,7 +49,7 @@ async function getPropertyFieldset( propertyId: PropertyId, statements: Statemen
 	const property: Property | undefined = await getOrLoadProperty( propertyId );
 	const label: string = property?.label || propertyId;
 	const $labelLink: JQuery = $( '<a>' )
-		.attr( 'href', `https://wikidata.org/wiki/Property:${propertyId}` )
+		.attr( 'href', `https://wikidata.org/wiki/Property:${ propertyId }` )
 		.attr( 'rel', 'noopener noreferrer' )
 		.attr( 'target', '_blank' )
 		.text( label );
@@ -291,7 +291,7 @@ async function createClaims( statements: Statement[] ): Promise<void> {
 	propertyIds = unique( propertyIds );
 	for ( const i in propertyIds ) {
 		const propertyId: PropertyId = propertyIds[ i ];
-		$( `.no-wikidata[data-wikidata-property-id=${propertyId}]` )
+		$( `.no-wikidata[data-wikidata-property-id=${ propertyId }]` )
 			.removeClass( 'no-wikidata' )
 			.off( 'dblclick' ); // FIXME: disable only clickEvent
 	}

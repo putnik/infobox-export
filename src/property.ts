@@ -45,7 +45,7 @@ export async function preloadAvailableProperties( typeIds: ItemId[] ): Promise<v
 	for ( const typeId of typeIdsToQuery ) {
 		const sparql: string = `SELECT DISTINCT (SUBSTR(STR(?property), 32) as ?pid) {
 			?property rdf:type wikibase:Property.
-			VALUES ?supportedTypes {wikibase:${supportedTypes.join( ' wikibase:' )}}.
+			VALUES ?supportedTypes {wikibase:${ supportedTypes.join( ' wikibase:' ) }}.
 			?property  wikibase:propertyType ?supportedTypes.
 			?property p:P2302 ?scopeConstraint.
 			?scopeConstraint ps:P2302 wd:Q53869507;
@@ -57,7 +57,7 @@ export async function preloadAvailableProperties( typeIds: ItemId[] ): Promise<v
 				FILTER ( ?class != wd:Q29934200 )
 			}
 			FILTER( IF ( BOUND(?class),
-				EXISTS { wd:${typeId} wdt:P279* ?class. },
+				EXISTS { wd:${ typeId } wdt:P279* ?class. },
 				NOT EXISTS { ?property wikibase:propertyType wikibase:ExternalId }
 			) )
 		}`;
