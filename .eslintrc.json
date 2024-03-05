@@ -38,9 +38,12 @@
 		"no-undef": "off",
 		"no-underscore-dangle": "off",
 		"no-unreachable-loop": "off",
-		"node/no-missing-import": "off",
-		"node/no-missing-require": "off",
+		"n/no-missing-import": "off",
+		"n/no-missing-require": "off",
 		"promise/catch-or-return": "off",
+		"security/detect-non-literal-regexp": "off",
+		"security/detect-possible-timing-attacks": "off",
+		"security/detect-unsafe-regex": "off",
 
 		"no-unused-vars": "off",
 		"@typescript-eslint/no-unused-vars": ["error"]

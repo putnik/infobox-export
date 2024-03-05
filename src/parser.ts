@@ -12,7 +12,7 @@ import { checkForMissedLanguage, contentLanguage } from './languages';
 import { convertSnakToStatement } from './wikidata';
 import { sparqlRequest } from './api';
 import { canExportQuantity } from './parser/quantity';
-import { DataType, PropertyId, typesMapping } from './types/wikidata/types';
+import { type DataType, type PropertyId, typesMapping } from './types/wikidata/types';
 import { getReferences } from './parser/utils';
 import { createTimeValue, prepareTime } from './parser/time';
 import { canExportItem, parseItem } from './parser/item';

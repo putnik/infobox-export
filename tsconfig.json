@@ -9,7 +9,7 @@
     "allowJs": false,
     "moduleResolution": "node",
     "strictFunctionTypes": true,
-    "importsNotUsedAsValues": "error",
+    "verbatimModuleSyntax": true,
     "lib": [
       "dom",
       "es5",
