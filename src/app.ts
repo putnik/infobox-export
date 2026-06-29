@@ -3,7 +3,8 @@ import type { Context, Property } from './types/main';
 import type { Statement } from './types/wikidata/main';
 import type { DataType, ItemId, PropertyId } from './types/wikidata/types';
 import { sparqlRequest, wdApiRequest } from './api';
-import { getItemPropertyValues, setBaseRevId } from './wikidata';
+import { convertSnakToStatement, createNovalueSnak, createSomevalueSnak, getItemPropertyValues, setBaseRevId } from './wikidata';
+import { getReferences } from './parser/utils';
 import {
 	canExportValue,
 	prepareCommonsMedia,
@@ -11,12 +12,12 @@ import {
 	prepareMonolingualText
 } from './parser';
 import { getI18n } from './i18n';
-import { getConfig, getOrLoadProperty, loadConfig, loadProperties, saveConfig, setConfig } from './config';
+import { applyUserConfig, getConfig, getOrLoadProperty, loadConfig, loadProperties, saveConfig, setConfig } from './config';
 import { showDialog } from './ui';
 import { loadMonths } from './months';
 import { prepareQuantity } from './parser/quantity';
 import { prepareTime } from './parser/time';
-import { parseItem } from './parser/item';
+import { markExistingStatements, parseItem, splitCandidates } from './parser/item';
 import { prepareUrl } from './parser/url';
 import { prepareString } from './parser/string';
 import { prepareGlobeCoordinate } from './parser/coordinates';
@@ -29,6 +30,39 @@ const propertyIds: Set<PropertyId> = new Set();
 // Temperature and pressure for qualifiers
 propertyIds.add( 'P2076' );
 propertyIds.add( 'P2077' );
+
+// Field values meaning "unknown value", any datatype. Includes a lone dash.
+const UNKNOWN_VALUE_MARKERS: string[] = [
+	'?',
+	'неизвестно',
+	'unknown',
+	'bilinmir',
+	'naməlum',
+	'qeyri-müəyyən',
+	'-',
+	'–',
+	'—',
+	'−'
+];
+
+// Field values meaning "no value", any datatype.
+const NO_VALUE_MARKERS: string[] = [
+	'нет'
+];
+
+// A numeric child (P40) field exports as number of children (P1971). Only offer it
+// while that exact count isn't on Wikidata yet, or it would re-highlight every load.
+// Returns null when this isn't a P40 numeric field.
+function childCountExportable( propertyId: string, $field: JQuery, claims: { [ key: string ]: Statement[] } ): boolean | null {
+	if ( propertyId !== 'P40' || !/^\d+$/.test( $field.text().trim() ) ) {
+		return null;
+	}
+	const amount: string = '+' + $field.text().trim();
+	const exists: boolean = ( claims[ 'P1971' ] || [] ).some( ( statement: Statement ): boolean =>
+		( statement.mainsnak?.datavalue?.value as { amount?: string } | undefined )?.amount === amount
+	);
+	return !exists;
+}
 
 /**
  * Parsing values from parameters before displaying a dialog
@@ -54,13 +88,31 @@ async function parseField( $field: JQuery ): Promise<Statement[]> {
 	context.$field.find( 'style' ).remove();
 	context.$field.find( 'sup.reference' ).remove();
 	context.$field.find( '.printonly' ).remove();
-	context.$field.find( '[style*="display:none"]' ).remove();
+	// Drop hidden noise, but keep our own markup: qualifiers/value ids are often
+	// in display:none spans.
+	context.$field.find( '[style*="display:none"]' )
+		.not( '[data-wikidata-qualifier-id]' )
+		.not( '[data-wikidata-value-id]' )
+		.filter( function (): boolean {
+			return $( this ).find( '[data-wikidata-qualifier-id], [data-wikidata-value-id]' ).length === 0;
+		} )
+		.remove();
 
 	context.text = context.$field.text().trim();
 
 	const $row: JQuery = $field.closest( 'tr' );
 	if ( $row.length === 1 && $row.find( '[data-wikidata-property-id]' ).length === 1 ) {
 		context.$wrapper = $row.clone();
+	}
+
+	// Field-wide "no value" marker -> novalue snak.
+	if ( NO_VALUE_MARKERS.includes( context.text.toLowerCase() ) ) {
+		return [ convertSnakToStatement( createNovalueSnak( propertyId ), getReferences( context.$wrapper ) ) ];
+	}
+
+	// Field-wide "unknown" marker -> somevalue snak, for any datatype.
+	if ( UNKNOWN_VALUE_MARKERS.includes( context.text.toLowerCase() ) ) {
+		return [ convertSnakToStatement( createSomevalueSnak( propertyId ), getReferences( context.$wrapper ) ) ];
 	}
 
 	switch ( property.datatype ) {
@@ -120,7 +172,22 @@ async function clickEvent(): Promise<void> {
 		statements.push( ...subStatements );
 	}
 
-	await showDialog( statements );
+	const propertyId: string | undefined = $field.attr( 'data-wikidata-property-id' );
+	const markedStatements: Statement[] = markExistingStatements( statements );
+	const splitOffered: boolean = propertyId === 'P166' && ( splitCandidates.P166?.length || 0 ) > 0;
+	const hasActionable: boolean = markedStatements.some( ( s: Statement ): boolean => !s.meta?.alreadyExists );
+
+	// Nothing to add or split — it was highlighted on a stale guess. Clear it and
+	// tell the user instead of opening an empty dialog.
+	if ( !splitOffered && markedStatements.length && !hasActionable ) {
+		$field
+			.removeClass( 'no-wikidata partial-wikidata infobox-export-loader' )
+			.off( 'dblclick' );
+		mw.notify( getI18n( 'already-on-wikidata' ), { tag: 'wikidataInfoboxExport' } );
+		return;
+	}
+
+	await showDialog( markedStatements, propertyId );
 	$field.removeClass( 'infobox-export-loader' );
 }
 
@@ -223,7 +290,9 @@ export async function init(): Promise<any> {
 	}
 
 	loadConfig();
-	await loadDefaultReference();
+	applyUserConfig();
+	// Slow SPARQL, only needed at export time — run it in the background.
+	void loadDefaultReference();
 	await loadMonths();
 
 	let $fields = $( '.infobox-export:not(.vertical-navbox):not([data-from]) .no-wikidata' );
@@ -241,7 +310,8 @@ export async function init(): Promise<any> {
 		const typeIds: ItemId[] = getItemPropertyValues( claims, 'P31' );
 		await preloadAvailableProperties( typeIds );
 	}
-	await Promise.all( $fields.map( async function (): Promise<void> {
+	try {
+		await Promise.all( $fields.map( async function (): Promise<void> {
 		const $field: JQuery = $( this );
 		const propertyId: PropertyId | undefined = $field.attr( 'data-wikidata-property-id' ) as ( PropertyId | undefined );
 		if ( typeof propertyId !== 'undefined' ) {
@@ -250,7 +320,10 @@ export async function init(): Promise<any> {
 				.off( 'dblclick' );
 
 			propertyIds.add( propertyId );
-			const canExport: boolean = await canExportValue( propertyId, $field, claims[ propertyId ] );
+			const childCount: boolean | null = childCountExportable( propertyId, $field, claims );
+			const canExport: boolean = childCount !== null ?
+				childCount :
+				await canExportValue( propertyId, $field, claims[ propertyId ] );
 			if ( canExport ) {
 				$field.addClass( 'no-wikidata' );
 				if ( claims[ propertyId ] && claims[ propertyId ].length ) {
@@ -294,12 +367,23 @@ export async function init(): Promise<any> {
 			return;
 		}
 
+		// A numeric P40 maps to P1971; if the label also guessed P1971 we'd attach
+		// it twice, so dedupe on the effective property.
+		const attachedProperties: Set<string> = new Set();
 		for ( const guessedProperty of guessedProperties ) {
 			if ( alreadyFilledDataTypes.includes( guessedProperty.datatype ) ) {
 				continue;
 			}
-			const canExport: boolean = await canExportValue( guessedProperty.id, $field, claims[ guessedProperty.id ] );
+			const childCount: boolean | null = childCountExportable( guessedProperty.id, $field, claims );
+			const effectiveProperty: string = childCount !== null ? 'P1971' : guessedProperty.id;
+			if ( attachedProperties.has( effectiveProperty ) ) {
+				continue;
+			}
+			const canExport: boolean = childCount !== null ?
+				childCount :
+				await canExportValue( guessedProperty.id, $field, claims[ guessedProperty.id ] );
 			if ( canExport ) {
+				attachedProperties.add( effectiveProperty );
 				propertyIds.add( guessedProperty.id );
 
 				let $wrapper: JQuery = $field;
@@ -321,11 +405,15 @@ export async function init(): Promise<any> {
 			}
 		}
 	} ) );
+	} catch ( error ) {
+		// One bad field shouldn't stop the gadget loading.
+	}
 	const mainCss = require( './assets/main.css' ).toString();
 	mw.util.addCSS( mainCss );
 
-	// TODO: Do not load properties until the window is opened for the first time
-	await loadProperties( propertyIds );
+	// Warm the property cache in the background; the dialog loads anything missing
+	// on demand, so don't hold the spinner for this.
+	void loadProperties( propertyIds );
 
 	$mainHeader.removeClass( 'infobox-export-preloader' );
 }

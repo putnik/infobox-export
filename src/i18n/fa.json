@@ -3,6 +3,8 @@
 	"version-string": "نسخهٔ $1",
 	"export-button-label": "برون‌ریزی",
 	"cancel-button-label": "لغو",
+	"select-all": "انتخاب همه",
+	"unselect-all": "لغو انتخاب همه",
 	"export-confirmation": "برون‌ریزی مقدار ویژگی از یک جعبهٔ اطلاعات به ویکی‌داده؟",
 	"license-cc0": "با کلیک بر روی \"$button\"، موارد موجود در <a $terms>شرایط استفاده</a> را می‌پذیرید و نیز موافقت می‌کنید که مشارکت‌هایتان تحت مجوز <a $license>Creative Commons CC0 License</a> منتشر شود.",
 	"more-precise-value": "از این مقدار به دلیل وجود یک مقدار دقیق‌تر صرف‌نظر شد: $1",
@@ -28,5 +30,18 @@
 	"export-all": "برون‌ریزی همهٔ مقادیر به ویکی‌داده",
 	"clear-cache": "خالی‌کردن کّش",
 	"open-help-page": "گشودن صفحهٔ راهنما",
-	"report-issue": "گزارش خطا"
+	"report-issue": "گزارش خطا",
+	"enrich-date": "افزودن تاریخ گم‌شده",
+	"more-precise-date": "تاریخ دقیق‌تر",
+	"exporting": "در حال برون‌ریزی",
+	"remove-qualifier": "برای حذف این مشخصه از برون‌ریزی کلیک کنید",
+	"restore-qualifier": "برای نگه‌داشتن این مشخصه کلیک کنید",
+	"date-qualifier-label": "مشخصهٔ تاریخ",
+	"qualifier-P580": "زمان آغاز",
+	"qualifier-P585": "نقطهٔ زمانی",
+	"qualifier-P582": "زمان پایان",
+	"split-qualifiers-title": "دادهٔ دارای چند مشخصه",
+	"split-qualifiers-question": "دادهٔ دارای چند مشخصه یافت شد. می‌خواهید آن‌ها را جدا کنید؟",
+	"split-qualifiers-button": "جداکردن",
+	"already-on-wikidata": "هم‌اکنون در ویکی‌داده موجود است"
 }

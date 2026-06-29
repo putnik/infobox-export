@@ -145,6 +145,25 @@ export async function getStatements( propertyId: PropertyId, titles: Title[], re
 		return [];
 	}
 
+	// Match titles to items by sitelink. Two items can share a label (a Soviet
+	// order and a same-named foreign one), so a label match alone isn't enough.
+	const hasSitelinkOwner = function ( title: Title ): boolean {
+		for ( const candidateId in data.entities ) {
+			if ( !data.entities.hasOwnProperty( candidateId ) || !candidateId.match( /^Q/ ) ) {
+				continue;
+			}
+			const sitelinks = data.entities[ candidateId ].sitelinks || {};
+			for ( const i in sitelinks ) {
+				if ( sitelinks.hasOwnProperty( i ) &&
+					title.label.toLowerCase() === sitelinks[ i ].title.toLowerCase()
+				) {
+					return true;
+				}
+			}
+		}
+		return false;
+	};
+
 	let statements: Statement[] = [];
 	for ( const entityId in data.entities ) {
 		if ( !data.entities.hasOwnProperty( entityId ) || !entityId.match( /^Q/ ) ) {
@@ -186,57 +205,83 @@ export async function getStatements( propertyId: PropertyId, titles: Title[], re
 			}
 		}
 
-		const snak: Snak = generateItemSnak( propertyId, entityId as ItemId );
-		const statement: Statement = convertSnakToStatement( snak, references );
-
-		if ( subclassFound && subclassEntity ) {
-			statement.meta.subclassItem = {
-				'entity-type': 'item',
-				'numeric-id': parseInt( subclassEntityId.replace( 'Q', '' ), 10 ),
-				id: subclassEntityId
-			};
-		}
-
 		const lowerLabel: string = getLabelValue( entity.labels, [ contentLanguage, userLanguage ] ).toLowerCase();
 		const relatedTitles: Title[] = titles.filter( function ( title: Title ): boolean {
-			if ( title.label.toLowerCase() === lowerLabel ) {
-				return true;
-			}
+			// sitelink match
 			for ( const i in entity.sitelinks ) {
-				if ( !entity.sitelinks.hasOwnProperty( i ) ) {
-					continue;
-				}
-				if ( title.label.toLowerCase() === entity.sitelinks[ i ].title.toLowerCase() ) {
+				if ( entity.sitelinks.hasOwnProperty( i ) &&
+					title.label.toLowerCase() === entity.sitelinks[ i ].title.toLowerCase()
+				) {
 					return true;
 				}
+			}
+			// label match, but only if no item already owns the title by sitelink
+			if ( title.label.toLowerCase() === lowerLabel && !hasSitelinkOwner( title ) ) {
+				return true;
 			}
 			return false;
 		} );
 
-		if ( relatedTitles.length === 1 ) {
-			statement.meta.title = relatedTitles.shift();
-			statement.qualifiers = statement.meta.title.qualifiers;
+		// One statement per mention, so an award won several times isn't collapsed.
+		const pushStatement = ( relatedTitle?: Title ): void => {
+			const snak: Snak = generateItemSnak( propertyId, entityId as ItemId );
+			const statement: Statement = convertSnakToStatement( snak, references );
+			if ( subclassFound && subclassEntity ) {
+				statement.meta.subclassItem = {
+					'entity-type': 'item',
+					'numeric-id': parseInt( subclassEntityId.replace( 'Q', '' ), 10 ),
+					id: subclassEntityId
+				};
+			}
+			if ( relatedTitle ) {
+				statement.meta.title = relatedTitle;
+				statement.qualifiers = relatedTitle.qualifiers;
+			}
+			// Keep the parts (P527) so a broad value can be dropped when a more
+			// specific part is already on Wikidata.
+			const partIds: ItemId[] = getItemPropertyValues( entity?.claims, 'P527' );
+			if ( partIds.length ) {
+				statement.meta.partIds = partIds;
+			}
+			statements.push( statement );
+		};
+		// Repeated mentions only matter for awards (P166).
+		if ( propertyId === 'P166' && relatedTitles.length > 1 ) {
+			relatedTitles.forEach( ( relatedTitle: Title ): void => pushStatement( relatedTitle ) );
+		} else {
+			pushStatement( relatedTitles.length === 1 ? relatedTitles[ 0 ] : undefined );
 		}
-
-		statements.push( statement );
 	}
 
+	// A redirect title and its target can both produce a statement. If the redirect
+	// has its own item, keep that one and drop the target. If they end up on the
+	// same item, drop the duplicate target and keep the source (it has the dates).
 	const badRedirectItemIds: ItemId[] = [];
+	const redundantStatements: Set<Statement> = new Set();
 	for ( let i: number = 0; i < statements.length; i++ ) {
 		const title: Title | undefined = statements[ i ]?.meta?.title;
 		if ( !title?.redirect ) {
 			continue;
 		}
+		const sourceItemId: ItemId | undefined = ( statements[ i ].mainsnak.datavalue?.value as ItemValue | undefined )?.id;
 		statements.forEach( function ( statement: Statement ): void {
-			if ( statement?.meta?.title?.label === title?.redirect &&
-				statement?.meta?.title?.project === title.project &&
-				statement.mainsnak.snaktype === 'value'
+			if ( statement === statements[ i ] ||
+				statement?.meta?.title?.label !== title?.redirect ||
+				statement?.meta?.title?.project !== title.project ||
+				statement.mainsnak.snaktype !== 'value'
 			) {
-				badRedirectItemIds.push( ( statement.mainsnak.datavalue.value as ItemValue ).id );
+				return;
+			}
+			const targetItemId: ItemId = ( statement.mainsnak.datavalue.value as ItemValue ).id;
+			if ( targetItemId === sourceItemId ) {
+				redundantStatements.add( statement );
+			} else {
+				badRedirectItemIds.push( targetItemId );
 			}
 		} );
 	}
 	statements = statements.filter( ( statement: Statement ) => (
+		!redundantStatements.has( statement ) &&
 		!badRedirectItemIds.includes( ( statement.mainsnak.datavalue.value as ItemValue ).id )
 	) );
 
@@ -246,13 +291,116 @@ export async function getStatements( propertyId: PropertyId, titles: Title[], re
 /**
  * Creates statements in Wikidata or return error message otherwise
  */
+export async function addDateQualifier( statement: Statement ): Promise<string|null> {
+	const enrich = statement.meta?.enrich;
+	const snaks: Snak[] | undefined = enrich ? statement.qualifiers?.[ enrich.dateProp ] : undefined;
+	if ( !enrich || !snaks || !snaks.length || !snaks[ 0 ].datavalue ) {
+		return 'No date to add';
+	}
+	const dateSnak: Snak = JSON.parse( JSON.stringify( snaks[ 0 ] ) );
+	delete dateSnak.hash;
+
+	// The reference(s) to add, dropping a duplicate "imported from" one — they differ
+	// only by the oldid, so it would just pile up a near-duplicate.
+	const referencesToAdd: Reference[] = ( statement.references || [] ).filter( ( reference: Reference ): boolean => {
+		const isImportRef: boolean = !!( reference.snaks?.P143 || reference.snaks?.P4656 );
+		return !( isImportRef && enrich.skipImportRef );
+	} );
+
+	// Merge the date (and reference) into the existing claim and save it as a single
+	// edit, instead of separate wbsetqualifier + wbsetreference calls.
+	if ( enrich.targetClaim ) {
+		const merged: Statement = JSON.parse( JSON.stringify( enrich.targetClaim ) );
+		merged.meta = {};
+		merged.qualifiers = merged.qualifiers || {};
+		const dateQualifiers: Snak[] = merged.qualifiers[ enrich.dateProp ] || [];
+		if ( enrich.snakHash ) {
+			// Precision upgrade: replace the coarser date in place.
+			const index: number = dateQualifiers.findIndex( ( s: Snak ): boolean => s.hash === enrich.snakHash );
+			if ( index !== -1 ) {
+				dateQualifiers[ index ] = dateSnak;
+			} else {
+				dateQualifiers.push( dateSnak );
+			}
+		} else {
+			dateQualifiers.push( dateSnak );
+		}
+		merged.qualifiers[ enrich.dateProp ] = dateQualifiers;
+		merged.references = ( merged.references || [] ).concat( referencesToAdd );
+		return createClaim( merged );
+	}
+
+	// Fallback (no captured claim): set the qualifier, then the reference(s).
+	const params: KeyValue = {
+		action: 'wbsetqualifier',
+		claim: enrich.guid,
+		property: enrich.dateProp,
+		snaktype: 'value',
+		value: JSON.stringify( snaks[ 0 ].datavalue.value ),
+		baserevid: baseRevId,
+		tags: 'InfoboxExport gadget'
+	};
+	if ( enrich.snakHash ) {
+		params.snakhash = enrich.snakHash;
+	}
+	const qualifierError: string | null = await new Promise( ( resolve ): void => {
+		getWdApi().postWithToken( 'csrf', params ).then( ( response: ApiResponse ): void => {
+			if ( response?.pageinfo?.lastrevid ) {
+				baseRevId = response.pageinfo.lastrevid;
+			}
+			resolve( null );
+		} ).catch( ( _: string, errorResponse: ApiResponse ): void => {
+			resolve( errorResponse?.error?.info || 'Network error' );
+		} );
+	} );
+	if ( qualifierError ) {
+		return qualifierError;
+	}
+	for ( const reference of referencesToAdd ) {
+		const referenceError: string | null = await addReferenceToClaim( enrich.guid, reference );
+		if ( referenceError ) {
+			return referenceError;
+		}
+	}
+	return null;
+}
+
+function addReferenceToClaim( guid: string, reference: Reference ): Promise<string|null> {
+	const params: KeyValue = {
+		action: 'wbsetreference',
+		statement: guid,
+		snaks: JSON.stringify( reference.snaks ),
+		baserevid: baseRevId,
+		tags: 'InfoboxExport gadget'
+	};
+	if ( reference[ 'snaks-order' ] ) {
+		params[ 'snaks-order' ] = JSON.stringify( reference[ 'snaks-order' ] );
+	}
+	return new Promise( ( resolve ): void => {
+		getWdApi().postWithToken( 'csrf', params ).then( ( response: ApiResponse ): void => {
+			if ( response?.pageinfo?.lastrevid ) {
+				baseRevId = response.pageinfo.lastrevid;
+			}
+			resolve( null );
+		} ).catch( ( _: string, errorResponse: ApiResponse ): void => {
+			// Reference already there — not an error for us.
+			const info: string = errorResponse?.error?.info || '';
+			if ( /already.*reference|reference with hash/i.test( info ) ) {
+				resolve( null );
+				return;
+			}
+			resolve( info || 'Network error' );
+		} );
+	} );
+}
+
 export async function createClaim( statement: Statement ): Promise<string|null> {
 	return getWdApi().postWithToken( 'csrf', {
 		action: 'wbsetclaim',
 		claim: stringifyStatement( statement ),
 		baserevid: baseRevId,
 		tags: 'InfoboxExport gadget'
-	} ).then( ( _: string, response: ApiResponse ): null => {
+	} ).then( ( response: ApiResponse ): null => {
 		if ( response?.pageinfo?.lastrevid ) {
 			baseRevId = response.pageinfo.lastrevid;
 		}
@@ -295,6 +443,13 @@ export function convertStatementsToClaimsObject( statements: Statement[] ): Clai
 export function createNovalueSnak( propertyId: PropertyId ): Snak {
 	return {
 		snaktype: 'novalue',
+		property: propertyId
+	};
+}
+
+export function createSomevalueSnak( propertyId: PropertyId ): Snak {
+	return {
+		snaktype: 'somevalue',
 		property: propertyId
 	};
 }

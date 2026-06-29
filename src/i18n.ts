@@ -1,5 +1,5 @@
 import type { Translations } from './types/main';
-import { userLanguage } from './languages';
+import { allLanguages } from './languages';
 
 const i18n: Translations = {
 	az: require( './i18n/az.json' ),
@@ -12,18 +12,27 @@ const i18n: Translations = {
 	lt: require( './i18n/lt.json' ),
 	ru: require( './i18n/ru.json' ),
 	tg: require( './i18n/tg.json' )
-};
+}
 
 /**
- * Returns translated value
+ * Returns translated value. Tries the user/content languages in order, then
+ * falls back to English, per key.
  */
 export function getI18n( key: string ): string {
 	let result: string = key;
-	if ( userLanguage in i18n && key in i18n[ userLanguage ] ) {
-		result = i18n[ userLanguage ][ key ];
-	} else if ( key in i18n.en ) {
+	let found: boolean = false;
+	for ( const language of allLanguages ) {
+		if ( i18n[ language ] && key in i18n[ language ] ) {
+			result = i18n[ language ][ key ];
+			found = true;
+			break;
+		}
+	}
+	if ( !found && key in i18n.en ) {
 		result = i18n.en[ key ];
-	} else {
+		found = true;
+	}
+	if ( !found ) {
 		console.warn( 'I18n missed for "' + key + '"' );
 	}
 

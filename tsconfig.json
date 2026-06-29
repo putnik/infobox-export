@@ -5,15 +5,14 @@
     "noEmit": false,
     "noImplicitAny": true,
     "module": "es6",
-    "target": "es5",
+    "target": "es2017",
     "allowJs": false,
     "moduleResolution": "node",
     "strictFunctionTypes": true,
     "verbatimModuleSyntax": true,
     "lib": [
       "dom",
-      "es5",
-      "es2015.promise",
+      "es2017",
       "scripthost"
     ]
   },

@@ -9,9 +9,5 @@ $.when(
 		'mediawiki.api',
 		'mediawiki.ForeignApi',
 		'mediawiki.util',
-		'oojs-ui-core',
-		'oojs-ui.styles.icons-interactions',
-		'oojs-ui-widgets',
-		'oojs-ui-windows'
 	] )
 ).done( init );

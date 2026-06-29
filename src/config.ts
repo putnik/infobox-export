@@ -1,6 +1,6 @@
 import { getMonths, getMonthsGen } from './months';
 import type { ApiResponse, SparqlUnitBindings, SparqlUnitsResponse } from './types/api';
-import type { Config, KeyValue, Property, Translations, Type, UnitsData } from './types/main';
+import type { Config, FixedValue, KeyValue, Property, Translations, Type, UnitsData } from './types/main';
 import type { ItemDataValue, PropertyDataValue, StringDataValue } from './types/wikidata/datavalues';
 import type { Snak, Statement } from './types/wikidata/main';
 import type { ItemId, PropertyId } from './types/wikidata/types';
@@ -40,21 +40,8 @@ let config: Config = {
 
 const i18nConfig: Translations = {
 	az: require( './config/az.json' ),
-	be: require( './config/be.json' ),
-	'be-tarask': require( './config/be-tarask.json' ),
-	de: require( './config/de.json' ),
-	en: require( './config/en.json' ),
-	es: require( './config/es.json' ),
-	hy: require( './config/hy.json' ),
-	it: require( './config/it.json' ),
-	ja: require( './config/ja.json' ),
-	ko: require( './config/ko.json' ),
-	lt: require( './config/lt.json' ),
-	mul: require( './config/mul.json' ),
-	ru: require( './config/ru.json' ),
-	tg: require( './config/tg.json' ),
-	tr: require( './config/tr.json' )
-};
+	mul: require( './config/mul.json' )
+}
 
 const defaultUnitTypeIds: ItemId[] = [ 'Q47574', 'Q29479187' ];
 const propertiesStore: string = 'infoboxExportProperties';
@@ -155,6 +142,32 @@ export function loadConfig(): void {
 
 	if ( getConfig( 'properties' ) === undefined ) {
 		config.properties = {};
+	}
+}
+
+/**
+ * Merge the on-wiki config (window.wieConfig from the gadget page) into the active
+ * config. Re-applied every load so the gadget page stays the source of truth:
+ * fixed values as-is, units unwrapped from { search: [...] } to a plain array.
+ */
+export function applyUserConfig(): void {
+	const userConfig: {
+		units?: { [ key: string ]: { search?: string[] } };
+		fixedValues?: FixedValue[];
+	} | undefined = ( window as any ).wieConfig;
+	if ( !userConfig ) {
+		return;
+	}
+	if ( Array.isArray( userConfig.fixedValues ) ) {
+		set( config, 'fixed-values', userConfig.fixedValues );
+	}
+	if ( userConfig.units ) {
+		for ( const unitId in userConfig.units ) {
+			const search: string[] | undefined = userConfig.units[ unitId ]?.search;
+			if ( search ) {
+				set( config, 'units.' + unitId, search );
+			}
+		}
 	}
 }
 

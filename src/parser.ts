@@ -14,7 +14,7 @@ import { sparqlRequest } from './api';
 import { canExportQuantity } from './parser/quantity';
 import { type DataType, type PropertyId, typesMapping } from './types/wikidata/types';
 import { getReferences } from './parser/utils';
-import { createTimeValue, prepareTime } from './parser/time';
+import { createTimeValue, isUncertainDateText, prepareTime } from './parser/time';
 import { canExportItem, parseItem } from './parser/item';
 
 export function addQualifierValue(
@@ -45,49 +45,122 @@ export function addQualifierValue(
 	return statement;
 }
 
+// Date qualifiers a parenthetical date can be assigned to: start / point / end.
+export const DATE_CHOICE_PROPERTIES: PropertyId[] = [ 'P580', 'P585', 'P582' ];
+
 export async function addPointInTimeQualifier( $field: JQuery, statement: Statement ): Promise<Statement> {
-	let qualifierId: PropertyId;
+	// Default for a single date; ranges get start/end from prepareTime.
+	let singleDefault: PropertyId;
 	switch ( statement.mainsnak.property ) {
 		case 'P512':
 		case 'P803':
-			qualifierId = 'P580';
+			singleDefault = 'P580';
 			break;
 
 		case 'P69':
-			qualifierId = 'P582';
+			singleDefault = 'P582';
 			break;
 
 		default:
-			qualifierId = 'P585';
+			singleDefault = 'P585';
 	}
 
-	if ( statement.qualifiers?.[ qualifierId ] ) {
-		return statement;
-	}
-
+	// Grab the first parenthetical that parses as a date. Parsing as P580 lets a
+	// range ("1969—1991") come back as start (P580) + end (P582).
+	let parsed: Statement[] = [];
+	let parsedText: string = '';
 	let matches: RegExpMatchArray;
 	const pointInTimeRegex: RegExp = /\(([^()]+)\)/g;
 	while ( ( matches = pointInTimeRegex.exec( $field.text() ) ) ) {
-		const fakeContext: Context = {
-			propertyId: qualifierId,
+		const candidate: Statement[] = prepareTime( {
+			propertyId: 'P580',
 			text: matches[ 1 ].trim(),
 			$field: $( '<span>' ),
 			$wrapper: $( '<span>' )
-		};
-
-		const qualifierStatements: Statement[] = prepareTime( fakeContext );
-		if ( !qualifierStatements.length ) {
-			continue;
+		} );
+		if ( candidate.length ) {
+			parsed = candidate;
+			parsedText = matches[ 1 ].trim();
+			break;
 		}
-		if ( qualifierStatements.length > 1 ) {
-			return statement;
-		}
-
-		const qualifierValue: TimeValue = ( qualifierStatements[ 0 ].mainsnak.datavalue.value ) as TimeValue;
-		statement = addQualifierValue( statement, qualifierId, 'time', qualifierValue );
-		break;
 	}
 
+	// Messy parenthetical (date mixed with prose): offer it unselected.
+	const uncertain: boolean = isUncertainDateText( parsedText );
+
+	// Collect the date value(s); a range keeps each snak's start/end property.
+	const choices: { value: TimeValue; selected: PropertyId | null }[] = [];
+	for ( const parsedStatement of parsed ) {
+		const mainsnak: Snak = parsedStatement.mainsnak;
+		if ( mainsnak.snaktype !== 'value' || !mainsnak.datavalue ) {
+			continue; // e.g. "(?)" -> unknown value, not a concrete date to pick
+		}
+		const selected: PropertyId | null = uncertain ?
+			null :
+			( parsed.length > 1 ? mainsnak.property : singleDefault );
+		choices.push( { value: mainsnak.datavalue.value as TimeValue, selected } );
+	}
+	if ( !choices.length ) {
+		return statement;
+	}
+
+	// Awards (P166): commit the first date as P585, no choice.
+	if ( statement.mainsnak.property === 'P166' ) {
+		if ( !statement.qualifiers?.[ 'P585' ] ) {
+			statement = addQualifierValue( statement, 'P585', 'time', choices[ 0 ].value );
+		}
+		return statement;
+	}
+
+	// Otherwise drop the auto-committed date(s) and let the user pick in the dialog.
+	const chosenValues: string[] = choices.map( ( choice ): string => JSON.stringify( choice.value ) );
+	for ( const propertyId of DATE_CHOICE_PROPERTIES ) {
+		const snaks: Snak[] | undefined = statement.qualifiers?.[ propertyId ];
+		if ( snaks?.length === 1 && snaks[ 0 ].datavalue &&
+			chosenValues.includes( JSON.stringify( snaks[ 0 ].datavalue.value ) )
+		) {
+			delete statement.qualifiers[ propertyId ];
+		}
+	}
+	if ( statement.qualifiers && !Object.keys( statement.qualifiers ).length ) {
+		delete statement.qualifiers;
+	}
+	statement.meta = statement.meta || {};
+	statement.meta.dateChoices = choices;
+	return statement;
+}
+
+/**
+ * Turn date qualifiers already committed onto a value (P580/P585/P582) into
+ * dialog date-pickers. Used for multi-value fields where the field text can't be
+ * re-read per value. Awards (P166) keep their point in time.
+ */
+export function convertCommittedDates( statement: Statement ): Statement {
+	if ( statement.mainsnak.property === 'P166' ) {
+		return statement;
+	}
+
+	// Messy parenthetical: offer it unselected.
+	const uncertain: boolean = isUncertainDateText( statement.meta?.title?.dateText || '' );
+	const choices: { value: TimeValue; selected: PropertyId | null }[] = [];
+	for ( const propertyId of DATE_CHOICE_PROPERTIES ) {
+		const snaks: Snak[] | undefined = statement.qualifiers?.[ propertyId ];
+		if ( snaks?.length === 1 && snaks[ 0 ].snaktype === 'value' && snaks[ 0 ].datavalue ) {
+			choices.push( {
+				value: snaks[ 0 ].datavalue.value as TimeValue,
+				selected: uncertain ? null : propertyId
+			} );
+			delete statement.qualifiers[ propertyId ];
+		}
+	}
+	if ( !choices.length ) {
+		return statement;
+	}
+	if ( statement.qualifiers && !Object.keys( statement.qualifiers ).length ) {
+		delete statement.qualifiers;
+	}
+	statement.meta = statement.meta || {};
+	statement.meta.dateChoices = choices;
 	return statement;
 }
 
@@ -155,7 +228,7 @@ export async function prepareCommonsMedia( context: Context ): Promise<Statement
 		const $img: JQuery = imgs[ pos ];
 		const src: string = $img.attr( 'src' );
 		if ( !src.match( /upload\.wikimedia\.org\/wikipedia\/commons/ ) ) {
-			return;
+			continue; // locally-uploaded file, not on Commons -> skip
 		}
 		const srcParts: string[] = src.split( '/' );
 		let fileName: string = srcParts.pop();
@@ -294,9 +367,15 @@ export async function canExportValue( propertyId: PropertyId, $field: JQuery, st
 			return false;
 		}
 
-		// Can't export if image is local and large
-		const $localImg: JQuery = $field.find( '.image img[src*="/wikipedia/' + contentLanguage + '/"]' );
-		return !$localImg.length || $localImg.width() < 80;
+		// Skip a big image that isn't on Commons (e.g. a local upload).
+		const $nonCommonsImg: JQuery = $field.find( 'img' ).filter( function ( _index: number, element: HTMLElement ): boolean {
+			const img: HTMLImageElement = element as HTMLImageElement;
+			const imgSrc: string = img.getAttribute( 'src' ) || '';
+			return !!imgSrc &&
+				!imgSrc.match( /upload\.wikimedia\.org\/wikipedia\/commons/ ) &&
+				img.width >= 80;
+		} );
+		return $nonCommonsImg.length === 0;
 	}
 
 	switch ( statements[ 0 ].mainsnak.datatype ) {

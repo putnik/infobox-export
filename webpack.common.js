@@ -21,7 +21,7 @@ module.exports = {
 			},
 			{
 				test: /\.css$/i,
-				use: [ 'style-loader', 'css-loader' ]
+				type: 'asset/source'
 			}
 		]
 	},
@@ -32,7 +32,7 @@ module.exports = {
 		filename: 'main.js',
 		path: path.resolve( __dirname, 'dist' )
 	},
-	target: [ 'web', 'es5' ],
+	target: [ 'web', 'es2017' ],
 	plugins: [
 		new webpack.DefinePlugin( {
 			__VERSION__: JSON.stringify( require( './package.json' ).version ),
