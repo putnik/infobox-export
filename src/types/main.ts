@@ -21,6 +21,8 @@ export interface Title {
 	project: string;
 	qualifiers?: SnaksObject;
 	redirect?: string;
+	// Raw parenthetical the date came from, e.g. "1967" — used to spot messy dates.
+	dateText?: string;
 }
 
 export interface Translations {

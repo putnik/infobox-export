@@ -3,6 +3,8 @@
 	"version-string": "Версия $1",
 	"export-button-label": "Экспорт",
 	"cancel-button-label": "Отмена",
+	"select-all": "Выбрать все",
+	"unselect-all": "Снять выделение",
 	"export-confirmation": "Экспортировать значение свойства из карточки в Викиданные?",
 	"license-cc0": "Нажав на кнопку «$button», вы соглашаетесь с <a $terms>условиями использования</a> и безотзывно соглашаетесь публиковать свой вклад на условиях <a $license>Creative Commons CC0 License</a>.",
 	"more-precise-value": "Значение исключено, так как уже имеется более точное: $1",
@@ -28,5 +30,18 @@
 	"export-all": "Экспортировать все значения в Викиданные",
 	"clear-cache": "Очистить кэш",
 	"open-help-page": "Открыть справку",
-	"report-issue": "Сообщить о проблеме"
+	"report-issue": "Сообщить о проблеме",
+	"enrich-date": "добавить недостающую дату",
+	"more-precise-date": "более точная дата",
+	"exporting": "экспорт",
+	"remove-qualifier": "Нажмите, чтобы исключить этот квалификатор из экспорта",
+	"restore-qualifier": "Нажмите, чтобы сохранить этот квалификатор",
+	"date-qualifier-label": "Квалификатор даты",
+	"qualifier-P580": "дата начала",
+	"qualifier-P585": "момент времени",
+	"qualifier-P582": "дата окончания",
+	"split-qualifiers-title": "Данные с несколькими квалификаторами",
+	"split-qualifiers-question": "Обнаружены данные с несколькими квалификаторами. Разделить их?",
+	"split-qualifiers-button": "Разделить",
+	"already-on-wikidata": "Уже в Викиданных"
 }

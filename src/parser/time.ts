@@ -1,7 +1,7 @@
 import type { Reference, Snak, Statement } from '../types/wikidata/main';
 import { getConfig } from '../config';
 import type { TimeValue, Value } from '../types/wikidata/values';
-import { convertSnakToStatement, createNovalueSnak, grigorianCalendar, julianCalendar } from '../wikidata';
+import { convertSnakToStatement, createNovalueSnak, createSomevalueSnak, grigorianCalendar, julianCalendar } from '../wikidata';
 import type { TimeDataValue } from '../types/wikidata/datavalues';
 import { getReferences } from './utils';
 import type { Context, KeyValue, TimeGuess } from '../types/main';
@@ -155,6 +155,31 @@ export function guessDateAndPrecision( timestamp: string ): TimeGuess {
 	};
 }
 
+// Whether the text is an explicit "unknown date" marker. A bare "?" is treated
+// as unknown on every wiki; other wordings come from the re-unknown config.
+export function isUnknownDate( text: string ): boolean {
+	const trimmed: string = text.trim();
+	return trimmed === '?' || !!trimmed.match( getConfig( 're-unknown' ) );
+}
+
+// "Messy" date parenthetical — has extra words beyond the date itself
+// (e.g. "факультет машиностроения, 1967"). Don't guess the qualifier for these.
+export function isUncertainDateText( text: string ): boolean {
+	if ( !text ) {
+		return false;
+	}
+	let rest: string = ' ' + text.toLowerCase() + ' ';
+	for ( const month of getMonths().concat( getMonthsGen() ) ) {
+		if ( month ) {
+			rest = rest.split( month.toLowerCase() ).join( ' ' );
+		}
+	}
+	// Drop digits and common date punctuation; whatever 3+ letter run remains is
+	// real prose (a faculty, a city, …), which marks the date as uncertain.
+	rest = rest.replace( /[0-9.,;:()«»"'\\/\-–—]/g, ' ' );
+	return /[^\s\d]{3,}/.test( rest );
+}
+
 export function createTimeString( time: Date, precision: number ): string {
 	if ( precision <= 8 ) {
 		let year: number = time.getFullYear();
@@ -291,6 +316,12 @@ export function prepareTime( context: Context ): Statement[] {
 	const value: TimeValue | void = createTimeValue( timeText, isJulian );
 	if ( value ) {
 		const snak: Snak = createTimeSnak( value, context.propertyId );
+		const references: Reference[] = getReferences( context.$wrapper );
+		const statement: Statement = convertSnakToStatement( snak, references );
+		statements.push( statement );
+	} else if ( isUnknownDate( timeText ) ) {
+		// "unknown" marker (e.g. |death date = ?) -> somevalue snak.
+		const snak: Snak = createSomevalueSnak( context.propertyId );
 		const references: Reference[] = getReferences( context.$wrapper );
 		const statement: Statement = convertSnakToStatement( snak, references );
 		statements.push( statement );

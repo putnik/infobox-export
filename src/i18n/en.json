@@ -3,6 +3,8 @@
 	"version-string": "Version $1",
 	"export-button-label": "Export",
 	"cancel-button-label": "Cancel",
+	"select-all": "Select all",
+	"unselect-all": "Unselect all",
 	"export-confirmation": "Export property value from an infobox to Wikidata?",
 	"license-cc0": "By clicking \"$button\", you agree to the <a $terms>terms of use</a>, and you irrevocably agree to release your contribution under the <a $license>Creative Commons CC0 License</a>.",
 	"more-precise-value": "The value is excluded in favor of a more accurate value: $1",
@@ -28,5 +30,18 @@
 	"export-all": "Export all values to Wikidata",
 	"clear-cache": "Clear cache",
 	"open-help-page": "Open help page",
-	"report-issue": "Report issue"
+	"report-issue": "Report issue",
+	"enrich-date": "add missing date",
+	"more-precise-date": "more precise date",
+	"exporting": "exporting",
+	"remove-qualifier": "Click to exclude this qualifier from the export",
+	"restore-qualifier": "Click to keep this qualifier",
+	"date-qualifier-label": "Date qualifier",
+	"qualifier-P580": "start time",
+	"qualifier-P585": "point in time",
+	"qualifier-P582": "end time",
+	"split-qualifiers-title": "Multiple-qualifier data",
+	"split-qualifiers-question": "Multiple-qualifier data found. Want to make them separate?",
+	"split-qualifiers-button": "Separate",
+	"already-on-wikidata": "Already on Wikidata"
 }

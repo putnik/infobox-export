@@ -12,6 +12,7 @@ function getRefSup( url: string, text: string ): JQuery {
 		.attr( 'href', url )
 		.attr( 'rel', 'noopener noreferrer' )
 		.attr( 'target', '_blank' )
+		.attr( 'tabindex', '-1' ) // keep the dialog focus trap off the [d]/reference links
 		.text( `[${ text }]` );
 	return $( '<sup>' )
 		.addClass( 'infobox-export-sup' )
@@ -94,7 +95,7 @@ export async function formatItemValue( value: ItemValue ): Promise<JQuery> {
 	const $wdLink: JQuery = getRefSup( `https://wikidata.org/wiki/${ value.id }`, 'd' );
 	const $label: JQuery = $( '<span>' ).append( $mainLabel, $wdLink );
 	if ( itemLabel?.description ) {
-		$label.append( $( '<span>' ).text( ' — ' + itemLabel.description ) );
+		$label.append( $( '<span>' ).addClass( 'infobox-export-description' ).text( ' — ' + itemLabel.description ) );
 	}
 	return $label;
 }
